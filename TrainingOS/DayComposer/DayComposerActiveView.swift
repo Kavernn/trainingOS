@@ -96,6 +96,7 @@ struct DayComposerActiveView: View {
             }
         }
         .background(Color.appSurfaceInset)
+        .keepsScreenAwake(!finishCoordinator.dayCompleted)
         .sheet(item: $decision, onDismiss: decisionDismissed) { value in
             switch value {
             case .rpe: rpeSheet

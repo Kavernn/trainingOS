@@ -2309,6 +2309,8 @@ struct WorkoutSeanceView: View {
         .sheet(isPresented: $showCreateVariant) { createVariantSheet }
         .onAppear(perform: handleWorkoutAppear)
         .onAppear(perform: restoreComment)
+        // Couvre aussi SeanceSoirView et le bonus de SeanceView (même vue).
+        .keepsScreenAwake(vm.sessionStarted && !showSummary)
         .onChange(of: data.todayDate) { _, _ in restoreComment(); restoreMobilityChecklist() }
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }

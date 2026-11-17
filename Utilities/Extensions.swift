@@ -1,6 +1,41 @@
 import SwiftUI
 import AVFoundation
 
+#if os(iOS)
+// MARK: - Écran maintenu allumé pendant une séance active (F2)
+/// Seul point qui écrit isIdleTimerDisabled. Ensemble de détenteurs plutôt qu'un booléen :
+/// lors d'une transition (soir sur matin, Ma journée → séance), B apparaît avant que A disparaisse.
+@MainActor enum ScreenAwake {
+    private(set) static var holders = Set<UUID>()
+    static func set(_ on: Bool, for id: UUID) {
+        if on { holders.insert(id) } else { holders.remove(id) }
+        UIApplication.shared.isIdleTimerDisabled = !holders.isEmpty
+    }
+}
+
+private struct KeepsScreenAwake: ViewModifier {
+    let active: Bool
+    @State private var id = UUID()
+    @State private var visible = false
+    @Environment(\.scenePhase) private var phase
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { visible = true; update() }
+            .onDisappear { visible = false; update() }      // fin, abandon, changement d'onglet
+            .onChange(of: active) { update() }              // fin de séance, récap
+            .onChange(of: phase) { update() }               // arrière-plan, puis retour
+    }
+
+    private func update() { ScreenAwake.set(active && visible && phase == .active, for: id) }
+}
+
+extension View {
+    /// Écran allumé seulement si `active` ET vue affichée ET app au premier plan.
+    func keepsScreenAwake(_ active: Bool) -> some View { modifier(KeepsScreenAwake(active: active)) }
+}
+#endif
+
 // MARK: - Button Styles
 
 struct ScaleButtonStyle: ButtonStyle {

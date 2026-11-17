@@ -642,6 +642,7 @@ struct BonusSeanceView: View {
         }
         .navigationTitle(isRestDay ? "Séance libre" : "Séance 2")
         .navigationBarTitleDisplayMode(.inline)
+        .keepsScreenAwake(sessionStarted)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.isVisible {
                 FloatingRestTimerCard()
