@@ -90,6 +90,7 @@ Disponibilité ≠ autorisation. Les RÈGLES ABSOLUES priment sur tout workflow 
 - **Simplification** (`code-simplifier`, `/simplify`) : modifient le code directement → uniquement sur demande explicite, périmètre = fichiers du diff en cours, sortie = diff soumis avant application. Ignorer ses standards JS/React ; seules les conventions TrainingOS s'appliquent. Jamais de fichier hors périmètre.
 - **Swift LSP** (outil `LSP`) : définitions, références, call hierarchy Swift. Voir hiérarchie graphify ci-dessous.
 - **Xcode MCP** : lecture libre (XcodeRead/Grep/LS/Glob, ListSchemes/Targets/TestPlans, GetTestList, GetBuildLog, XcodeRefreshCodeIssuesInFile). **Interdits sans demande explicite de Vince** : BuildProject, RunProject, RunAllTests, RunSomeTests, RunCodeSnippet, RenderPreview, DeviceInteraction*, et tout outil qui écrit (XcodeWrite/Update/RM/MV/MakeDir, UpdateTargetBuildSetting, UpdateFileCompilerFlags, AddEntitlement, AddInfoPlist, StringCatalogEdit, XcodeNewTarget).
+- **Vercel CLI** : uniquement `vercel logs` et `vercel ls`. Aucun déploiement, aucune autre commande, sans go explicite de Vince. (Incident 2026-11-17 : `vercel api …`, inconnu de la CLI 50.39, interprété comme un déploiement du dossier `api` ; tué au timeout, aucun déploiement créé.)
 - **Skills Ruflo génériques** (`verification-quality`, `pair-programming`, `sparc-methodology`, swarm/hive-mind) : non adaptés (auto-rollback, auto-commit, délégation de l'implémentation) → ne pas invoquer sur TrainingOS.
 
 ## COMPACTION
