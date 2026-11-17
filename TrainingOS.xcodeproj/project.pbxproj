@@ -62,7 +62,6 @@
 		A70D23180D5B43EEAB1E1543 /* CoachMemoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325289C855B34EF58D37849F /* CoachMemoryStore.swift */; };
 		A7F8B4D3C2E19056871F3A2B /* BudgetJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */; };
 		A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */; };
-		HC000001HC000001HC000001 /* EditHIITSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = HC000002HC000002HC000002 /* EditHIITSheet.swift */; };
 		AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010012F5D98B8002AE470 /* MoreView.swift */; };
 		AA0020022F5D98BA002AE470 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010022F5D98B8002AE470 /* StatsView.swift */; };
 		AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010042F5D98B8002AE470 /* BodyCompView.swift */; };
@@ -106,6 +105,7 @@
 		BC0000032F5D98BA002AE470 /* NavyCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000042F5D98BA002AE470 /* NavyCalculatorView.swift */; };
 		BC0000052F5D98BA002AE470 /* BodyCompHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */; };
 		BD000002BD000002BD000002 /* Badge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD000001BD000001BD000001 /* Badge.swift */; };
+		BW000001BW000001BW000001 /* BreathworkPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BW000002BW000002BW000002 /* BreathworkPracticeView.swift */; };
 		C4D5E6F7A8B9C0D1E2F3A4B5 /* CardioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */; };
 		CC1100012F5D98BA002AE470 /* DashboardCardioCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100002F5D98BA002AE470 /* DashboardCardioCard.swift */; };
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
@@ -137,9 +137,6 @@
 		DD4400032F5D98BA002AE473 /* MoodTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4400042F5D98BA002AE473 /* MoodTrackerView.swift */; };
 		DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */; };
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
-		BW000001BW000001BW000001 /* BreathworkPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BW000002BW000002BW000002 /* BreathworkPracticeView.swift */; };
-		SC000001SC000001SC000001 /* SelfCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC000002SC000002SC000002 /* SelfCareView.swift */; };
-		MD000001MD000001MD000001 /* MeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MD000002MD000002MD000002 /* MeditationView.swift */; };
 		E573C31F2F96E31F04483DBD /* DiscardedMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCF95F54ACA7EFF71CD1ABE /* DiscardedMutation.swift */; };
 		E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */; };
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
@@ -168,8 +165,10 @@
 		GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */; };
 		GF006001AA00300B2F5DEEEE /* GymFinderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */; };
 		GF007001AA00300B2F5DEEEE /* GymFinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF007000AA00300B2F5DEEEE /* GymFinderService.swift */; };
+		HC000001HC000001HC000001 /* EditHIITSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = HC000002HC000002HC000002 /* EditHIITSheet.swift */; };
 		HM5A0002HM5A0002HM5A0002 /* HeroMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */; };
 		MC000002MC000002MC000002 /* MetricCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC000001MC000001MC000001 /* MetricCell.swift */; };
+		MD000001MD000001MD000001 /* MeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MD000002MD000002MD000002 /* MeditationView.swift */; };
 		NA0001NA0001NA0001NA0001 /* NutritionActionMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */; };
 		NA0002NA0002NA0002NA0002 /* ProteinProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */; };
 		NA0003NA0003NA0003NA0003 /* NutritionCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0003NR0003NR0003NR0003 /* NutritionCharts.swift */; };
@@ -198,6 +197,7 @@
 		RV0006RV0006RV0006RV0006 /* WatchSyncBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0006RR0006RR0006RR0006 /* WatchSyncBannerView.swift */; };
 		RV0007RV0007RV0007RV0007 /* HRVAnalysisCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0007RR0007RR0007RR0007 /* HRVAnalysisCard.swift */; };
 		RV0008RV0008RV0008RV0008 /* RecoveryPerformanceBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0008RR0008RR0008RR0008 /* RecoveryPerformanceBanner.swift */; };
+		SC000001SC000001SC000001 /* SelfCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC000002SC000002SC000002 /* SelfCareView.swift */; };
 		SC0002SC0002SC0002SC0002 /* SessionChips.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC0001SC0001SC0001SC0001 /* SessionChips.swift */; };
 		SE001001AA00300B2F5DDDDD /* SeasonModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE001000AA00300B2F5DDDDD /* SeasonModels.swift */; };
 		SE002001AA00300B2F5DDDDD /* APIService+Seasons.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */; };
@@ -376,7 +376,6 @@
 		AT000002AT000002AT000002 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BudgetJournalView.swift; path = Views/Budget/BudgetJournalView.swift; sourceTree = SOURCE_ROOT; };
 		B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSummaryView.swift; sourceTree = "<group>"; };
-		HC000002HC000002HC000002 /* EditHIITSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditHIITSheet.swift; sourceTree = "<group>"; };
 		BAC82E18346773B8F8591B8F /* RitualMorningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMorningView.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
@@ -386,6 +385,7 @@
 		BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompHistoryView.swift; sourceTree = "<group>"; };
 		BD000001BD000001BD000001 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
 		BFDAA3D29C2E4B7BACCDAFAA /* TrainingDoctrine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrainingDoctrine.swift; sourceTree = "<group>"; };
+		BW000002BW000002BW000002 /* BreathworkPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathworkPracticeView.swift; sourceTree = "<group>"; };
 		C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		C9D9887CCB93891D19B6AA41 /* BudgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BudgetModels.swift; path = Models/BudgetModels.swift; sourceTree = SOURCE_ROOT; };
 		CC1100002F5D98BA002AE470 /* DashboardCardioCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCardioCard.swift; sourceTree = "<group>"; };
@@ -427,9 +427,6 @@
 		DD4400042F5D98BA002AE473 /* MoodTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodTrackerView.swift; sourceTree = "<group>"; };
 		DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrisisResourcesView.swift; sourceTree = "<group>"; };
 		DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthDashboardView.swift; sourceTree = "<group>"; };
-		BW000002BW000002BW000002 /* BreathworkPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathworkPracticeView.swift; sourceTree = "<group>"; };
-		SC000002SC000002SC000002 /* SelfCareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareView.swift; sourceTree = "<group>"; };
-		MD000002MD000002MD000002 /* MeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeditationView.swift; sourceTree = "<group>"; };
 		E163D5411790B6DA5108E310 /* PatternModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternModels.swift; sourceTree = "<group>"; };
 		E28DFDE63827E1A91C5C5B5D /* RoundedCorner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
 		E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsModels.swift; sourceTree = "<group>"; };
@@ -459,8 +456,10 @@
 		GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderViewModel.swift; sourceTree = "<group>"; };
 		GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderModels.swift; sourceTree = "<group>"; };
 		GF007000AA00300B2F5DEEEE /* GymFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderService.swift; sourceTree = "<group>"; };
+		HC000002HC000002HC000002 /* EditHIITSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditHIITSheet.swift; sourceTree = "<group>"; };
 		HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeroMood.swift; sourceTree = "<group>"; };
 		MC000001MC000001MC000001 /* MetricCell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricCell.swift; sourceTree = "<group>"; };
+		MD000002MD000002MD000002 /* MeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeditationView.swift; sourceTree = "<group>"; };
 		NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionActionMessage.swift; sourceTree = "<group>"; };
 		NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProteinProgressCard.swift; sourceTree = "<group>"; };
@@ -489,6 +488,7 @@
 		RR0006RR0006RR0006RR0006 /* WatchSyncBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSyncBannerView.swift; sourceTree = "<group>"; };
 		RR0007RR0007RR0007RR0007 /* HRVAnalysisCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisCard.swift; sourceTree = "<group>"; };
 		RR0008RR0008RR0008RR0008 /* RecoveryPerformanceBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPerformanceBanner.swift; sourceTree = "<group>"; };
+		SC000002SC000002SC000002 /* SelfCareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareView.swift; sourceTree = "<group>"; };
 		SC0001SC0001SC0001SC0001 /* SessionChips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionChips.swift; sourceTree = "<group>"; };
 		SE001000AA00300B2F5DDDDD /* SeasonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonModels.swift; sourceTree = "<group>"; };
 		SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Seasons.swift"; sourceTree = "<group>"; };
@@ -550,29 +550,21 @@
 		};
 		D68A5C452FD0CE6600B824DF /* VinceSeven Watch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch App";
 			sourceTree = "<group>";
 		};
 		D68A5C532FD0CE6800B824DF /* VinceSeven Watch Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppTests";
 			sourceTree = "<group>";
 		};
 		D68A5C5D2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
