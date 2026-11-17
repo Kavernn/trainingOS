@@ -144,17 +144,15 @@ final class ProgrammeRefreshTests: XCTestCase {
         fixture.active = "new-active"
         await vm.refreshActiveProgramme(invalidate: true)
         let revision = vm.planningRevision
-        let replacement = vm.dayComposerCandidate
         continuation?.resume()
         await old.value
         XCTAssertEqual(vm.activeProgramId, "new-active")
         XCTAssertEqual(vm.loadedProgramId, "new-active")
         XCTAssertEqual(vm.planningRevision, revision)
-        XCTAssertTrue(vm.dayComposerCandidate === replacement)
         XCTAssertEqual(vm.plannedMorning(on: fixture.date), "NEW B")
     }
 
-    func testPendingRefreshKeepsWholePlanningAndEntryAndDeduplicatesCallers() async throws {
+    func testPendingRefreshKeepsWholePlanningAndDeduplicatesCallers() async throws {
         let f = Fixture()
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -170,15 +168,12 @@ final class ProgrammeRefreshTests: XCTestCase {
             return result
         }, cache: CacheService(directory: directory), now: { f.date })
         await vm.loadData()
-        let candidate = try XCTUnwrap(vm.dayComposerCandidate)
         let revision = vm.planningRevision
         hold = true
         let refresh = Task { await vm.refreshActiveProgramme() }
         await fulfillment(of: [held], timeout: 2)
         XCTAssertEqual(vm.plannedMorning(on: f.date), "NEW B")
         XCTAssertEqual(vm.eveningSchedule[f.day], "PM")
-        XCTAssertTrue(vm.dayComposerCandidate === candidate)
-        XCTAssertTrue(candidate.canPresent(on: candidate.preview.date))
         XCTAssertEqual(vm.planningRevision, revision, "No partial publication before PM is ready")
         XCTAssertFalse(vm.isLoading)
         let count = f.requests.count
@@ -189,11 +184,10 @@ final class ProgrammeRefreshTests: XCTestCase {
         gate?.resume()
         await refresh.value
         await duplicate.value
-        XCTAssertTrue(vm.dayComposerCandidate === candidate)
         XCTAssertEqual(vm.planningRevision, revision + 1)
     }
 
-    func testCancelledRefreshRetainsEligibleCandidate() async throws {
+    func testCancelledRefreshRetainsPlanning() async throws {
         let f = Fixture()
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -209,7 +203,6 @@ final class ProgrammeRefreshTests: XCTestCase {
             return result
         }, cache: CacheService(directory: directory), now: { f.date })
         await vm.loadData()
-        let candidate = try XCTUnwrap(vm.dayComposerCandidate)
         let revision = vm.planningRevision
         hold = true
         let refresh = Task { await vm.refreshActiveProgramme() }
@@ -218,13 +211,11 @@ final class ProgrammeRefreshTests: XCTestCase {
         gate?.resume()
         await refresh.value
         XCTAssertEqual(vm.planningRevision, revision)
-        XCTAssertTrue(vm.dayComposerCandidate === candidate)
-        XCTAssertTrue(candidate.canPresent(on: candidate.preview.date))
         XCTAssertFalse(vm.isLoading)
         XCTAssertFalse(vm.lastSaveError)
     }
 
-    func testCandidateAndPreparationExistBeforeWeightsAndReuseSuccessfulRead() async throws {
+    func testPlanningPublishedBeforeWeightsWithoutDuplicateReads() async throws {
         let f = Fixture()
         f.date = Date()
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -242,23 +233,13 @@ final class ProgrammeRefreshTests: XCTestCase {
         }, cache: CacheService(directory: directory), now: { f.date })
         let load = Task { await vm.loadData() }
         await fulfillment(of: [held], timeout: 2)
-        let candidate = try XCTUnwrap(vm.dayComposerCandidate)
-        XCTAssertFalse(vm.isLoading)
-        XCTAssertTrue(candidate.canPresent(on: candidate.preview.date))
-        let count = f.requests.count
-        let initial = candidate.initialPresentation()
-        _ = DayComposerView(candidate: candidate)
-        XCTAssertEqual(initial.units.flatMap(\.items).map(\.name), ["Squat", "Row"])
-        XCTAssertEqual(f.requests.count, count, "Opening has no planning fetch dependency")
+        XCTAssertFalse(vm.isLoading, "Planning publié avant les poids")
         gate?.resume()
         await load.value
-        _ = try await candidate.resolve()
-        _ = try await candidate.resolve()
         XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/seance_data" }.count, 2,
                        "One named AM and one named PM read for Today cards")
         XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/evening_schedule" }.count, 1)
-        XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/programme_data" }.count, 2,
-                       "One initial read and one final context validation, no duplicated initial reads")
-        XCTAssertEqual(candidate.initialPresentation().units.flatMap(\.items).map(\.name), ["Squat", "Row"])
+        XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/programme_data" }.count, 1,
+                       "Une seule lecture : la carte Ma journée vit dans l'onglet Aujourd'hui (makeCandidate)")
     }
 }

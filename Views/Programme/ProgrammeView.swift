@@ -802,11 +802,6 @@ struct ProgrammeView: View {
                 emptyProgrammePlaceholder
             } else {
                 VStack(spacing: .appSectionSpacing) {
-                    if let candidate = vm.dayComposerCandidate,
-                       candidate.preview.activeProgramID == vm.activeProgramId {
-                        DayComposerTodayEntry(candidate: candidate)
-                            .padding(.horizontal, .appPagePadding)
-                    }
                     heroMatin
                     heroSoir
                     volumeRow

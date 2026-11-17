@@ -105,7 +105,6 @@ final class ProgrammeViewModel: ObservableObject {
 
     @Published var isLoading = true
     @Published private(set) var planningRevision = 0
-    @Published private(set) var dayComposerCandidate: DayComposerPreparationCandidate?
     @Published var programSuggestions: [String: [String: ProgressionSuggestion]] = [:]
     /// Erreur chargement hints progression — premier échec remonté comme bannière écran.
     @Published var suggestionsError: String?
@@ -347,26 +346,15 @@ final class ProgrammeViewModel: ObservableObject {
                 return try? await self.read(pmURL).0
             }
             // Publish the whole planning replacement on MainActor, without an
-            // intervening await. Supporting weights cannot clear the candidate.
+            // intervening await.
             if loadedProgramId != currentId { programSuggestions = [:] }
             applyJSON(json)
             todayPlans = [:]
             eveningSchedule = currentId == activeId ? evening.filter { fullProgram[$0.value] != nil } : evening
-            if let preview {
-                let transport = self.transport
-                let enrich = {
-                    try await DayComposerLoader.enrichPreparation(preview: preview, programme: data,
-                        morning: morning, transport: transport)
-                }
-                if let existing = dayComposerCandidate, existing.matches(preview) {
-                    existing.updateEnrichment(enrich)
-                } else { dayComposerCandidate = DayComposerPreparationCandidate(preview: preview, enrich: enrich) }
-            } else { dayComposerCandidate = nil }
             planningRevision += 1
             isLoading = false
             if currentId == activeId { cache.save(data, for: "programme_data") }
-            // No cancellation of this shared read by a disappearing refresh
-            // waiter: the preparation may already be using its result.
+            // No cancellation of this read by a disappearing refresh waiter.
             let morningData = try? await morning.value
             let eveningPlanData = await eveningPlan.value
             if current(), currentId == activeId {
