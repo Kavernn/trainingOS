@@ -117,6 +117,24 @@ struct DayComposerPlan: Codable, Equatable {
     }
 }
 
+/// Cause précise du verrouillage des créneaux (DayComposerStore.lockCause).
+enum DayComposerLockCause: Equatable {
+    case completed(DayComposerSource)
+    case finalizing(DayComposerSource)
+    /// Ma journée déjà lancée aujourd'hui (provenance d'exécution).
+    case launched
+    /// Brouillon local sur un exercice.
+    case exerciseEntry(DayComposerSource, exercise: String)
+    /// Logs locaux, protection ou commentaire de séance.
+    case sessionEntry(DayComposerSource)
+    /// Séance commencée : heure de départ ou chronomètre enregistré.
+    case started(DayComposerSource)
+    /// Exercice déjà observé côté serveur aujourd'hui.
+    case logged
+    /// État local illisible : verrouillé par sécurité.
+    case unreadable
+}
+
 enum DayComposerError: Error {
     case invalidPlan, contextChanged, unavailable, executionStarted, emptySource
 }

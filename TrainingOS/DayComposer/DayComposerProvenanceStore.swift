@@ -88,15 +88,46 @@ final class DayComposerProvenanceStore {
         return try operation()
     }
 
+    /// Nature de l'état local de la Séance pour (date, source), la plus précise d'abord.
+    enum LocalState: Equatable {
+        /// Brouillon de carte d'exercice ; clé d'exercice telle que stockée (nom ou occurrence).
+        case exerciseDraft(storageKey: String)
+        /// Logs locaux, protection ou commentaire de séance.
+        case sessionDraft
+        /// Heure de départ ou chronomètre de séance.
+        case clock
+    }
+
+    private static let sessionDraftPrefixes = ["session_draft_", "session_comment_", "session_draft_protection_"]
+    private static let clockPrefixes = ["session_started_at_", "session_chrono_paused_", "session_chrono_is_paused_",
+                                        "session_chrono_paused_at_"]
+    private static func exerciseDraftPrefix(date: String, source: DayComposerSource) -> String {
+        "exo_draft_\(date)_\(source.rawValue)_"
+    }
+
+    /// Périmètre unique des clés locales (inventaire et cause de verrouillage).
+    private func localValues(date: String, source: DayComposerSource) -> [String: Any] {
+        let suffix = "\(source.rawValue)_\(date)"
+        let exact = Set((Self.sessionDraftPrefixes + Self.clockPrefixes).map { $0 + suffix })
+        let prefix = Self.exerciseDraftPrefix(date: date, source: source)
+        return defaults.dictionaryRepresentation().filter { exact.contains($0.key) || $0.key.hasPrefix(prefix) }
+    }
+
+    func localState(date: String, source: DayComposerSource) -> LocalState? {
+        let keys = localValues(date: date, source: source).keys.sorted()
+        let prefix = Self.exerciseDraftPrefix(date: date, source: source)
+        if let draft = keys.first(where: { $0.hasPrefix(prefix) }) {
+            return .exerciseDraft(storageKey: String(draft.dropFirst(prefix.count)))
+        }
+        let suffix = "\(source.rawValue)_\(date)"
+        if keys.contains(where: { key in Self.sessionDraftPrefixes.contains { key == $0 + suffix } }) { return .sessionDraft }
+        return keys.isEmpty ? nil : .clock
+    }
+
     /// Raw presence matters: empty comments, corrupt payloads and out-of-plan
     /// cards count. Hashes contain no recoverable copy of their contents.
     func inventory(date: String, source: DayComposerSource) throws -> Inventory {
-        let suffix = "\(source.rawValue)_\(date)"
-        let exact = Set(["session_draft_", "session_comment_", "session_draft_protection_",
-                         "session_started_at_", "session_chrono_paused_", "session_chrono_is_paused_",
-                         "session_chrono_paused_at_"].map { $0 + suffix })
-        let prefix = "exo_draft_\(date)_\(source.rawValue)_"
-        let values = defaults.dictionaryRepresentation().filter { exact.contains($0.key) || $0.key.hasPrefix(prefix) }
+        let values = localValues(date: date, source: source)
         // Sorted outer array, opaque existing Data payloads; no dictionary ordering dependency.
         let entries: [[Any]] = values.keys.sorted().map { [$0, values[$0]!] }
         let bytes = try PropertyListSerialization.data(fromPropertyList: entries, format: .binary, options: 0)

@@ -149,15 +149,34 @@ struct DayComposerStore {
 
     @MainActor
     static func sourcesLocked(_ snapshot: DayComposerSnapshot) -> Bool {
-        if snapshot.morningCompleted || snapshot.eveningCompleted { return true }
-        let provenance = DayComposerProvenanceStore.shared
+        lockCause(snapshot) != nil
+    }
+
+    /// Cause unique du verrouillage des créneaux (affichage ET gardes). nil = modifiable.
+    /// Ordre : séance terminée, finalisation, Ma journée lancée, saisie d'exercice, saisie de
+    /// séance, séance commencée. Lecture impossible → `.unreadable` (échec fermé).
+    @MainActor
+    static func lockCause(_ snapshot: DayComposerSnapshot,
+                          provenance: DayComposerProvenanceStore = .shared,
+                          hasFinalization: (String, DayComposerSource) throws -> Bool = {
+                              try !DayComposerFinalizationStore().candidateRecords(date: $0, source: $1).isEmpty
+                          }) -> DayComposerLockCause? {
+        let sources: [DayComposerSource] = [.morning, .evening]
+        if let done = sources.first(where: { snapshot.completed($0) }) { return .completed(done) }
         do {
-            if try provenance.load(date: snapshot.date) != nil { return true }
-            if try !DayComposerFinalizationStore().candidateRecords(date: snapshot.date, source: .morning).isEmpty
-                || !DayComposerFinalizationStore().candidateRecords(date: snapshot.date, source: .evening).isEmpty { return true }
-            return try provenance.inventory(date: snapshot.date, source: .morning).hasState
-                || provenance.inventory(date: snapshot.date, source: .evening).hasState
-        } catch { return true }
+            if let source = try sources.first(where: { try hasFinalization(snapshot.date, $0) }) { return .finalizing(source) }
+            if try provenance.load(date: snapshot.date) != nil { return .launched }
+        } catch { return .unreadable }
+        let states = sources.compactMap { source in provenance.localState(date: snapshot.date, source: source).map { (source, $0) } }
+        for (source, state) in states {
+            if case .exerciseDraft(let key) = state {
+                let item = snapshot.initialUnits.flatMap(\.items).first { $0.name == key || $0.id.occurrenceKey == key }
+                return .exerciseEntry(source, exercise: item?.name ?? key)
+            }
+        }
+        if let (source, _) = states.first(where: { $0.1 == .sessionDraft }) { return .sessionEntry(source) }
+        if let (source, _) = states.first { return .started(source) }
+        return nil
     }
 
     /// « Restaurer la journée » : état neuf, mises de côté effacées. Ne relit rien, donc

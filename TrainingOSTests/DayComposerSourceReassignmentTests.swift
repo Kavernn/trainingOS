@@ -245,6 +245,54 @@ final class DayComposerSourceReassignmentTests: XCTestCase {
         XCTAssertTrue(DayComposerStore.sourcesLocked(base))
     }
 
+    /// Une cause précise par condition (affichage et gardes partagent DayComposerStore.lockCause).
+    func testLockCauseNamesEachCondition() throws {
+        let date = try DayComposerStabilizationFixture.unusedDate()
+        let original = try snapshot()
+        let base = DayComposerSnapshot(date: date, activeProgramID: original.activeProgramID,
+            morning: original.morning, evening: original.evening, morningCompleted: false, eveningCompleted: false)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        func clear() {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(date) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        defer { clear(); try? FileManager.default.removeItem(at: directory) }
+        func cause(_ s: DayComposerSnapshot? = nil, provenance: DayComposerProvenanceStore = .shared,
+                   finalization: @escaping (String, DayComposerSource) throws -> Bool = { _, _ in false }) -> DayComposerLockCause? {
+            DayComposerStore.lockCause(s ?? base, provenance: provenance, hasFinalization: finalization)
+        }
+        XCTAssertNil(cause(), "Aucun état : modifiable")
+        // Séance terminée.
+        let done = DayComposerSnapshot(date: date, activeProgramID: base.activeProgramID,
+            morning: base.morning, evening: base.evening, morningCompleted: false, eveningCompleted: true)
+        XCTAssertEqual(cause(done), .completed(.evening))
+        // Finalisation en cours ; lecture impossible → échec fermé.
+        XCTAssertEqual(cause(finalization: { _, source in source == .evening }), .finalizing(.evening))
+        XCTAssertEqual(cause(finalization: { _, _ in throw URLError(.cannotOpenFile) }), .unreadable)
+        // Ma journée déjà lancée (provenance).
+        let launched = DayComposerProvenanceStore(directory: directory)
+        _ = try launched.create(context: DayComposerExecutionContext(snapshot: base))
+        XCTAssertEqual(cause(provenance: launched), .launched)
+        // Séance commencée (heure de départ / chronomètre).
+        SessionDraftStore.saveStartedAt(date: date, sessionType: "morning", startedAt: Date())
+        XCTAssertEqual(cause(), .started(.morning)); clear()
+        // Saisie de séance (commentaire).
+        SessionDraftStore.saveComment("active comment", date: date, sessionType: "evening")
+        XCTAssertEqual(cause(), .sessionEntry(.evening)); clear()
+        // Saisie sur un exercice : nommée, prioritaire sur le chronomètre.
+        let name = base.morning.units[0].items[0].name
+        SessionDraftStore.saveStartedAt(date: date, sessionType: "morning", startedAt: Date())
+        XCTAssertTrue(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: name)
+            .save([.init(weight: "80", reps: "8", rir: 2, duration: 0)]))
+        XCTAssertEqual(cause(), .exerciseEntry(.morning, exercise: name))
+        XCTAssertTrue(DayComposerStore.sourcesLocked(base), "sourcesLocked = lockCause != nil")
+        XCTAssertEqual(DayComposerLockPresentation.message(for: .exerciseEntry(.morning, exercise: name)),
+                       "Créneaux figés : saisie existante sur « \(name) » (Matin).")
+        XCTAssertEqual(DayComposerLockPresentation.message(for: .started(.morning)),
+                       "Créneaux figés : séance du Matin commencée (chronomètre démarré).")
+    }
+
     func testMobilityReassignmentAndPendingDoNotBlindlyResend() async throws {
         let rig = try DayComposerFinishRig(names: ["A", "B"], tracking: ["A": "mobility"], reassignment: { units in
             try DayComposerSnapshot.transferring(units, id: units[2].id, locked: false)

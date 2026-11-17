@@ -54,7 +54,11 @@ struct DayComposerView: View {
     @State private var executionAllowed = false
     @State private var verified = false
     @State private var refreshing = false
-    @State private var sourcesLocked = true
+    /// Verrouillage des créneaux (DayComposerStore.lockCause) : nil = modifiable.
+    /// Tant que la vérification n'est pas faite (lockChecked = false), les actions restent bloquées.
+    @State private var lockCause: DayComposerLockCause?
+    @State private var lockChecked = false
+    private var sourcesLocked: Bool { !lockChecked || lockCause != nil }
     @State private var didValidate = false
     @State private var validationToken = UUID()
     @State private var representedCandidateID: UUID
@@ -89,7 +93,8 @@ struct DayComposerView: View {
         view.fixtureOnly = true
         view._verified = State(initialValue: true)
         view._executionAllowed = State(initialValue: true)
-        view._sourcesLocked = State(initialValue: locked)
+        view._lockChecked = State(initialValue: true)
+        view._lockCause = State(initialValue: locked ? .launched : nil)
         view._units = State(initialValue: moved ? try DayComposerSnapshot.transferring(snapshot.initialUnits,
             id: snapshot.evening.units[0].id, locked: false) : snapshot.initialUnits)
         return view
@@ -101,17 +106,25 @@ struct DayComposerView: View {
             if loading {
                 ProgressView("Chargement de la journée…")
             } else if let snapshot {
+                if let lockCause {
+                    // En tête : la cause précise du verrouillage (style d'avertissement existant).
+                    Section {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.appWarning).accessibilityHidden(true)
+                            Text(DayComposerLockPresentation.message(for: lockCause))
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
+                        }
+                        Text(DayComposerSetAsidePresentation.lockedPreparationHint)
+                            .font(.appCaption).foregroundColor(.appTextSecondary)
+                    }
+                    .listRowBackground(Color.appWarning.opacity(0.12))
+                }
                 Section {
                     Text("2 séances · \(snapshot.initialIDs.count) exercices\(totalDurationSuffix(snapshot))")
                         .font(.appBody.weight(.semibold))
                     Text(countsLine)
                         .font(.appCaption)
-                    if sourcesLocked {
-                        Text("Les créneaux ne peuvent plus être modifiés après le début de la journée.")
-                            .font(.appCaption).foregroundColor(.appTextSecondary)
-                        Text(DayComposerSetAsidePresentation.lockedPreparationHint)
-                            .font(.appCaption).foregroundColor(.appTextSecondary)
-                    }
                     if refreshing {
                         ProgressView("Vérification des identifiants et supersets…")
                             .font(.appCaption)
@@ -157,11 +170,13 @@ struct DayComposerView: View {
                         || !snapshot.canStart(orderedIDs: units.flatMap { $0.items.map(\.id) },
                         activeProgram: activeProgramID, date: DateFormatter.isoDate.string(from: Date()),
                         loading: loading, incompatible: incompatible))
-                    Button("Restaurer la journée") { reset(snapshot) }
-                        .frame(minHeight: 44)
-                        .foregroundColor(.forge)
-                        .buttonStyle(.borderless)
-                        .disabled(!verified || sourcesLocked)
+                    if lockCause == nil {
+                        Button("Restaurer la journée") { reset(snapshot) }
+                            .frame(minHeight: 44)
+                            .foregroundColor(.forge)
+                            .buttonStyle(.borderless)
+                            .disabled(!verified || sourcesLocked)
+                    }
                 }
                 .listRowBackground(Color.appCard)
             }
@@ -176,7 +191,8 @@ struct DayComposerView: View {
         .scrollContentBackground(.hidden)
         .background(Color.appBg)
         .navigationTitle("Ma journée")
-        .environment(\.editMode, .constant(.active))
+        // Verrouillé : pas de poignées de glisser-déposer.
+        .environment(\.editMode, .constant(lockCause == nil ? .active : .inactive))
         .disabled(starting)
         .fullScreenCover(item: $launch, onDismiss: { refresh = UUID() }) { session in
             NavigationStack {
@@ -219,14 +235,14 @@ struct DayComposerView: View {
         return asideCount == 0 || incompatible ? base : base + " · \(asideCount) mis de côté"
     }
 
-    /// Invariant : la préparation n'agit que créneaux NON verrouillés. `sourcesLocked` couvre
-    /// séance terminée, provenance d'exécution, candidats de finalisation, inventaire local
-    /// (DayComposerStore.sourcesLocked) et logs observés côté serveur (positivelyObserved,
+    /// Invariant : la préparation n'agit que créneaux NON verrouillés. `lockCause` couvre
+    /// séance terminée, finalisation, provenance d'exécution, état local de la Séance
+    /// (DayComposerStore.lockCause) et logs observés côté serveur (positivelyObserved,
     /// voir reload). Aucun log n'existe donc ici → anyLogged = false pour la règle commune.
     private func toggleSetAside(_ unit: DayComposerUnit) {
         guard verified, !loading, !incompatible, let snapshot,
               snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
-        guard !sourcesLocked, !DayComposerStore.sourcesLocked(snapshot) else { return }
+        guard !blockedByLock(snapshot) else { return }
         var next = setAside
         if next.contains(unit.id) {
             next.remove(unit.id)
@@ -290,7 +306,7 @@ struct DayComposerView: View {
                     Text(label).font(.appCaption).foregroundColor(.appTextSecondary)
                 }
                 Spacer(minLength: 8)
-                if !incompatible {
+                if !incompatible && lockCause == nil {
                     Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: setAside.contains(unit.id))) {
                         toggleSetAside(unit)
                     }
@@ -310,9 +326,11 @@ struct DayComposerView: View {
                 Text(item.name).font(.appBody)
                     .foregroundColor(setAside.contains(unit.id) ? .appTextSecondary : .appTextPrimary)
             }
-            Button("Déplacer vers \(unit.source == .morning ? "Soir" : "Matin")") { transfer(unit) }
-                .buttonStyle(.borderless).frame(minHeight: 44)
-                .disabled(sourcesLocked || !verified || incompatible)
+            if lockCause == nil {
+                Button("Déplacer vers \(unit.source == .morning ? "Soir" : "Matin")") { transfer(unit) }
+                    .buttonStyle(.borderless).frame(minHeight: 44)
+                    .disabled(sourcesLocked || !verified || incompatible)
+            }
             if unit.group != nil {
                 Text("Tout le superset sera déplacé.").font(.appCaption).foregroundColor(.appTextSecondary)
             }
@@ -320,7 +338,7 @@ struct DayComposerView: View {
                 Text("Déplacé depuis \(unit.items[0].originSource.title)").font(.appCaption).foregroundColor(.appTextSecondary)
             }
             // Visible alternatives support keyboard use without dragging.
-            HStack {
+            if lockCause == nil { HStack {
                 Button { move(from: IndexSet(integer: index), to: index - 1) } label: {
                     Label("Monter", systemImage: "arrow.up")
                 }
@@ -333,7 +351,7 @@ struct DayComposerView: View {
                     .disabled(index == units.count - 1 || incompatible || !verified || sourcesLocked)
             }
             .font(.appCaption).buttonStyle(.borderless)
-            .frame(minHeight: 44).accessibilityHidden(true)
+            .frame(minHeight: 44).accessibilityHidden(true) }
         }
         .padding(.vertical, 4)
         .listRowBackground(Color.appCard)
@@ -360,23 +378,32 @@ struct DayComposerView: View {
     private func transfer(_ unit: DayComposerUnit) {
         guard verified, !loading, !incompatible, let snapshot,
               snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
+        guard !blockedByLock(snapshot) else { return }
         do {
-            sourcesLocked = sourcesLocked || DayComposerStore.sourcesLocked(snapshot)
-            let updated = try DayComposerSnapshot.transferring(units, id: unit.id, locked: sourcesLocked)
+            let updated = try DayComposerSnapshot.transferring(units, id: unit.id, locked: false)
             try store.save(updated, for: snapshot)
             units = updated
             error = nil
         } catch DayComposerError.emptySource {
             error = "Garde au moins un exercice dans chaque séance."
-        } catch DayComposerError.executionStarted {
-            error = "Les créneaux ne peuvent plus être modifiés après le début de la journée."
         } catch { self.error = "Ce groupe ne peut pas être déplacé en sécurité. Les données sont conservées." }
+    }
+
+    /// Garde unique des actions de structure : relit la cause maintenant (un état local peut
+    /// apparaître après le chargement) et l'affiche en tête ; jamais de sortie silencieuse.
+    private func blockedByLock(_ snapshot: DayComposerSnapshot) -> Bool {
+        guard lockChecked else { return true } // vérification en cours : boutons déjà désactivés
+        if let cause = lockCause ?? DayComposerStore.lockCause(snapshot) {
+            lockCause = cause
+            return true
+        }
+        return false
     }
 
     private func move(from offsets: IndexSet, to destination: Int) {
         guard verified, !loading, !incompatible, let snapshot,
               snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
-        guard !sourcesLocked, !DayComposerStore.sourcesLocked(snapshot) else { return }
+        guard !blockedByLock(snapshot) else { return }
         let updated = DayComposerSnapshot.moving(units, from: offsets, to: destination)
         guard updated != units else { return }
         do {
@@ -388,7 +415,7 @@ struct DayComposerView: View {
 
     private func reset(_ snapshot: DayComposerSnapshot) {
         guard verified, !loading, snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
-        guard !sourcesLocked, !DayComposerStore.sourcesLocked(snapshot) else { return }
+        guard !blockedByLock(snapshot) else { return }
         do {
             try store.reset(snapshot)
             units = snapshot.initialUnits
@@ -416,7 +443,7 @@ struct DayComposerView: View {
             setAsideMessage = nil
         }
         refreshing = true
-        sourcesLocked = true
+        lockChecked = false
         executionAllowed = false
         error = nil
         do {
@@ -444,7 +471,8 @@ struct DayComposerView: View {
             } catch { setAside = []; incompatible = true }
             let history = try await DayComposerServerProjection.load(date: fresh.date)
             guard !Task.isCancelled else { return }
-            sourcesLocked = DayComposerStore.sourcesLocked(fresh) || !history.positivelyObserved.isEmpty
+            lockCause = DayComposerStore.lockCause(fresh) ?? (history.positivelyObserved.isEmpty ? nil : .logged)
+            lockChecked = true
             let context = try DayComposerExecutionContext(snapshot: units.flatMap(\.items).contains { $0.assignedSourceOverride != nil } ? fresh.assigning(units) : fresh)
             let provenance = DayComposerProvenanceStore.shared
             switch (provenance.admission(context: context, source: .morning),

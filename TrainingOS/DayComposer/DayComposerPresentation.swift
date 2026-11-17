@@ -52,6 +52,22 @@ struct DayComposerFinishPresentation {
     var checkTitle: String { state == .pending ? "Vérifier la synchronisation" : "Vérifier l’enregistrement" }
 }
 
+/// Libellé du verrouillage des créneaux : la cause précise, par séance.
+enum DayComposerLockPresentation {
+    static func message(for cause: DayComposerLockCause) -> String {
+        switch cause {
+        case .completed(let s): "Créneaux figés : séance du \(s.title) terminée."
+        case .finalizing(let s): "Créneaux figés : finalisation en cours (\(s.title))."
+        case .launched: "Créneaux figés : Ma journée a déjà été lancée aujourd’hui."
+        case .exerciseEntry(let s, let exercise): "Créneaux figés : saisie existante sur « \(exercise) » (\(s.title))."
+        case .sessionEntry(let s): "Créneaux figés : saisie de séance existante (\(s.title))."
+        case .started(let s): "Créneaux figés : séance du \(s.title) commencée (chronomètre démarré)."
+        case .logged: "Créneaux figés : un exercice est déjà enregistré aujourd’hui."
+        case .unreadable: "Créneaux figés : état local illisible, verrouillé par sécurité."
+        }
+    }
+}
+
 /// Libellés de la mise de côté — source unique pour l'exécution et la préparation.
 enum DayComposerSetAsidePresentation {
     static func toggleTitle(isSetAside: Bool) -> String {
