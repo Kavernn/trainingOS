@@ -294,7 +294,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
 
     @discardableResult
-    func setFinalRPE(_ rpe: Double, durationMin: Double? = nil, for source: DayComposerSource) throws -> DayComposerFinalInputsReceipt {
+    func setFinalRPE(_ rpe: Double?, durationMin: Double? = nil, for source: DayComposerSource) throws -> DayComposerFinalInputsReceipt {
         try finalInputsParticipant(for: source).setRPE(rpe, durationMin: durationMin)
     }
 

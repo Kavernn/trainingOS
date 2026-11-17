@@ -41,7 +41,7 @@ final class DayComposerFinalInputsParticipant {
     }
 
     @discardableResult
-    func setRPE(_ rpe: Double, durationMin: Double? = nil) throws -> DayComposerFinalInputsReceipt {
+    func setRPE(_ rpe: Double?, durationMin: Double? = nil) throws -> DayComposerFinalInputsReceipt {
         // Includes same-content edits. Refusal cannot touch disk or the projection.
         try authorizeMutation()
         let expected: DayComposerFinalInputsReceipt?

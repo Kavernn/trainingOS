@@ -44,13 +44,15 @@ struct DayComposerFinalizationRequestAdapter {
             items.contains { $0.storageKey == key && WorkoutCompletion.tracks($0.tracking) }
         }
         let tracksPerformance = items.contains { WorkoutCompletion.tracks($0.tracking) }
-        guard !tracksPerformance || capture.finalInputs.values.rpe != 0 else {
-            throw DayComposerFinalInputsError.invalidRPE
-        }
+        // RPE envoyé : nil si non choisi OU marqueur hérité 0 (CHECK 1-10 côté serveur). Les valeurs
+        // persistées ne sont pas réécrites. Octets inchangés pour tout payload déjà productible :
+        // sans travail suivi, rpe n'était jamais envoyé (0 ou nil → clé absente) ; avec travail suivi
+        // et 0, l'ancien code levait invalidRPE (aucune clé ni intention n'existe pour ce cas).
+        let sentRPE = capture.finalInputs.values.rpe.flatMap { $0 == 0 ? nil : $0 }
         let summary = WorkoutPayloadBuilder.summaries(tracked)
         let exos = summary.exos
         let bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.session(
-            exos: exos, rpe: capture.finalInputs.values.rpe, comment: local.comment,
+            exos: exos, rpe: sentRPE, comment: local.comment,
             durationMin: capture.finalInputs.values.durationMin, energyPre: nil, secondSession: local.source == .evening,
             bonusSession: false, sessionName: local.identity.session(for: local.source),
             exerciseLogs: summary.exerciseLogs, date: local.identity.date, tracksPerformance: tracksPerformance))

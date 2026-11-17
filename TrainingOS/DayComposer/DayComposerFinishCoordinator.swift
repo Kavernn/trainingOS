@@ -134,7 +134,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
 
     /// Explicit user command. Every invocation obtains a NEW stabilized capture;
     /// no cached UI artifact survives editing, leaving the screen, or relaunch.
-    func finishSource(_ source: DayComposerSource, rpe: Double) async {
+    func finishSource(_ source: DayComposerSource, rpe: Double?) async {
         // Source entièrement mise de côté : jamais de log_session pour elle.
         guard !isSetAside(source), preparing.insert(source).inserted else { return }
         defer {
@@ -146,8 +146,8 @@ final class DayComposerFinishCoordinator: ObservableObject {
         do {
             guard let execution else { throw Failure.contextRejected }
             let tracks = execution.requiredItems(source).contains { WorkoutCompletion.tracks($0.tracking) }
-            guard !tracks || rpe != 0 else { throw DayComposerFinalInputsError.invalidRPE }
-            try execution.setFinalRPE(tracks ? rpe : 0, durationMin: actualDuration(source, execution), for: source)
+            // RPE jamais imposé (5c) : nil = non choisi ; sans travail suivi, jamais de RPE.
+            try execution.setFinalRPE(tracks ? rpe : nil, durationMin: actualDuration(source, execution), for: source)
             let artifact = try await prepareSource(source)
             let result = await advanceSource(artifact)
             productResults[source] = result

@@ -107,7 +107,7 @@ final class DayComposerFinalInputsParticipantTests: XCTestCase {
             let receipt = try p.setRPE(7)
             let url = try store.recordURL(executionIdentity: id, source: .morning)
             let bytes = try Data(contentsOf: url)
-            for value in [6.5, 5, 11, .nan, .infinity] {
+            for value in [7.3, 5, 11, .nan, .infinity] {
                 fails(.invalidRPE) { _ = try p.setRPE(value) }
                 XCTAssertEqual(p.state, .loaded(receipt))
                 XCTAssertEqual(try Data(contentsOf: url), bytes)

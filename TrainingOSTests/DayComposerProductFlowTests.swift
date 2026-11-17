@@ -108,7 +108,7 @@ final class DayComposerProductFlowTests: XCTestCase {
 
     func testInvalidRPECannotPostAndNoAutomaticFallback() async throws {
         let r = try DayComposerFinishRig(); defer { r.cleanup() }
-        for value in [5.0, 7.5, 11.0] {
+        for value in [5.0, 7.3, 11.0] {   // 5c : 7.5 désormais valide (demi-point)
             await r.engine.finishSource(.morning, rpe: value)
             XCTAssertEqual(r.engine.productState(.morning), .failed)
             XCTAssertTrue(r.posted.isEmpty)

@@ -75,12 +75,17 @@ final class DayComposerFinalInputsTests: XCTestCase {
     }
 
     func testInvalidMissingAndNonFiniteRPE() throws {
-        for rpe in [5.0, 6.5, 7.5, 11, .nan, .infinity, -.infinity] {
+        // 5c : demi-points 6…10 acceptés ; 0 hérité accepté ; le reste refusé.
+        for rpe in [5.0, 5.5, 0.5, 7.3, 10.5, 11, .nan, .infinity, -.infinity] {
             fails(.invalidRPE) { _ = try DayComposerFinalInputs(rpe: rpe) }
         }
+        for rpe in [6.5, 7.5, 9.5, 0] { XCTAssertEqual(try DayComposerFinalInputs(rpe: rpe).rpe, rpe) }
+        // 5c : clé absente / null = aucun RPE choisi (plus d'erreur), encodé sans clé rpe.
         for text in ["{}", "{\"rpe\":null}"] {
-            fails(.missingRequiredRPE) { _ = try JSONDecoder().decode(DayComposerFinalInputs.self, from: Data(text.utf8)) }
+            XCTAssertNil(try JSONDecoder().decode(DayComposerFinalInputs.self, from: Data(text.utf8)).rpe)
         }
+        XCTAssertEqual(String(data: try DayComposerFinalInputs(rpe: nil).canonicalData(), encoding: .utf8),
+                       "{\"contentVersion\":1}")
     }
 
     func testUnsupportedOptionalsIncludingZeroAndNonFinite() {
@@ -219,7 +224,7 @@ final class DayComposerFinalInputsTests: XCTestCase {
         let good = try bytes()
         let edits: [(inout [String: Any]) -> Void] = [
             { $0["finalInputsVersion"] = ["contentVersion": 1, "digest": String(repeating: "0", count: 64)] },
-            { $0["values"] = ["rpe": 7.5] },
+            { $0["values"] = ["rpe": 7.3] },
             { $0["values"] = [:] },
             { $0["values"] = ["rpe": 7, "durationMin": 0] },
             { $0["values"] = ["rpe": 7, "energyPre": 0] },

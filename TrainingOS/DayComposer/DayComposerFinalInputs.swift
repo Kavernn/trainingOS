@@ -8,11 +8,12 @@ enum DayComposerFinalInputsError: Error, Equatable {
 }
 
 struct DayComposerFinalInputs: Codable, Equatable {
-    let rpe: Double
+    /// nil = aucun RPE choisi (jamais imposé, 5c). 0 = marqueur hérité « checklist », lu seulement.
+    let rpe: Double?
     let durationMin: Double?
     let energyPre: Int?
 
-    init(rpe: Double, durationMin: Double? = nil, energyPre: Int? = nil) throws {
+    init(rpe: Double?, durationMin: Double? = nil, energyPre: Int? = nil) throws {
         self.rpe = rpe
         self.durationMin = durationMin
         self.energyPre = energyPre
@@ -20,9 +21,12 @@ struct DayComposerFinalInputs: Codable, Equatable {
     }
 
     func validate() throws {
-        // Zero is the local neutral checklist marker; never sent as a performance RPE.
-        guard rpe.isFinite, [0.0, 6, 7, 8, 9, 10].contains(rpe) else {
-            throw DayComposerFinalInputsError.invalidRPE
+        // nil = non choisi ; 0 = marqueur hérité (états persistés avant 5c, plus jamais écrit) ;
+        // sinon demi-point 6…10 (une proposition 7.5 doit pouvoir être confirmée).
+        if let rpe {
+            guard rpe.isFinite, rpe == 0 || ((6...10).contains(rpe) && (rpe * 2).rounded() == rpe * 2) else {
+                throw DayComposerFinalInputsError.invalidRPE
+            }
         }
         // Durée réelle (Ma journée) : nil ou minutes finies dans 1...maxMinutes (borne backend).
         if let durationMin {
@@ -40,10 +44,8 @@ struct DayComposerFinalInputs: Codable, Equatable {
     private enum CodingKeys: String, CodingKey { case rpe, durationMin, energyPre }
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        guard let rpe = try container.decodeIfPresent(Double.self, forKey: .rpe) else {
-            throw DayComposerFinalInputsError.missingRequiredRPE
-        }
-        try self.init(rpe: rpe,
+        // Clé absente = aucun RPE choisi (5c) ; un ancien état avec rpe est relu tel quel.
+        try self.init(rpe: container.decodeIfPresent(Double.self, forKey: .rpe),
             durationMin: container.decodeIfPresent(Double.self, forKey: .durationMin),
             energyPre: container.decodeIfPresent(Int.self, forKey: .energyPre))
     }
@@ -52,7 +54,7 @@ struct DayComposerFinalInputs: Codable, Equatable {
         try validate()
         struct Content: Encodable {
             let contentVersion: Int
-            let rpe: Double
+            let rpe: Double?        // nil omis : octets d'un état avec rpe identiques à avant 5c
             let durationMin: Double?
             let energyPre: Int?
         }

@@ -304,8 +304,8 @@ struct NeutralSourceFinalizationRequest {
               (body["second_session"] as? Bool ?? false) == (source == .evening),
               (body["bonus_session"] as? Bool ?? false) == false,
               body["exos"] is [String], body["comment"] is String,
-              body["rpe"] is NSNumber || (body["rpe"] == nil && (body["exos"] as? [String]) == []
-                  && (body["exercise_logs"] == nil || (body["exercise_logs"] as? [[String: Any]])?.isEmpty == true)) else {
+              // RPE jamais imposé (5c) : absent, ou numérique 1…10 (jamais le marqueur 0).
+              body["rpe"] == nil || ((body["rpe"] as? NSNumber).map { (1...10).contains($0.doubleValue) } ?? false) else {
             throw NeutralSubmissionValidationError.inconsistentSource
         }
         self.source = source

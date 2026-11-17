@@ -42,12 +42,21 @@ struct DayComposerActiveView: View {
     }
     @State private var decision: Decision?
     @State private var presentedDecision: Decision?
-    @State private var finishAfterDismiss: (DayComposerSource, Int)?
+    @State private var finishAfterDismiss: (DayComposerSource, Double?)?
     private var rpeSource: DayComposerSource? {
         if case .rpe(let source) = presentedDecision { return source }
         return nil
     }
-    @State private var selectedRPE: Int?
+    @State private var selectedRPE: Int?   // choix confirmé 6…10 ; nil = aucun (5c)
+
+    /// Proposition = RPE réels des exercices de la séance (même règle que 5b) ; nil si aucun.
+    private func rpeProposal(_ source: DayComposerSource) -> Double? {
+        RPEHelper.sessionProposal(coordinator.requiredItems(source).compactMap { try? coordinator.result(for: $0.id) })
+    }
+    /// RPE qui partira : choix confirmé, sinon proposition confirmée par le bouton, sinon aucun.
+    private func submitRPE(_ source: DayComposerSource) -> Double? {
+        selectedRPE.map(Double.init) ?? rpeProposal(source)
+    }
     @State private var operations: [DayComposerSource: Task<Void, Never>] = [:]
     @State private var refreshOperation: Task<Void, Never>?
 
@@ -183,7 +192,7 @@ struct DayComposerActiveView: View {
         case .rpe:
             if let (source, rpe) = finishAfterDismiss {
                 finishAfterDismiss = nil
-                operations[source] = Task { await finishCoordinator.finishSource(source, rpe: Double(rpe)) }
+                operations[source] = Task { await finishCoordinator.finishSource(source, rpe: rpe) }
             }
         case .recap(let source):
             if coaching.activeSource == source { fetchCoaching(); return }
@@ -257,7 +266,7 @@ struct DayComposerActiveView: View {
                                 }
                                 if hasTracked { selectedRPE = nil; present(.rpe(source)) }
                                 else {
-                                    operations[source] = Task { await finishCoordinator.finishSource(source, rpe: 0) }
+                                    operations[source] = Task { await finishCoordinator.finishSource(source, rpe: nil) }
                                 }
                             }
                                 .frame(minHeight: 44)
@@ -280,14 +289,25 @@ struct DayComposerActiveView: View {
             Form {
                 if let source = rpeSource {
                     DayComposerRPEChoices(source: source, selection: $selectedRPE)
+                    if selectedRPE == nil, let p = rpeProposal(source) {
+                        // « Proposé » : contour pointillé — distinct d'un choix confirmé (5b/5c).
+                        Text("Proposé : RPE \(RPEHelper.display(p)) · confirmé en terminant")
+                            .font(.appCaption).foregroundStyle(Color.appTextSecondary)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .overlay(Capsule().strokeBorder(Color.appTextSecondary,
+                                                            style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                            .listRowBackground(Color.appCard)
+                    }
                 }
-                Button("Confirmer et terminer \(rpeSource?.title ?? "la séance")") {
-                    guard let source = rpeSource, let selectedRPE else { return }
+                // Jamais désactivé : sans proposition ni choix, aucun RPE n'est envoyé.
+                Button("Terminer \(rpeSource?.title ?? "la séance")"
+                       + (rpeSource.flatMap(submitRPE).map { " · RPE \(RPEHelper.display($0))" } ?? "")) {
+                    guard let source = rpeSource else { return }
                     endEditing()
-                    finishAfterDismiss = (source, selectedRPE)
+                    finishAfterDismiss = (source, submitRPE(source))
                     decision = nil
                 }
-                .frame(minHeight: 44).disabled(selectedRPE == nil)
+                .frame(minHeight: 44)
                 .buttonStyle(.borderedProminent)
                 .listRowBackground(Color.appCard)
             }
