@@ -113,6 +113,52 @@ enum DayComposerLoader {
         let second_session_completed: Bool
     }
 
+    /// Filtre sans réseau, sur le plan déjà validé du Dashboard : même condition que
+    /// `preparationPreview` (programme courant = actif, Matin ET Soir planifiés et non vides).
+    static func isDoubleSessionDay(_ plan: DashboardPlan, on date: Date) -> Bool {
+        let am = plan.morning(on: date)
+        guard plan.programme.isActive, am != "Repos", let pm = plan.evening(on: date) else { return false }
+        return plan.programme.full_program[am]?.isEmpty == false && plan.programme.full_program[pm]?.isEmpty == false
+    }
+
+    /// Candidat « Ma journée » (point d'entrée unique : onglet Aujourd'hui). Lit programme_data
+    /// et evening_schedule ; même condition qu'avant (preparationPreview). La lecture seance_data
+    /// du Matin n'a lieu qu'à la validation, c.-à-d. à l'ouverture. Plan inchangé → `existing`
+    /// réutilisé (validation et travail en cours conservés).
+    static func makeCandidate(date: Date, reusing existing: DayComposerPreparationCandidate?,
+                              transport: @escaping Transport) async throws -> DayComposerPreparationCandidate? {
+        func raw(_ path: String, _ query: [URLQueryItem] = []) async throws -> Data {
+            let url = try APIService.shared.buildURL(path: path, queryItems: query)
+            let (data, response) = try await transport(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData))
+            try Task.checkCancellation()
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                throw DayComposerError.unavailable
+            }
+            return data
+        }
+        // Explicit Tasks avoid the async-let lifetime issue documented on iOS beta.
+        let programmeRead = Task { try await raw("/api/programme_data") }
+        let eveningRead = Task { try await raw("/api/evening_schedule") }
+        let (programme, eveningData) = try await withTaskCancellationHandler {
+            defer { programmeRead.cancel(); eveningRead.cancel() }
+            return try await (programmeRead.value, eveningRead.value)
+        } onCancel: { programmeRead.cancel(); eveningRead.cancel() }
+        let evening = try JSONDecoder().decode([String: String].self, from: eveningData)
+        guard let preview = try preparationPreview(programme: programme, evening: evening, date: date) else { return nil }
+        let enrich: () async throws -> DayComposerSnapshot = {
+            let morning = Task { try await raw("/api/seance_data", [
+                URLQueryItem(name: "date", value: preview.date),
+                URLQueryItem(name: "program_id", value: preview.activeProgramID),
+                URLQueryItem(name: "session_name", value: preview.morning.session)]) }
+            return try await enrichPreparation(preview: preview, programme: programme, morning: morning, transport: transport)
+        }
+        if let existing, existing.matches(preview) {
+            existing.updateEnrichment(enrich)
+            return existing
+        }
+        return DayComposerPreparationCandidate(preview: preview, enrich: enrich)
+    }
+
     /// Planning-only representation: no weights, completion or execution reads.
     static func preparationPreview(programme data: Data, evening: [String: String], date: Date) throws -> DayComposerSnapshot? {
         let context = try APIService.decoder.decode(Context.self, from: data)

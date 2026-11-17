@@ -1,5 +1,6 @@
 
 import SwiftUI
+import Combine
 
 // Accent du jour (Color.sessionTypeColor) — intensités de rayonnement sur le chrome.
 // Réversibles : réduire d'un cran si trop présent sur device.
@@ -72,6 +73,12 @@ struct DashboardView: View {
                 .padding(.vertical, 8)
             }
 
+            // Ma journée — sous la séance du jour, jours à double séance uniquement.
+            if let candidate = vm.dayComposerCandidate,
+               candidate.preview.activeProgramID == api.dashboardPlan?.programme.active_program_id {
+                DayComposerTodayEntry(candidate: candidate)
+            }
+
             dashboardHeading("MA JOURNÉE")
             let hour = Calendar.current.component(.hour, from: Date())
             let isMorningMoodPrompt = hour >= 6 && hour < 14 && vm.moodDue?.isDue == true
@@ -85,14 +92,6 @@ struct DashboardView: View {
                 onOpenHealth:  onOpenHealth,
                 onOpenNutrition: { showNutritionAddSheet = true }
             )
-
-            NavigationLink { ProgrammeView() } label: {
-                Label("Programme · Réorganiser ma journée", systemImage: "calendar")
-                    .font(.appLabel)
-                    .foregroundStyle(Color.appTextSecondary)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            }
-            .buttonStyle(.plain)
 
             // 10 — Actions du jour
             DayActionsRow(
@@ -444,6 +443,17 @@ struct DashboardView: View {
                     Task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
                 }
             }
+        }
+        // Ma journée : rechargé à chaque plan publié (fetch, changement de planning, nouveau jour).
+        // receive(on:) : @Published émet en willSet ; on relit le plan une fois affecté.
+        .onReceive(api.$dashboardPlan.receive(on: DispatchQueue.main)) { _ in
+            vm.refreshDayComposerCandidate(plan: api.dashboardPlan, planIsCurrent: api.dashboardPlanIsCurrent(on: Date()))
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .activeProgrammePlanningDidChange)) { _ in
+            vm.invalidateDayComposerCandidate()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            vm.refreshDayComposerCandidate(plan: api.dashboardPlan, planIsCurrent: api.dashboardPlanIsCurrent(on: Date()))
         }
         .onChange(of: api.dashboardPlan?.programme.active_program_id) { old, new in
             if old != nil, new == nil {

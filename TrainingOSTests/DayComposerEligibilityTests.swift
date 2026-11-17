@@ -32,6 +32,8 @@ final class DayComposerEligibilityTests: XCTestCase {
                 json = ["active_program_id": active, "current_program_id": loaded ?? active,
                         "full_program": program, "schedule": schedule,
                         "exercise_order": program.mapValues { $0.keys.sorted() }]
+            case "/api/evening_schedule":
+                json = eveningSchedule
             case "/api/seance_data", "/api/seance_soir_data":
                 XCTAssertEqual(query.first { $0.name == "date" }?.value, dateString)
                 let evening = url.path == "/api/seance_soir_data"
@@ -57,6 +59,77 @@ final class DayComposerEligibilityTests: XCTestCase {
             try await DayComposerLoader.loadBundle(program: requested ?? active, now: { self.date },
                 transport: transport, hasRecovery: { _ in false })
         }
+    }
+
+    // MARK: Point d'entrée Aujourd'hui (makeCandidate + Dashboard)
+
+    private func dashboardPlan(_ f: PlanningFixture, evening: Bool = true) -> DashboardPlan {
+        let day = TrainingDoctrine.dayName(on: f.date)
+        let am = "\(f.active) Matin", pm = "\(f.active) Soir"
+        return DashboardPlan(programme: .init(active_program_id: f.active, current_program_id: f.active,
+            schedule: [day: am], full_program: [am: ["Squat": SafeString("3x8")], pm: ["Tirage": SafeString("3x10")]]),
+            eveningSchedule: evening ? [day: pm] : [:])
+    }
+    private func paths(_ f: PlanningFixture) -> [String] { f.requests.compactMap { $0.url?.path } }
+
+    func testMakeCandidateReusesInstanceUntilPlanChangesAndDefersMorningRead() async throws {
+        let f = PlanningFixture()
+        f.date = Date()
+        let candidate = try XCTUnwrap(try await DayComposerLoader.makeCandidate(date: f.date, reusing: nil, transport: f.transport))
+        XCTAssertTrue(candidate.canPresent(on: DateFormatter.isoDate.string(from: f.date)))
+        XCTAssertEqual(Set(paths(f)), ["/api/programme_data", "/api/evening_schedule"], "Aucune lecture seance_data avant l'ouverture")
+        let same = try await DayComposerLoader.makeCandidate(date: f.date, reusing: candidate, transport: f.transport)
+        XCTAssertTrue(same === candidate, "Plan inchangé : même instance (validation conservée)")
+        _ = try await candidate.resolve()
+        _ = try await candidate.resolve()
+        XCTAssertEqual(paths(f).filter { $0 == "/api/seance_data" }.count, 1, "Une seule lecture du Matin, à l'ouverture")
+        f.active = "B"
+        let replaced = try await DayComposerLoader.makeCandidate(date: f.date, reusing: candidate, transport: f.transport)
+        XCTAssertFalse(replaced === candidate, "Plan changé : nouveau candidat")
+    }
+
+    func testMakeCandidateKeepsTodaysEligibilityCondition() async throws {
+        let f = PlanningFixture()
+        f.loaded = "other"
+        let notCurrent = try await DayComposerLoader.makeCandidate(date: f.date, reusing: nil, transport: f.transport)
+        XCTAssertNil(notCurrent, "Programme courant ≠ actif")
+        f.loaded = nil; f.hasEvening = false
+        let noEvening = try await DayComposerLoader.makeCandidate(date: f.date, reusing: nil, transport: f.transport)
+        XCTAssertNil(noEvening, "Sans Soir")
+        f.hasEvening = true; f.hasMorning = false
+        let noMorning = try await DayComposerLoader.makeCandidate(date: f.date, reusing: nil, transport: f.transport)
+        XCTAssertNil(noMorning, "Sans Matin")
+    }
+
+    func testDashboardSkipsReadsWithoutDoubleSessionDay() async throws {
+        let f = PlanningFixture()
+        let vm = DashboardViewModel(publicationPermission: { _, _ in true }, publishMacroHint: { _ in })
+        XCTAssertNil(vm.refreshDayComposerCandidate(plan: dashboardPlan(f, evening: false), planIsCurrent: true,
+                                                    now: f.date, transport: f.transport))
+        XCTAssertNil(vm.refreshDayComposerCandidate(plan: dashboardPlan(f), planIsCurrent: false,
+                                                    now: f.date, transport: f.transport), "Plan non validé")
+        XCTAssertNil(vm.refreshDayComposerCandidate(plan: nil, planIsCurrent: true, now: f.date, transport: f.transport))
+        XCTAssertTrue(f.requests.isEmpty, "Aucune lecture programme_data / evening_schedule")
+        XCTAssertNil(vm.dayComposerCandidate)
+    }
+
+    func testDashboardLoadsCandidateAndKeepsItOnFailureOrCancellation() async throws {
+        let f = PlanningFixture()
+        let vm = DashboardViewModel(publicationPermission: { _, _ in true }, publishMacroHint: { _ in })
+        await vm.refreshDayComposerCandidate(plan: dashboardPlan(f), planIsCurrent: true, now: f.date, transport: f.transport)?.value
+        let candidate = try XCTUnwrap(vm.dayComposerCandidate)
+        await vm.refreshDayComposerCandidate(plan: dashboardPlan(f), planIsCurrent: true, now: f.date,
+                                             transport: { _ in throw URLError(.notConnectedToInternet) })?.value
+        XCTAssertTrue(vm.dayComposerCandidate === candidate, "Échec : candidat conservé")
+        let cancelled = vm.refreshDayComposerCandidate(plan: dashboardPlan(f), planIsCurrent: true, now: f.date,
+            transport: { _ in throw CancellationError() })
+        cancelled?.cancel()
+        await cancelled?.value
+        XCTAssertTrue(vm.dayComposerCandidate === candidate, "Annulation : candidat conservé")
+        await vm.refreshDayComposerCandidate(plan: dashboardPlan(f), planIsCurrent: true, now: f.date, transport: f.transport)?.value
+        XCTAssertTrue(vm.dayComposerCandidate === candidate, "Plan inchangé : même instance")
+        vm.invalidateDayComposerCandidate()
+        XCTAssertNil(vm.dayComposerCandidate, "Changement de planning : candidat retiré")
     }
 
     func testCanonicalActiveDatePlanBypassesStaleOverrideWithoutServerLogs() async throws {

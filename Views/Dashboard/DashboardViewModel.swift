@@ -159,6 +159,45 @@ final class DashboardViewModel: ObservableObject {
     @Published var streakData: StreakResponse? = nil
     @Published var weeklyTonnage: Int? = nil
     @Published var morningBriefFailed = false
+    /// Ma journée : point d'entrée unique (onglet Aujourd'hui).
+    @Published private(set) var dayComposerCandidate: DayComposerPreparationCandidate?
+    private var dayComposerTask: Task<Void, Never>?
+
+    /// Appelé à chaque publication du plan du Dashboard (fetch, changement de planning, jour).
+    /// Filtre sans réseau : hors jour à double séance (ou plan non validé), aucune lecture et
+    /// pas de carte. Échec ou annulation de la lecture : le candidat existant est conservé
+    /// (`canPresent` filtre la date à l'affichage).
+    @discardableResult
+    func refreshDayComposerCandidate(plan: DashboardPlan?, planIsCurrent: Bool, now: Date = Date(),
+        transport: @escaping DayComposerLoader.Transport = { try await URLSession.authed.data(for: $0) }) -> Task<Void, Never>? {
+        dayComposerTask?.cancel()
+        guard planIsCurrent, let plan, DayComposerLoader.isDoubleSessionDay(plan, on: now) else {
+            dayComposerTask = nil
+            dayComposerCandidate = nil
+            return nil
+        }
+        let existing = dayComposerCandidate
+        let task = Task { [weak self] in
+            do {
+                let candidate = try await DayComposerLoader.makeCandidate(date: now, reusing: existing, transport: transport)
+                guard !Task.isCancelled, let self else { return }
+                self.dayComposerCandidate = candidate
+            } catch {
+                guard !Task.isCancelled else { return }
+                Logger(subsystem: "TrainingOS", category: "day-composer")
+                    .warning("Candidat Ma journée non rechargé : \(String(describing: error), privacy: .public)")
+            }
+        }
+        dayComposerTask = task
+        return task
+    }
+
+    /// Changement de planning : l'ancien candidat ne vaut plus ; le prochain plan validé le recharge.
+    func invalidateDayComposerCandidate() {
+        dayComposerTask?.cancel()
+        dayComposerTask = nil
+        dayComposerCandidate = nil
+    }
 
     // Loadables (migration série C) — alimentent les @Published ci-dessus par
     // pont dans la closure .load après canPublish, et exposent isLoading /
