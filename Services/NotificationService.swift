@@ -855,8 +855,31 @@ final class RestTimerManager: ObservableObject {
         if runID == id { timerTask = nil }
     }
 
+    /// Règle du bip de repos : écouteurs → .playback (audible malgré le mode silencieux),
+    /// 3-2-1 mixés à la musique, bip final avec la musique baissée ; haut-parleur → .ambient
+    /// (iOS applique le mode silencieux). Fonction pure : testée sans matériel audio.
+    nonisolated static func beepSession(outputs: [AVAudioSession.Port], isFinal: Bool)
+        -> (category: AVAudioSession.Category, options: AVAudioSession.CategoryOptions) {
+        let headphones: Set<AVAudioSession.Port> = [.headphones, .bluetoothA2DP, .bluetoothLE,
+                                                    .bluetoothHFP, .usbAudio]
+        guard outputs.contains(where: headphones.contains) else { return (.ambient, []) }
+        return (.playback, isFinal ? .duckOthers : .mixWithOthers)
+    }
+
     private func playBeep(hz: Double) {
-        beepPlayer = makeBeep(hz: hz, duration: hz > 1000 ? 0.35 : 0.12)
+        let isFinal = hz > 1000
+        let duration = isFinal ? 0.35 : 0.12
+        let session = AVAudioSession.sharedInstance()
+        // Route relue à chaque bip, sans cache : écouteurs branchés/retirés en pleine séance.
+        let config = Self.beepSession(outputs: session.currentRoute.outputs.map(\.portType), isFinal: isFinal)
+        try? session.setCategory(config.category, options: config.options)
+        try? session.setActive(true)
+        beepPlayer = makeBeep(hz: hz, duration: duration, configuresSession: false)
         beepPlayer?.play()
+        // Rendre la main à la musique (fin du duck) une fois le bip joué.
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(duration + 0.2))
+            try? session.setActive(false, options: .notifyOthersOnDeactivation)
+        }
     }
 }

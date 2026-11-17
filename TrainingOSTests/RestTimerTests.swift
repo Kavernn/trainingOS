@@ -1,4 +1,5 @@
 import XCTest
+import AVFoundation
 import Combine
 import SwiftUI
 @testable import TrainingOS
@@ -92,6 +93,27 @@ final class RestTimerTests: XCTestCase {
         XCTAssertNil(timer.exerciseName)
         XCTAssertEqual(timer.remaining, 30)
         withExtendedLifetime([a, b]) {}
+    }
+
+    func testBeepSessionHeadphonesPlayEvenSilentAndDuckOnlyFinal() {
+        for port in [AVAudioSession.Port.headphones, .bluetoothA2DP, .bluetoothLE, .bluetoothHFP, .usbAudio] {
+            let countdown = RestTimerManager.beepSession(outputs: [port], isFinal: false)
+            XCTAssertEqual(countdown.category, .playback, "\(port.rawValue)")
+            XCTAssertEqual(countdown.options, .mixWithOthers, "\(port.rawValue)")
+            let final = RestTimerManager.beepSession(outputs: [port], isFinal: true)
+            XCTAssertEqual(final.category, .playback, "\(port.rawValue)")
+            XCTAssertEqual(final.options, .duckOthers, "\(port.rawValue)")
+        }
+    }
+
+    func testBeepSessionSpeakerRespectsSilentSwitch() {
+        for outputs in [[AVAudioSession.Port.builtInSpeaker], [.builtInReceiver], [.airPlay], []] {
+            for isFinal in [false, true] {
+                let config = RestTimerManager.beepSession(outputs: outputs, isFinal: isFinal)
+                XCTAssertEqual(config.category, .ambient, "\(outputs)")
+                XCTAssertEqual(config.options, [], "\(outputs)")
+            }
+        }
     }
 
     func testIsFinishedOnlyAfterReachingZero() {

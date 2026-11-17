@@ -326,9 +326,10 @@ extension NumberFormatter {
 
 // MARK: - Beep generator (WAV en mémoire, joue par-dessus la musique)
 /// Génère un bip sinusoïdal à la fréquence `hz` et le retourne prêt à jouer.
-/// Utilise AVAudioSession .playback + .mixWithOthers : audible même en mode silencieux,
-/// sans couper la musique en cours de lecture.
-func makeBeep(hz: Double, duration: Double) -> AVAudioPlayer? {
+/// Par défaut, configure AVAudioSession .playback + .mixWithOthers : audible même en mode
+/// silencieux, sans couper la musique. `configuresSession: false` : l'appelant gère sa session
+/// (bip de repos, RestTimerManager.playBeep).
+func makeBeep(hz: Double, duration: Double, configuresSession: Bool = true) -> AVAudioPlayer? {
     let rate  = 44100
     let count = Int(Double(rate) * duration)
     var wav   = Data()
@@ -348,8 +349,10 @@ func makeBeep(hz: Double, duration: Double) -> AVAudioPlayer? {
     }
 
 #if os(iOS)
-    try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
-    try? AVAudioSession.sharedInstance().setActive(true)
+    if configuresSession {
+        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
+        try? AVAudioSession.sharedInstance().setActive(true)
+    }
 #endif
     let player = try? AVAudioPlayer(data: wav, fileTypeHint: "wav")
     player?.prepareToPlay()
