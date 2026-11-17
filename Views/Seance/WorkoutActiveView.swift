@@ -1776,7 +1776,9 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder
     private var ghostBanner: some View {
-        if showGhost, let ghost = ghostData, !vm.isResuming, vm.logResults.isEmpty {
+        // Pré-séance uniquement : retiré au démarrage (le pouce est sur le CTA Démarrer,
+        // pas sur une série) et absent du mode récap.
+        if showGhost, let ghost = ghostData, !vm.isResuming, isPreSessionContext {
             GhostBanner(
                 ghost: ghost,
                 currentVolume: currentVolume,
@@ -1793,7 +1795,7 @@ struct WorkoutSeanceView: View {
                     ghostBeaten = true
                 }
             }
-        } else if ghostFetchError, showGhost, !vm.isResuming, vm.logResults.isEmpty {
+        } else if ghostFetchError, showGhost, !vm.isResuming, isPreSessionContext {
             // Mention discrète : uniquement quand fetchStatsData échoue
             // (cold start sans cache). Distingué de "aucune séance
             // comparable" (< 50 % d'overlap) qui ne montre rien.
@@ -1811,9 +1813,15 @@ struct WorkoutSeanceView: View {
         }
     }
 
+    /// Fantôme + échauffement : avant démarrage, sans log, hors mode récap.
+    /// logResults.isEmpty conservé : même garantie qu'avant si la séance démarre sans passer par startSession.
+    private var isPreSessionContext: Bool {
+        !vm.sessionStarted && vm.logResults.isEmpty && !showSummary
+    }
+
     @ViewBuilder
     private var warmupBanner: some View {
-        if showWarmupBanner && vm.logResults.isEmpty {
+        if showWarmupBanner && isPreSessionContext {
             let guidance = warmupGuidance
             if guidance != nil {
                 WarmupGuidanceBanner(guidance: guidance!) {
@@ -2088,8 +2096,8 @@ struct WorkoutSeanceView: View {
             VStack(spacing: 16) {
                 sessionCommandSection
 
-                exerciseSection
-
+                // Bandeaux pré-séance AU-DESSUS de la liste : ils servent avant le 1er
+                // exercice ; sous une liste longue ils restaient hors écran.
                 // Resume banner — shown when exercises were already logged (partial prior session)
                 resumeBanner
 
@@ -2098,6 +2106,8 @@ struct WorkoutSeanceView: View {
 
                 // Warmup guidance — shown pre-session, dismissable
                 warmupBanner
+
+                exerciseSection
 
                 // Volume cumulé temps réel
                 volumeTotalRow
