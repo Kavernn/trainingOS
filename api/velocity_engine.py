@@ -36,8 +36,13 @@ def _score_window(
     # Workout: frequency + RPE-weighted quality
     w_sess = [s for s in sessions if s.get("date") in window and s.get("completed")]
     freq_score = min(1.0, len(w_sess) / 5.0)
-    rpe_score  = min(1.0, sum(float(s.get("rpe") or 7) / 10.0 for s in w_sess) / 5.0)
-    workout_score = (freq_score * 0.5 + rpe_score * 0.5) * 100
+    # Intensité : séances sans RPE = moyenne RÉELLE de la fenêtre (plus de « or 7 »).
+    # Identique à l'ancien Σ(RPE/10)/5 quand tout est connu : (n/5)·(moyenne/10).
+    known = [float(s["rpe"]) for s in w_sess if s.get("rpe") is not None]
+    rpe_score = (min(1.0, (sum(known) / len(known) / 10.0) * (len(w_sess) / 5.0))
+                 if known else None)
+    workout_score = ((freq_score * 0.5 + rpe_score * 0.5) if rpe_score is not None
+                     else freq_score) * 100
 
     # Mind: PSS inverted (0 = perfect, 40 = worst)
     w_pss = [float(r.get("pss_score") or r.get("score") or 0)

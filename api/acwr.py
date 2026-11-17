@@ -2,7 +2,8 @@
 acwr.py — Acute:Chronic Workload Ratio (ACWR) — EWMA Engine
 ============================================================
 Méthode : Exponentially Weighted Moving Average (Blanch & Gabbett, 2016)
-Charge   : sRPE × durée (Foster 2001) ; fallback tonnage log-normalisé
+Charge   : session_load() — sRPE × durée (Foster 2001) → RPE réel des séries × durée →
+           tonnage calibré (estimation) → None (séance exclue, jamais comptée 0)
 
 Pourquoi EWMA > rolling average :
   - Pas de couplage mathématique entre acute et chronic (fenêtres indépendantes)
@@ -38,6 +39,16 @@ SPIKE_SIGMA  = 3.0       # Cap outliers à mean + N×σ
 CHRONIC_FLOOR = 1.0      # Plancher pour éviter division par zéro
 RATIO_MAX    = 3.0       # Clamp dur — ratio > 3.0 n'a pas de sens pratique
 
+# ── session_load : sources de données (Build H) ──────────────────────────────
+# Étape 2 (RPE moyen des séries) : fiable SEULEMENT pour les séances datées à partir de ce jour.
+# Avant le commit iOS 8ea233f7 (2026-11-17 18:11), chaque série non saisie partait avec
+# rir=3 / rpe=7 inventés : ces RPE de séries ne doivent jamais alimenter une charge.
+REAL_SET_RPE_SINCE = "2026-11-18"
+# Étape 3 (tonnage) : k = médiane(sRPE×durée / tonnage) sur une fenêtre RÉCENTE (l'historique
+# ancien contient des RPE 7 par défaut). Moins de K_MIN_SESSIONS paires → repli log1p (estimation).
+K_WINDOW_DAYS  = 60
+K_MIN_SESSIONS = 5
+
 # λ = 2/(N+1) — formule standard EWMA
 _LA = 2.0 / (ACUTE_DAYS + 1)    # 0.250  (half-life ≈ 2.4 j — fatigue neuromusculaire)
 _LC = 2.0 / (CHRONIC_DAYS + 1)  # ≈0.069 (half-life ≈ 9.7 j — adaptation fitness)
@@ -47,20 +58,51 @@ _LC = 2.0 / (CHRONIC_DAYS + 1)  # ≈0.069 (half-life ≈ 9.7 j — adaptation f
 # CHARGE DE SÉANCE
 # ─────────────────────────────────────────────────────────────
 
-def _session_load(rpe: Optional[float], duration_min: Optional[float],
-                  tonnage: Optional[float]) -> float:
+def session_load(rpe: Optional[float], duration_min: Optional[float],
+                 tonnage: Optional[float], set_rpe_mean: Optional[float] = None,
+                 k: Optional[float] = None) -> Optional[float]:
     """
-    Méthode primaire : Foster sRPE × durée (AU = Arbitrary Units).
-    Validée en musculation (Day et al. 2004), agnostique de modalité.
-    Exemples : RPE 7 × 60 min = 420 AU, RPE 9 × 45 min = 405 AU.
-
-    Fallback : tonnage log-normalisé si sRPE/durée absents.
+    Charge d'une séance (AU). Données réelles d'abord, estimation explicite ensuite.
+      1. sRPE × durée (Foster) — RPE de séance réel. Ex. RPE 7 × 60 min = 420 AU.
+      2. RPE moyen des séries réellement saisies × durée (cf. REAL_SET_RPE_SINCE).
+      3. Tonnage calibré k × tonnage (k personnel, fenêtre récente) ; sans k : log1p×10.
+         ESTIMATION — sous-estime ~×3,5 sans calibration (mesure 2026-11-17).
+    None = aucune donnée exploitable : la séance est exclue, jamais comptée 0.
+    Seule règle de charge : utilisée par l'ACWR et stress_load_engine.
     """
-    if rpe is not None and duration_min is not None and duration_min > 0:
-        return float(rpe) * float(duration_min)
+    dur = float(duration_min) if duration_min else 0.0
+    if rpe is not None and dur > 0:
+        return float(rpe) * dur
+    if set_rpe_mean is not None and dur > 0:
+        return float(set_rpe_mean) * dur
     if tonnage and tonnage > 0:
-        return math.log1p(tonnage) * 10  # même ordre de grandeur que sRPE×durée
-    return 0.0
+        return k * float(tonnage) if k is not None else math.log1p(float(tonnage)) * 10
+    return None
+
+
+def real_set_rpe_mean(sets_lists: list, session_date: str) -> Optional[float]:
+    """Moyenne des RPE de séries RÉELLEMENT saisies ; None avant REAL_SET_RPE_SINCE ou sans saisie."""
+    if not session_date or str(session_date)[:10] < REAL_SET_RPE_SINCE:
+        return None
+    vals = [float(st["rpe"]) for sets in sets_lists for st in (sets or [])
+            if isinstance(st, dict) and st.get("rpe") is not None]
+    return sum(vals) / len(vals) if vals else None
+
+
+def tonnage_k(rows: list[dict], today_iso: str) -> Optional[float]:
+    """k = médiane(sRPE×durée / tonnage) sur K_WINDOW_DAYS ; None si < K_MIN_SESSIONS paires."""
+    cutoff = (date_cls.fromisoformat(today_iso) - timedelta(days=K_WINDOW_DAYS)).isoformat()
+    ratios = [float(r["rpe"]) * float(r["duration_min"]) / float(r["total_volume"])
+              for r in rows
+              if str(r.get("date") or "")[:10] >= cutoff
+              and r.get("rpe") is not None and (r.get("duration_min") or 0) > 0
+              and (r.get("total_volume") or 0) > 0]
+    return statistics.median(ratios) if len(ratios) >= K_MIN_SESSIONS else None
+
+
+def _row_load(r: dict, k: Optional[float]) -> Optional[float]:
+    return session_load(r.get("rpe"), r.get("duration_min"), r.get("total_volume"),
+                        r.get("set_rpe_mean"), k)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -69,24 +111,49 @@ def _session_load(rpe: Optional[float], duration_min: Optional[float],
 
 def _fetch_sessions(days: int = FETCH_DAYS) -> list[dict]:
     """
-    Récupère les séances des N derniers jours avec rpe, duration_min, session_volume.
-    Inclut séances morning ET evening (is_second=True) pour ne rien manquer.
+    Séances des N derniers jours (morning, evening, bonus) depuis v_session_volume :
+    session_id, date, rpe, duration_min, total_volume. Les séances sans RPE de séance et
+    postérieures à REAL_SET_RPE_SINCE reçoivent set_rpe_mean (RPE réels de leurs séries).
     """
     if db._client is None:
         return []
     try:
         cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
-        resp = (
-            db._client.table("workout_sessions")
-            .select("date, rpe, duration_min")
+        rows = (
+            db._client.table("v_session_volume")
+            .select("session_id, date, rpe, duration_min, total_volume")
             .gte("date", cutoff)
             .order("date", desc=False)
             .execute()
-        )
-        return resp.data or []
+        ).data or []
+        need = [r["session_id"] for r in rows
+                if r.get("rpe") is None and str(r.get("date") or "")[:10] >= REAL_SET_RPE_SINCE]
+        if need:
+            logs = (db._client.table("exercise_logs").select("session_id, sets_json")
+                    .in_("session_id", need).execute()).data or []
+            by_session: dict[str, list] = {}
+            for lg in logs:
+                by_session.setdefault(lg["session_id"], []).append(lg.get("sets_json") or [])
+            for r in rows:
+                if r["session_id"] in by_session:
+                    r["set_rpe_mean"] = real_set_rpe_mean(by_session[r["session_id"]], r.get("date"))
+        return rows
     except Exception as e:
         db.logger.warning("acwr: fetch_sessions error: %s", e)
         return []
+
+
+def session_loads_by_id(days: int) -> dict[str, float]:
+    """{session_id: charge} — même règle que l'ACWR (pour stress_load_engine). Séances sans
+    donnée exploitable absentes du dict (exclues, jamais 0)."""
+    rows = _fetch_sessions(max(days, K_WINDOW_DAYS))
+    k = tonnage_k(rows, _today_mtl())
+    out: dict[str, float] = {}
+    for r in rows:
+        load = _row_load(r, k)
+        if load is not None:
+            out[r["session_id"]] = load
+    return out
 
 
 # Proxy RPE par type de cardio (Foster 2001 — sRPE × durée applicable au cardio)
@@ -138,15 +205,17 @@ def _aggregate_daily_cardio(rows: list[dict]) -> dict[str, float]:
 # EWMA ENGINE — FONCTIONS PURES
 # ─────────────────────────────────────────────────────────────
 
-def _aggregate_daily(rows: list[dict]) -> dict[str, float]:
-    """Cumule les charges de toutes les séances d'un même jour."""
+def _aggregate_daily(rows: list[dict], k: Optional[float] = None) -> dict[str, float]:
+    """Cumule les charges des séances d'un même jour ; séance sans donnée = exclue (pas 0)."""
     daily: dict[str, float] = {}
     for r in rows:
         raw_date = r.get("date")
         if not raw_date:
             continue
         d = str(raw_date)[:10]
-        load = _session_load(r.get("rpe"), r.get("duration_min"), None)
+        load = _row_load(r, k)
+        if load is None:
+            continue
         daily[d] = daily.get(d, 0.0) + load
     return daily
 
@@ -325,7 +394,7 @@ def calc_acwr() -> dict:
     """
     # ── Muscu ───────────────────────────────────────────────────────────────
     strength_rows  = _fetch_sessions(FETCH_DAYS)
-    strength_daily = _aggregate_daily(strength_rows)
+    strength_daily = _aggregate_daily(strength_rows, tonnage_k(strength_rows, _today_mtl()))
 
     # ── Cardio ──────────────────────────────────────────────────────────────
     cardio_rows  = _fetch_cardio(FETCH_DAYS)

@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Optional
 
 import db
+from acwr import real_set_rpe_mean
 from tdee import compute_bmr, _LBS_TO_KG, _GOAL_ADJ
 from utils import _today_mtl, get_nutrition_time_context
 
@@ -32,7 +33,26 @@ _TARGET_BALANCE = {
 
 # ── MET helpers ───────────────────────────────────────────────────────────────
 
-def _met_lifting(rpe: int) -> float:
+# RPE neutre UNIQUEMENT quand aucun effort n'a été saisi (ni RPE de séance, ni RPE de séries
+# réels) : musculation modérée, ACSM 2011 code 02054 → MET 5.0 (même MET que l'ancien
+# « or 5 », désormais explicite et marqué rpe_source="neutral").
+_NEUTRAL_LIFTING_RPE_UNKNOWN = 6.0
+
+
+def _lifting_rpe(session: dict) -> tuple[float, str]:
+    """(RPE, source) pour l'estimation MET : séance réelle → séries réellement saisies → neutre."""
+    if session.get("rpe") is not None:
+        return float(session["rpe"]), "session"
+    sid = session.get("id")
+    if sid:
+        logs = db.get_exercise_logs_for_session_with_names(sid) or []
+        mean = real_set_rpe_mean([lg.get("sets_json") or [] for lg in logs], session.get("date"))
+        if mean is not None:
+            return mean, "sets"
+    return _NEUTRAL_LIFTING_RPE_UNKNOWN, "neutral"
+
+
+def _met_lifting(rpe: float) -> float:
     """MET musculation selon RPE (ACSM Compendium 2011).
     Plafond ACSM : 6.0 pour musculation très intense (code 02050).
     """
@@ -95,14 +115,16 @@ def _eat_from_workouts(today: str, weight_kg: float) -> list[dict]:
         dur = int(s.get("duration_min") or 0)
         if not dur:
             continue
-        rpe = int(s.get("rpe") or 5)
-        met = _met_lifting(rpe)
+        rpe, rpe_source = _lifting_rpe(s)
+        met = _met_lifting(rpe)          # MET sur la valeur réelle (plus de troncature int)
         cals = round(met * weight_kg * dur / 60)
         result.append({
             "type":         "musculation",
             "name":         s.get("session_name"),
             "duration_min": dur,
-            "rpe":          rpe,
+            # iOS décode Int? : entier arrondi ; None si neutre (aucun effort saisi)
+            "rpe":          None if rpe_source == "neutral" else int(round(rpe)),
+            "rpe_source":   rpe_source,
             "calories":     cals,
             "met":          met,
             "source":       "met_estimate",
@@ -362,7 +384,7 @@ def compute_energy_history(days: int = 7, end_date: Optional[str] = None) -> lis
         day_sessions = [s for s in sessions_all
                         if (s.get("date") or "")[:10] == d and s.get("completed")]
         eat_w = sum(
-            round(_met_lifting(int(s.get("rpe") or 5))
+            round(_met_lifting(_lifting_rpe(s)[0])
                   * weight_kg * int(s.get("duration_min") or 0) / 60)
             for s in day_sessions if s.get("duration_min")
         )

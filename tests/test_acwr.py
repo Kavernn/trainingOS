@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # Import des fonctions internes (toutes pures, testables sans DB)
 from api.acwr import (
-    _session_load,
+    session_load as _session_load,
     _aggregate_daily,
     _spike_cap,
     _run_ewma,
@@ -53,16 +53,17 @@ class TestSessionLoad:
         assert _session_load(7.0, 60.0, None) == pytest.approx(420.0)
 
     def test_srpe_method_zero_duration(self):
-        assert _session_load(7.0, 0.0, None) == 0.0
+        # Build H : aucune donnée exploitable → None (séance exclue), plus jamais 0.
+        assert _session_load(7.0, 0.0, None) is None
 
     def test_tonnage_fallback(self):
         load = _session_load(None, None, 1000.0)
         assert load > 0
         assert load == pytest.approx(math.log1p(1000.0) * 10)
 
-    def test_no_data_returns_zero(self):
-        assert _session_load(None, None, None) == 0.0
-        assert _session_load(None, None, 0.0) == 0.0
+    def test_no_data_returns_none(self):
+        assert _session_load(None, None, None) is None
+        assert _session_load(None, None, 0.0) is None
 
     def test_srpe_takes_priority_over_tonnage(self):
         load_srpe    = _session_load(7.0, 60.0, 5000.0)

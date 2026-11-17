@@ -1,7 +1,7 @@
 """
 volume_progression_engine.py — Volume Progression.
 
-Weekly training load = sum of RPE for all completed sessions in the week.
+Weekly training load = Σ acwr.session_load of completed sessions (same rule as ACWR / stress).
 Tracks last 12 weeks. Identifies current phase:
   building   — last 3w avg > preceding 3w avg by ≥ 10%
   declining  — last 3w avg < preceding 3w avg by ≥ 10%
@@ -17,6 +17,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 import db
+from acwr import session_loads_by_id
 from utils import _today_mtl as _today_iso
 
 logger = logging.getLogger("trainingos.volume_progression")
@@ -28,13 +29,14 @@ def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
 
-def _week_load(sessions: list[dict], monday: date) -> float:
+def _week_load(sessions: list[dict], loads: dict[str, float], monday: date) -> float:
+    """Σ session_load des séances terminées ; séance sans donnée exploitable exclue (jamais 0)."""
     s_str = monday.isoformat()
     e_str = (monday + timedelta(days=6)).isoformat()
     return sum(
-        float(s.get("rpe") or 0)
+        loads[s["id"]]
         for s in sessions
-        if s.get("completed") and s_str <= (s.get("date") or "") <= e_str
+        if s.get("completed") and s_str <= (s.get("date") or "") <= e_str and s.get("id") in loads
     )
 
 
@@ -42,6 +44,7 @@ def compute() -> dict:
     today_str = _today_iso()
     today     = date.fromisoformat(today_str)
     sessions  = db.get_workout_sessions(limit=400) or []
+    loads     = session_loads_by_id(days=(_WEEKS + 1) * 7)
 
     completed = [s for s in sessions if s.get("completed") and s.get("date")]
     if len(completed) < 4:
@@ -55,11 +58,11 @@ def compute() -> dict:
     weekly_loads = []
     for w in range(_WEEKS, 0, -1):
         wm   = cur_monday - timedelta(weeks=w)
-        load = _week_load(sessions, wm)
+        load = _week_load(sessions, loads, wm)
         weekly_loads.append({"week_start": wm.isoformat(), "load": round(load, 1)})
 
     # Include current (partial) week
-    cur_load = _week_load(sessions, cur_monday)
+    cur_load = _week_load(sessions, loads, cur_monday)
     weekly_loads.append({"week_start": cur_monday.isoformat(), "load": round(cur_load, 1)})
 
     loads = [w["load"] for w in weekly_loads]

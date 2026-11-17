@@ -2,7 +2,7 @@
 stress_load_engine.py — Stress Load Index.
 
 Combines two stress signals per week over the last 4 weeks:
-  training_stress — weekly RPE sum normalized 0-100 (peak = 100 at all-time max)
+  training_stress — weekly training load (acwr.session_load, same rule as ACWR) normalized 0-100 (peak = 100)
   pss_stress      — weekly PSS avg normalized 0-100 (PSS-4 range 0-16 → × 6.25)
 
 dominant = signal with highest current value ("training" | "pss" | "balanced")
@@ -16,6 +16,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 import db
+from acwr import session_loads_by_id
 from utils import _today_mtl as _today_iso
 
 logger = logging.getLogger("trainingos.stress_load")
@@ -27,12 +28,14 @@ def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
 
-def _week_rpe(sessions: list[dict], monday: date) -> float:
+def _week_load(sessions: list[dict], loads: dict[str, float], monday: date) -> float:
+    """Charge de la semaine = Σ session_load des séances terminées. Séance sans donnée
+    exploitable : absente de `loads` → exclue (jamais comptée 0, plus de « rpe or 0 »)."""
     s, e = monday.isoformat(), (monday + timedelta(days=6)).isoformat()
     return sum(
-        float(r.get("rpe") or 0)
+        loads[r["id"]]
         for r in sessions
-        if r.get("completed") and s <= (r.get("date") or "") <= e
+        if r.get("completed") and s <= (r.get("date") or "") <= e and r.get("id") in loads
     )
 
 
@@ -50,6 +53,7 @@ def compute() -> dict:
     today_str = _today_iso()
     today     = date.fromisoformat(today_str)
     sessions  = db.get_workout_sessions(limit=400) or []
+    loads     = session_loads_by_id(days=5 * 7 + 7)   # 4 semaines complètes + courante
     pss       = db.get_pss_records(limit=200) or []
 
     cur_monday = _monday(today)
@@ -58,10 +62,10 @@ def compute() -> dict:
     weekly: list[dict] = []
     for w in range(4, 0, -1):
         wm  = cur_monday - timedelta(weeks=w)
-        rpe = _week_rpe(sessions, wm)
+        rpe = _week_load(sessions, loads, wm)   # clé "rpe" interne conservée = charge de la semaine
         p   = _week_pss(pss, wm)
         weekly.append({"monday": wm, "rpe": rpe, "pss": p})
-    weekly.append({"monday": cur_monday, "rpe": _week_rpe(sessions, cur_monday), "pss": _week_pss(pss, cur_monday)})
+    weekly.append({"monday": cur_monday, "rpe": _week_load(sessions, loads, cur_monday), "pss": _week_pss(pss, cur_monday)})
 
     all_rpe = [w["rpe"] for w in weekly]
     peak_rpe = max(all_rpe) if any(v > 0 for v in all_rpe) else 1.0
