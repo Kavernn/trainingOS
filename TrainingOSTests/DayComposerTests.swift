@@ -1684,6 +1684,18 @@ final class DayComposerTests: XCTestCase {
         }
     }
 
+    func testRecordLaunchFailureNeverBlocksAndLeavesStartedAtAbsent() throws {
+        try withStore { store in
+            let s = try setAsideSnapshot()
+            // Aucun état écrit : markStarted échoue ; le lancement, lui, ne lève pas.
+            XCTAssertFalse(store.recordLaunch(Date(), for: s))
+            XCTAssertNil(try store.loadStartedAt(date: s.date, program: s.activeProgramID, fingerprint: try s.fingerprint))
+            try store.save(s.initialUnits, for: s)
+            XCTAssertTrue(store.recordLaunch(Date(), for: s))
+            XCTAssertNotNil(try store.loadStartedAt(date: s.date, program: s.activeProgramID, fingerprint: try s.fingerprint))
+        }
+    }
+
     func testStartedAtOnOtherPlanStateFailsLoud() throws {
         try withStore { store in
             let s = try setAsideSnapshot()

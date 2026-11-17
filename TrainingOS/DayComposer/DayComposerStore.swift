@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct DayComposerStore {
     let defaults: UserDefaults
@@ -99,6 +100,16 @@ struct DayComposerStore {
     /// Heure de lancement de la journée (v3). nil = pas encore lancée, ou lancée avant v3.
     func loadStartedAt(date: String, program: String, fingerprint: String) throws -> Date? {
         try compatibleState(date: date, program: program, fingerprint: fingerprint)?.startedAt
+    }
+
+    /// Lancement, non bloquant : la durée ne bloque jamais rien. Un échec est journalisé,
+    /// la journée démarre, startedAt reste absent et la durée envoyée sera nil.
+    @discardableResult
+    func recordLaunch(_ now: Date, for snapshot: DayComposerSnapshot) -> Bool {
+        do { try markStarted(now, for: snapshot); return true } catch {
+            DayComposerLog.logger.warning("startedAt non enregistré, durée réelle indisponible : \(String(describing: error), privacy: .public)")
+            return false
+        }
     }
 
     /// Lancement : réécrit à chaque lancement tant que la journée n'est pas verrouillée

@@ -1,5 +1,11 @@
 import Foundation
 import CryptoKit
+import os
+
+/// Journal Day Composer (avertissements non bloquants, ex. durée de séance).
+enum DayComposerLog {
+    static let logger = Logger(subsystem: "TrainingOS", category: "day-composer")
+}
 
 enum DayComposerSource: String, Codable {
     case morning, evening
