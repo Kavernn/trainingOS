@@ -257,7 +257,11 @@ struct DayComposerView: View {
         starting = true
         defer { starting = false }
         do {
-            if !DayComposerStore.sourcesLocked(snapshot) { try store.save(units, for: snapshot) }
+            if !DayComposerStore.sourcesLocked(snapshot) {
+                try store.save(units, for: snapshot)
+                // Réécrit à chaque lancement tant que la journée n'est pas verrouillée, figé ensuite.
+                try store.markStarted(Date(), for: snapshot)
+            }
             let input = try await DayComposerLoader.loadExecution(program: activeProgramID, orderStore: store)
             guard !Task.isCancelled, input.context.date == snapshot.date,
                   input.planningFingerprint == (try snapshot.fingerprint),

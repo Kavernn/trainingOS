@@ -1660,6 +1660,40 @@ final class DayComposerTests: XCTestCase {
         }
     }
 
+    func testStartedAtWrittenAtLaunchKeptBySavesClearedByReset() throws {
+        try withStore { store in
+            let s = try setAsideSnapshot(), fp = try s.fingerprint
+            func startedAt() throws -> Date? { try store.loadStartedAt(date: s.date, program: s.activeProgramID, fingerprint: fp) }
+            XCTAssertThrowsError(try store.markStarted(Date(), for: s), "Exige l'état écrit par save")
+            try store.save(s.initialUnits, for: s)
+            XCTAssertNil(try startedAt())
+            let first = Date(timeIntervalSinceReferenceDate: 800_000_000.7)
+            try store.markStarted(first, for: s)
+            XCTAssertEqual(try startedAt(), Date(timeIntervalSinceReferenceDate: 800_000_000))
+            // Relancement avant verrouillage : réécrit.
+            try store.markStarted(first.addingTimeInterval(120), for: s)
+            let launched = try XCTUnwrap(try startedAt())
+            XCTAssertEqual(launched, Date(timeIntervalSinceReferenceDate: 800_000_120))
+            try store.save(DayComposerSnapshot.moving(s.initialUnits, from: IndexSet(integer: 2), to: 0), for: s)
+            XCTAssertEqual(try startedAt(), launched, "save conserve startedAt")
+            try store.saveSetAside([s.morning.units[1].id], date: s.date, program: s.activeProgramID,
+                                   fingerprint: fp, orderedIDs: s.initialIDs)
+            XCTAssertEqual(try startedAt(), launched, "saveSetAside conserve startedAt")
+            try store.reset(s)
+            XCTAssertNil(try startedAt(), "reset efface startedAt")
+        }
+    }
+
+    func testStartedAtOnOtherPlanStateFailsLoud() throws {
+        try withStore { store in
+            let s = try setAsideSnapshot()
+            try store.saveSetAside([], date: s.date, program: s.activeProgramID,
+                                   fingerprint: "other-plan", orderedIDs: s.initialIDs)
+            XCTAssertThrowsError(try store.loadStartedAt(date: s.date, program: s.activeProgramID, fingerprint: try s.fingerprint))
+            XCTAssertThrowsError(try store.markStarted(Date(), for: s))
+        }
+    }
+
     func testSetAsideAloneDoesNotKeepCompletedDayRelevant() throws {
         try withStore { store in
             let s = try setAsideSnapshot()

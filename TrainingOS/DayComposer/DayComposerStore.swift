@@ -56,13 +56,13 @@ struct DayComposerStore {
     /// Réordonner ou déplacer conserve les mises de côté. Un état présent mais incompatible
     /// échoue fort (contextChanged) : seul `reset` le remplace.
     func save(_ units: [DayComposerUnit], for snapshot: DayComposerSnapshot) throws {
-        let kept = try loadSetAside(date: snapshot.date, program: snapshot.activeProgramID,
-                                    fingerprint: try snapshot.fingerprint)
-        try write(units, for: snapshot, setAside: kept)
+        let existing = try compatibleState(date: snapshot.date, program: snapshot.activeProgramID,
+                                           fingerprint: try snapshot.fingerprint)
+        try write(units, for: snapshot, setAside: Set(existing?.setAside ?? []), startedAt: existing?.startedAt)
     }
 
     private func write(_ units: [DayComposerUnit], for snapshot: DayComposerSnapshot,
-                       setAside: Set<DayComposerItemID>) throws {
+                       setAside: Set<DayComposerItemID>, startedAt: Date?) throws {
         let ids = units.flatMap { $0.items.map(\.id) }
         guard snapshot.units(for: ids) != nil else { throw DayComposerError.invalidPlan }
         _ = try snapshot.assigning(units)
@@ -71,7 +71,7 @@ struct DayComposerStore {
                                      activeProgramID: snapshot.activeProgramID,
                                      sourceFingerprint: fingerprint, orderedItemIDs: ids,
                                      assignments: units.flatMap(\.items).map { .init(id: $0.id, source: $0.assignedSource) },
-                                     setAside: Self.sorted(setAside))
+                                     setAside: Self.sorted(setAside), startedAt: startedAt)
         let data = try JSONEncoder().encode(state)
         defaults.set(data, forKey: key(date: snapshot.date, program: snapshot.activeProgramID))
     }
@@ -83,11 +83,36 @@ struct DayComposerStore {
     /// Mises de côté du jour. Absent = aucune. Un état présent mais d'une autre journée,
     /// d'un autre programme ou d'un autre plan (empreinte BRUTE) échoue fort.
     func loadSetAside(date: String, program: String, fingerprint: String) throws -> Set<DayComposerItemID> {
-        guard let raw = defaults.object(forKey: key(date: date, program: program)) else { return [] }
+        Set(try compatibleState(date: date, program: program, fingerprint: fingerprint)?.setAside ?? [])
+    }
+
+    /// Absent = nil. Présent mais d'une autre journée, d'un autre programme, d'un autre plan
+    /// (empreinte BRUTE) ou illisible : échec fort, jamais lu comme « absent ».
+    private func compatibleState(date: String, program: String, fingerprint: String) throws -> DayComposerState? {
+        guard let raw = defaults.object(forKey: key(date: date, program: program)) else { return nil }
         guard let data = raw as? Data, let saved = try? JSONDecoder().decode(DayComposerState.self, from: data),
               (1...3).contains(saved.version), saved.date == date, saved.activeProgramID == program,
               saved.sourceFingerprint == fingerprint else { throw DayComposerError.contextChanged }
-        return Set(saved.setAside ?? [])
+        return saved
+    }
+
+    /// Heure de lancement de la journée (v3). nil = pas encore lancée, ou lancée avant v3.
+    func loadStartedAt(date: String, program: String, fingerprint: String) throws -> Date? {
+        try compatibleState(date: date, program: program, fingerprint: fingerprint)?.startedAt
+    }
+
+    /// Lancement : réécrit à chaque lancement tant que la journée n'est pas verrouillée
+    /// (l'appelant le garantit), figé ensuite. Exige l'état écrit par `save` juste avant.
+    func markStarted(_ now: Date, for snapshot: DayComposerSnapshot) throws {
+        // Seconde entière : relecture exacte après l'aller-retour JSON (durée en minutes).
+        let startedAt = Date(timeIntervalSinceReferenceDate: now.timeIntervalSinceReferenceDate.rounded(.down))
+        let fingerprint = try snapshot.fingerprint
+        guard var state = try compatibleState(date: snapshot.date, program: snapshot.activeProgramID,
+                                              fingerprint: fingerprint) else { throw DayComposerError.contextChanged }
+        state.startedAt = startedAt
+        defaults.set(try JSONEncoder().encode(state), forKey: key(date: snapshot.date, program: snapshot.activeProgramID))
+        guard try loadStartedAt(date: snapshot.date, program: snapshot.activeProgramID,
+                                fingerprint: fingerprint) == startedAt else { throw DayComposerError.contextChanged }
     }
 
     /// Écriture dédiée : ne touche ni l'ordre ni les affectations Matin/Soir, n'est donc pas
@@ -96,12 +121,10 @@ struct DayComposerStore {
                       orderedIDs: [DayComposerItemID]) throws {
         let storageKey = key(date: date, program: program)
         var state: DayComposerState
-        if let raw = defaults.object(forKey: storageKey) {
-            guard let data = raw as? Data, let saved = try? JSONDecoder().decode(DayComposerState.self, from: data),
-                  (1...3).contains(saved.version), saved.date == date, saved.activeProgramID == program,
-                  saved.sourceFingerprint == fingerprint else { throw DayComposerError.contextChanged }
+        if let saved = try compatibleState(date: date, program: program, fingerprint: fingerprint) {
             state = DayComposerState(version: 3, date: date, activeProgramID: program, sourceFingerprint: fingerprint,
-                                     orderedItemIDs: saved.orderedItemIDs, assignments: saved.assignments)
+                                     orderedItemIDs: saved.orderedItemIDs, assignments: saved.assignments,
+                                     startedAt: saved.startedAt)
         } else {
             state = DayComposerState(version: 3, date: date, activeProgramID: program, sourceFingerprint: fingerprint,
                                      orderedItemIDs: orderedIDs)
@@ -129,7 +152,7 @@ struct DayComposerStore {
     /// « Restaurer la journée » : état neuf, mises de côté effacées. Ne relit rien, donc
     /// remplace aussi explicitement un état incompatible (autre plan, illisible).
     func reset(_ snapshot: DayComposerSnapshot) throws {
-        try write(snapshot.initialUnits, for: snapshot, setAside: [])
+        try write(snapshot.initialUnits, for: snapshot, setAside: [], startedAt: nil)
     }
 
     func clear(date: String, program: String) {

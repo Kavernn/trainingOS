@@ -266,6 +266,8 @@ struct DayComposerState: Codable {
     var assignments: [Assignment]? = nil
     /// v3 : unités mises de côté pour la journée (têtes d'unité). Hors empreinte.
     var setAside: [DayComposerItemID]? = nil
+    /// v3 : heure de lancement de la journée (durée réelle). Hors empreinte ; nil avant lancement.
+    var startedAt: Date? = nil
     struct Assignment: Codable {
         let id: DayComposerItemID
         let source: DayComposerSource
