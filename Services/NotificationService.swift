@@ -776,6 +776,9 @@ final class RestTimerManager: ObservableObject {
 
     func dismiss() { stop(); isVisible = false; exerciseName = nil }
 
+    /// Repos arrivé à 0 et pas encore fermé : tick() garde startDate, alors que stop()/reset() le remettent à nil.
+    var isFinished: Bool { !isRunning && startDate != nil }
+
     func adjust(by delta: Int) {
         setRemaining(max(1, remaining + delta))
         if isRunning {

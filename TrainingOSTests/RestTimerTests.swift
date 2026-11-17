@@ -94,6 +94,24 @@ final class RestTimerTests: XCTestCase {
         withExtendedLifetime([a, b]) {}
     }
 
+    func testIsFinishedOnlyAfterReachingZero() {
+        timer.start(seconds: 10)
+        XCTAssertFalse(timer.isFinished)
+        tick(at: 10)
+        XCTAssertTrue(timer.isFinished)            // fini → true
+        XCTAssertTrue(timer.isVisible)             // contrat « fini = visible » inchangé
+
+        timer.start(seconds: 10)
+        XCTAssertFalse(timer.isFinished)           // nouvelle série → false
+
+        tick(at: 13)
+        timer.stop()
+        XCTAssertFalse(timer.isFinished)           // pause → false
+
+        timer.reset()
+        XCTAssertFalse(timer.isFinished)           // reset → false
+    }
+
     func testPauseResumeResetAndPausedAdjustmentKeepExistingRules() {
         timer.start(seconds: 30)
         tick(at: 8)

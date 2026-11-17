@@ -128,6 +128,10 @@ static let pssBg           = Color(hex: "0C0C18")  // Fond de mood fixe — NE s
         if AppTheme.shared.selectedTheme == .arctic { return Color.appSuccess }
         return isSurgical ? Color(white: 0.68) : .green
     }
+    /// Texte sur fond plein statusGreen. Noir fixe : passe 3:1 (grand texte) sur les 21 thèmes —
+    /// Arctic 3,90 (vert 1A7A40), surgical 9,36 (gris 0,68), vert système 9,46 (34C759) / 10,39 (30D158).
+    /// onAccent échouait (blanc sur vert : Blood, Tokyo, Pearl 2,2). Calcul WCAG, 2026-11-17.
+    static var onStatusGreen: Color { .black }
     static var statusOrange: Color {
         if AppTheme.shared.selectedTheme == .arctic { return Color.appWarning }
         return isSurgical ? Color(white: 0.55) : .orange

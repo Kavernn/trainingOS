@@ -15,7 +15,20 @@ struct FloatingRestTimerCard: View {
             let ringColor: Color = progress > 0.6 ? .statusGreen : (progress > 0.3 ? .statusOrange : .statusRed)
 
             Group {
-                if isCompact {
+                if timer.isFinished {
+                    // Fin de repos : GO lisible à 2 m, prioritaire sur le mode compact ; toucher = fermer.
+                    Button(action: dismissAnimated) {
+                        Text("GO")
+                            .font(.appDisplay)
+                            .foregroundColor(Color.onStatusGreen)
+                            .frame(maxWidth: .infinity, minHeight: 120)
+                            .background(Color.statusGreen)
+                            .cornerRadius(16)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Repos terminé, fermer")
+                } else if isCompact {
                     Button(action: onExpand) {
                         (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))) {
                             HStack(spacing: 8) {
@@ -153,6 +166,13 @@ struct FloatingRestTimerCard: View {
                 }
                 }
             }
+            // Fermeture auto 5 s après la fin. Annulée si une nouvelle série relance le repos (isFinished repasse à false).
+            .task(id: timer.isFinished) {
+                guard timer.isFinished else { return }
+                try? await Task.sleep(for: .seconds(5))
+                guard !Task.isCancelled, timer.isFinished else { return }
+                dismissAnimated()
+            }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             // ponytail: containerRelativeFrame lit la largeur du container ambiant
@@ -173,6 +193,12 @@ struct FloatingRestTimerCard: View {
                     transaction.disablesAnimations = true
                 }
             }
+        }
+    }
+
+    private func dismissAnimated() {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.82)) {
+            timer.dismiss()
         }
     }
 
