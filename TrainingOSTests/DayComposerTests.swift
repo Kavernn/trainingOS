@@ -1542,6 +1542,13 @@ final class DayComposerTests: XCTestCase {
         XCTAssertEqual(DayComposerDuration.totalLabel(aside), "≈ 10 min")
     }
 
+    func testWhollySetAsideDayHasNoTotalLabel() throws {
+        let s = try setAsideSnapshot()
+        let all = Set(s.initialUnits.map(\.id))
+        XCTAssertNil(DayComposerDuration.totalLabel(s.initialUnits, setAside: all, in: s), "Jamais « ≈ 0 min »")
+        XCTAssertEqual(DayComposerDuration.totalLabel(s.initialUnits, setAside: [s.morning.units[0].id], in: s), "≈ 10 min")
+    }
+
     func testDurationRounding() {
         XCTAssertEqual(DayComposerDuration.unitLabel(20), "≈ 1 min", "Minimum 1 min")
         XCTAssertEqual(DayComposerDuration.unitLabel(89), "≈ 1 min")

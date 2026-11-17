@@ -199,9 +199,8 @@ struct DayComposerView: View {
     /// Durées estimées : uniquement sur un snapshot vérifié (repos et prescriptions réels) ;
     /// l'aperçu non vérifié n'affiche rien plutôt qu'une valeur inventée.
     private func totalDurationSuffix(_ snapshot: DayComposerSnapshot) -> String {
-        guard verified else { return "" }
-        return " · " + DayComposerDuration.totalLabel(
-            DayComposerDuration.totalSeconds(units, setAside: setAside, in: snapshot))
+        guard verified, let label = DayComposerDuration.totalLabel(units, setAside: setAside, in: snapshot) else { return "" }
+        return " · " + label
     }
 
     private func unitDurationLabel(_ unit: DayComposerUnit, snapshot: DayComposerSnapshot) -> String? {

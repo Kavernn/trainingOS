@@ -302,6 +302,13 @@ enum DayComposerDuration {
         units.filter { !setAside.contains($0.id) }.map { seconds($0, in: snapshot) }.reduce(0, +)
     }
 
+    /// Total affichable : nil quand il ne reste aucune unité requise (jamais « ≈ 0 min »).
+    static func totalLabel(_ units: [DayComposerUnit], setAside: Set<DayComposerItemID>,
+                           in snapshot: DayComposerSnapshot) -> String? {
+        guard !snapshot.isWhollySetAside(setAside) else { return nil }
+        return totalLabel(totalSeconds(units, setAside: setAside, in: snapshot))
+    }
+
     /// « ≈ N min », arrondi à la minute, minimum 1 min.
     static func unitLabel(_ seconds: Int) -> String {
         "≈ \(max(1, Int((Double(seconds) / 60).rounded()))) min"
