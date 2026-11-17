@@ -430,6 +430,19 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
         assertError(.conflict) { try s.recordFinalApplication(identity: id, sourceVersion: v, finalPayloadVersion: f, state: .failure) }
     }
 
+    /// writeFailed n'avale plus l'erreur d'origine : la cause est exposée telle quelle.
+    func testWriteFailureExposesUnderlyingCause() throws {
+        struct DiskFull: Error { let freeBytes = 0 }
+        let failing = DayComposerFinalizationStore(baseDirectory: directory, writeRecord: { _, _ in throw DiskFull() })
+        XCTAssertThrowsError(try failing.recordExerciseIntent(identity: identity(), version: exercise(.evening))) {
+            guard case .writeFailed(let cause)? = $0 as? DayComposerFinalizationError else {
+                return XCTFail("Attendu writeFailed, reçu \($0)")
+            }
+            XCTAssertEqual(cause, String(describing: DiskFull()))
+            XCTAssertTrue(cause.contains("DiskFull"), "La cause nomme l'erreur d'origine : \(cause)")
+        }
+    }
+
     func testWriteFailurePreservesOldFileAndDoesNotExposeNewIntentOrMarker() throws {
         let s = store(), id = try identity()
         try seed(s)
@@ -437,8 +450,9 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
         let failing = DayComposerFinalizationStore(baseDirectory: directory, writeRecord: { _, _ in
             throw CocoaError(.fileWriteNoPermission)
         })
-        assertError(.writeFailed) { try failing.recordExerciseIntent(identity: id, version: exercise(.evening)) }
-        assertError(.writeFailed) { try failing.markSubmissionMayHaveStarted(identity: id, operationKey: exercise().operationKey(identity: id)) }
+        let cause = String(describing: CocoaError(.fileWriteNoPermission))
+        assertError(.writeFailed(cause: cause)) { try failing.recordExerciseIntent(identity: id, version: exercise(.evening)) }
+        assertError(.writeFailed(cause: cause)) { try failing.markSubmissionMayHaveStarted(identity: id, operationKey: exercise().operationKey(identity: id)) }
         XCTAssertEqual(try bytes(s), before)
         XCTAssertEqual(try store().load(identity: id)?.exerciseIntents.count, 1)
         XCTAssertEqual(try store().load(identity: id)?.exerciseIntents[0].submissionPhase, .intentRecorded)

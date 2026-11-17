@@ -3,7 +3,10 @@ import CryptoKit
 
 enum DayComposerFinalizationError: Error, Equatable {
     case storageUnavailable, corrupt, unsupportedVersion, contextMismatch
-    case conflict, writeFailed, invalidRecord
+    case conflict, invalidRecord
+    /// `cause` = description de l'erreur d'origine (création du dossier ou écriture),
+    /// conservée pour le diagnostic. String garde l'enum Equatable.
+    case writeFailed(cause: String)
 }
 
 /// Canonical envelopes only. Payloads are hashed as supplied, never re-encoded.

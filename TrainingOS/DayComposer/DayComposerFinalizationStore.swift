@@ -95,7 +95,7 @@ final class DayComposerFinalizationStore {
             do {
                 try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try writeRecord(data, url)
-            } catch { throw DayComposerFinalizationError.writeFailed }
+            } catch { throw DayComposerFinalizationError.writeFailed(cause: String(describing: error)) }
         }
     }
 
