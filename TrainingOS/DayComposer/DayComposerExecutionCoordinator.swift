@@ -228,10 +228,10 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         if unit.items.contains(where: { item in
             executionIdentity(for: item.id).map { stabilizationBarrier?.hasUnpersistedEdits($0) == true } ?? false
         }) { return .refused(.pendingEdits) }
-        let remaining = (requiredItems(.morning) + requiredItems(.evening)).filter { item in
-            !unit.items.contains { $0.id == item.id }
+        if input.snapshot.setAsideEmptiesUnloggedDay(unitID, setAside: setAside,
+                                                     anyLogged: items.contains(where: isLogged)) {
+            return .refused(.lastUnitOfDay)
         }
-        if remaining.isEmpty && !items.contains(where: isLogged) { return .refused(.lastUnitOfDay) }
         if unit.items.contains(where: { status(for: $0.id)?.draft != .absent }) { return .requiresDraftDiscard }
         return .allowed
     }

@@ -155,6 +155,19 @@ struct DayComposerSnapshot {
         (source == .morning ? morning : evening).units.filter { !setAside.contains($0.id) }.flatMap(\.items)
     }
 
+    /// Aucun exercice requis dans la journée. Indépendant des affectations Matin/Soir
+    /// (les deux sources sont couvertes), donc valable en préparation comme en exécution.
+    func isWhollySetAside(_ setAside: Set<DayComposerItemID>) -> Bool {
+        requiredItems(.morning, setAside: setAside).isEmpty && requiredItems(.evening, setAside: setAside).isEmpty
+    }
+
+    /// Règle validée « Garde au moins un exercice pour la journée » : refus UNIQUEMENT si
+    /// la mise de côté viderait la journée ET qu'aucune unité de la journée n'est loguée.
+    func setAsideEmptiesUnloggedDay(_ unitID: DayComposerItemID, setAside: Set<DayComposerItemID>,
+                                    anyLogged: Bool) -> Bool {
+        !anyLogged && isWhollySetAside(setAside.union([unitID]))
+    }
+
     func canStart(orderedIDs: [DayComposerItemID], activeProgram: String, date: String,
                   loading: Bool, incompatible: Bool) -> Bool {
         !loading && !incompatible && activeProgramID == activeProgram && self.date == date

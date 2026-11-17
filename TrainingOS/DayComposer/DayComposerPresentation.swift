@@ -52,6 +52,29 @@ struct DayComposerFinishPresentation {
     var checkTitle: String { state == .pending ? "Vérifier la synchronisation" : "Vérifier l’enregistrement" }
 }
 
+/// Libellés de la mise de côté — source unique pour l'exécution et la préparation.
+enum DayComposerSetAsidePresentation {
+    static func toggleTitle(isSetAside: Bool) -> String {
+        isSetAside ? "Annuler la mise de côté" : "Mettre de côté aujourd’hui"
+    }
+    static let confirmationTitle = "Cet exercice contient une saisie non enregistrée. La mettre de côté l’efface."
+    static let confirmationAction = "Effacer la saisie et mettre de côté"
+    static let lockedPreparationHint = "Tu pourras mettre un exercice de côté pendant la séance."
+
+    static func message(for refusal: DayComposerExecutionCoordinator.SetAsideRefusal) -> String {
+        switch refusal {
+        case .logged: "Déjà enregistré — impossible de le mettre de côté."
+        case .pendingEdits: "Enregistrement en cours… réessaie dans un instant."
+        case .lastUnitOfDay: "Garde au moins un exercice pour la journée."
+        case .busy: "Finalisation en cours… réessaie dans un instant."
+        case .sourceFinished: "Cette séance est terminée ou en cours de finalisation."
+        case .locked: "La journée a changé. Tes données sont conservées."
+        case .persistence: "Impossible d’enregistrer sur cet appareil. Réessaie."
+        case .invalidUnit, .draftRequiresConfirmation: "Action impossible pour cet exercice."
+        }
+    }
+}
+
 struct DayComposerRPEChoices: View {
     let source: DayComposerSource
     @Binding var selection: Int?

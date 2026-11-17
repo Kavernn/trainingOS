@@ -1472,6 +1472,26 @@ final class DayComposerTests: XCTestCase {
         XCTAssertEqual(try s.fingerprint, before, "Le plan (donc l'identité de finalisation) reste figé")
     }
 
+    /// Règle commune préparation + exécution : refus seulement si journée vide ET rien de logué.
+    func testLastUnitRuleRefusesOnlyWhenNothingLogged() throws {
+        let s = try setAsideSnapshot()
+        let superset = s.morning.units[0].id, c = s.morning.units[1].id, e = s.evening.units[0].id
+        XCTAssertFalse(s.setAsideEmptiesUnloggedDay(e, setAside: [superset], anyLogged: false), "C reste")
+        XCTAssertTrue(s.setAsideEmptiesUnloggedDay(e, setAside: [superset, c], anyLogged: false))
+        XCTAssertFalse(s.setAsideEmptiesUnloggedDay(e, setAside: [superset, c], anyLogged: true),
+                       "Permis dès qu'une unité de la journée est loguée")
+        XCTAssertTrue(s.isWhollySetAside([superset, c, e]), "Commencer désactivé")
+        XCTAssertFalse(s.isWhollySetAside([superset, c]))
+    }
+
+    func testSetAsideMessagesAreExplicit() {
+        typealias P = DayComposerSetAsidePresentation
+        XCTAssertEqual(P.message(for: .pendingEdits), "Enregistrement en cours… réessaie dans un instant.")
+        XCTAssertEqual(P.message(for: .lastUnitOfDay), "Garde au moins un exercice pour la journée.")
+        XCTAssertEqual(P.toggleTitle(isSetAside: false), "Mettre de côté aujourd’hui")
+        XCTAssertEqual(P.toggleTitle(isSetAside: true), "Annuler la mise de côté")
+    }
+
     func testStoreV3SetAsideRoundTripSurvivesReorderAndRejectsOtherPlan() throws {
         let suite = "dc-setaside-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

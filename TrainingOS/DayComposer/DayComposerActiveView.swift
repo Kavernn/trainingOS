@@ -317,9 +317,13 @@ struct DayComposerActiveView: View {
         // mutable ExerciseCard's StateObject/debounce alive at a stable location.
         VStack(alignment: .leading, spacing: 16) {
             ForEach(coordinator.orderedUnits) { unit in
+                let finishState = finishCoordinator.productState(unit.source)
                 DayComposerUnitContent(coordinator: coordinator, unit: unit,
-                                       barrier: stabilizationBarrier, bodyWeight: bodyWeight, select: select, logged: logged)
-                    .disabled(finishCoordinator.productState(unit.source) == .completed)
+                                       barrier: stabilizationBarrier, bodyWeight: bodyWeight,
+                                       setAsideContext: .init(finishState: finishState,
+                                                              frozen: stabilizationBarrier.isInteractionFrozen),
+                                       select: select, logged: logged)
+                    .disabled(finishState == .completed)
             }
         }
     }
@@ -407,7 +411,9 @@ private struct DayComposerNavigator: View {
                         Button { select(item.id) } label: {
                             HStack(alignment: .top, spacing: 10) {
                                 let logged = coordinator.status(for: item.id)?.status == .localLogged || coordinator.status(for: item.id)?.status == .serverObserved
-                                Image(systemName: logged ? "checkmark.circle.fill" : coordinator.currentMemberID == item.id ? "arrow.right.circle.fill" : "circle")
+                                Image(systemName: coordinator.isSetAside(item.id) ? "minus.circle"
+                                      : logged ? "checkmark.circle.fill"
+                                      : coordinator.currentMemberID == item.id ? "arrow.right.circle.fill" : "circle")
                                     .foregroundStyle(Color.forge).accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.name).foregroundStyle(Color.appTextPrimary)
@@ -432,23 +438,108 @@ private struct DayComposerNavigator: View {
     }
 }
 
+/// État du contrôle de mise de côté d'une unité, fourni par l'écran.
+@MainActor
+private struct DayComposerSetAsideContext {
+    let finishState: DayComposerFinishCoordinator.ProductState
+    let frozen: Bool
+    /// Masqué une fois la séance terminée ou la journée verrouillée.
+    func showsControl(_ coordinator: DayComposerExecutionCoordinator) -> Bool {
+        finishState != .completed && !coordinator.isLocked
+    }
+    var disabled: Bool { frozen || finishState == .processing }
+}
+
+/// En-tête d'unité : contenu à gauche, « Mettre de côté » à droite (loin de la saisie des
+/// séries), refus affiché juste dessous. Un seul contrôle par unité (superset compris).
+private struct DayComposerUnitHeader<Leading: View>: View {
+    @ObservedObject var coordinator: DayComposerExecutionCoordinator
+    let unit: DayComposerUnit
+    let context: DayComposerSetAsideContext
+    let leading: Leading
+    @State private var refusal: String?
+    @State private var confirming = false
+    @State private var toggles = 0
+
+    init(coordinator: DayComposerExecutionCoordinator, unit: DayComposerUnit, context: DayComposerSetAsideContext,
+         @ViewBuilder leading: () -> Leading) {
+        self.coordinator = coordinator
+        self.unit = unit
+        self.context = context
+        self.leading = leading()
+    }
+
+    var body: some View {
+        let isSetAside = coordinator.setAside.contains(unit.id)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: 8) {
+                leading
+                Spacer(minLength: 8)
+                if context.showsControl(coordinator) {
+                    Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: isSetAside)) { tap(isSetAside) }
+                        .font(.appCaption.weight(.semibold))
+                        .buttonStyle(.borderless)
+                        .tint(Color.forge)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                        .disabled(context.disabled)
+                }
+            }
+            if let refusal {
+                Text(refusal).font(.appCaption).foregroundStyle(Color.appTextSecondary)
+            }
+        }
+        .confirmationDialog(DayComposerSetAsidePresentation.confirmationTitle, isPresented: $confirming,
+                            titleVisibility: .visible) {
+            Button(DayComposerSetAsidePresentation.confirmationAction, role: .destructive) { perform(discarding: true) }
+            Button("Annuler", role: .cancel) {}
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: toggles)
+    }
+
+    private func tap(_ isSetAside: Bool) {
+        if isSetAside {
+            do { try coordinator.cancelSetAside(unit.id); succeeded() } catch { show(error) }
+            return
+        }
+        switch coordinator.setAsideCheck(unit.id) {
+        case .allowed: perform(discarding: false)
+        case .requiresDraftDiscard: refusal = nil; confirming = true
+        case .refused(let reason): refusal = DayComposerSetAsidePresentation.message(for: reason)
+        }
+    }
+
+    private func perform(discarding: Bool) {
+        // La garde est réévaluée ici (même tour du main actor que la disparition de la carte).
+        do { try coordinator.setAsideUnit(unit.id, discardingDrafts: discarding); succeeded() } catch { show(error) }
+    }
+
+    private func succeeded() { refusal = nil; toggles += 1 }
+    private func show(_ error: Error) {
+        let reason = error as? DayComposerExecutionCoordinator.SetAsideRefusal ?? .persistence
+        refusal = DayComposerSetAsidePresentation.message(for: reason)
+    }
+}
+
 private struct DayComposerUnitContent: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
     let unit: DayComposerUnit
     let barrier: DayComposerLocalStabilizationBarrier
     let bodyWeight: Double
+    let setAsideContext: DayComposerSetAsideContext
     let select: (DayComposerItemID) -> Void
     let logged: (DayComposerItemID) -> Void
     var body: some View {
         if unit.group != nil {
-            DayComposerSupersetContent(coordinator: coordinator, unit: unit,
-                                      barrier: barrier, bodyWeight: bodyWeight, select: select, logged: logged)
+            DayComposerSupersetContent(coordinator: coordinator, unit: unit, barrier: barrier, bodyWeight: bodyWeight,
+                                      setAsideContext: setAsideContext, select: select, logged: logged)
         } else {
             ForEach(unit.items) { item in member(item) }
         }
     }
     private func member(_ item: DayComposerItem) -> some View {
-        DayComposerExerciseContent(coordinator: coordinator, item: item, barrier: barrier, bodyWeight: bodyWeight,
+        DayComposerExerciseContent(coordinator: coordinator, unit: unit, item: item, barrier: barrier,
+                                   bodyWeight: bodyWeight, setAsideContext: setAsideContext,
                                    select: select, logged: logged).id(item.id)
     }
 }
@@ -458,16 +549,21 @@ private struct DayComposerSupersetContent: View {
     let unit: DayComposerUnit
     let barrier: DayComposerLocalStabilizationBarrier
     let bodyWeight: Double
+    let setAsideContext: DayComposerSetAsideContext
     let select: (DayComposerItemID) -> Void
     let logged: (DayComposerItemID) -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Superset · \(unit.source.title)").font(.headline)
-                .foregroundStyle(Color.appTextPrimary)
-                .accessibilityLabel("Superset \(unit.source.title), 2 exercices")
-                .accessibilityAddTraits(.isHeader)
+            DayComposerUnitHeader(coordinator: coordinator, unit: unit, context: setAsideContext) {
+                Text("Superset · \(unit.source.title)").font(.headline)
+                    .foregroundStyle(coordinator.setAside.contains(unit.id) ? Color.appTextSecondary : Color.appTextPrimary)
+                    .accessibilityLabel("Superset \(unit.source.title), 2 exercices")
+                    .accessibilityAddTraits(.isHeader)
+            }
             ForEach(unit.items) { item in
-                DayComposerExerciseContent(coordinator: coordinator, item: item, barrier: barrier, bodyWeight: bodyWeight,
+                // Membre d'un superset : le contrôle unique vit dans l'en-tête ci-dessus.
+                DayComposerExerciseContent(coordinator: coordinator, unit: nil, item: item, barrier: barrier,
+                                           bodyWeight: bodyWeight, setAsideContext: setAsideContext,
                                            select: select, logged: logged).id(item.id)
             }
         }
@@ -476,17 +572,23 @@ private struct DayComposerSupersetContent: View {
 
 private struct DayComposerExerciseContent: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
+    /// Unité simple portant le contrôle de mise de côté ; nil pour un membre de superset.
+    let unit: DayComposerUnit?
     let item: DayComposerItem
     let barrier: DayComposerLocalStabilizationBarrier
     let bodyWeight: Double
+    let setAsideContext: DayComposerSetAsideContext
     let select: (DayComposerItemID) -> Void
     let logged: (DayComposerItemID) -> Void
     var body: some View {
         if let presentation = coordinator.presentation(for: item.id) {
             VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    DayComposerSourceChip(source: item.assignedSource)
-                    Text(presentation.label).font(.appCaption).foregroundStyle(Color.appTextSecondary)
+                if let unit {
+                    DayComposerUnitHeader(coordinator: coordinator, unit: unit, context: setAsideContext) {
+                        statusRow(presentation)
+                    }
+                } else {
+                    statusRow(presentation)
                 }
                 if presentation.rendering == .mutable, let token = presentation.authorization {
                     mutableCard(presentation, token: token).id(presentation.identity)
@@ -494,6 +596,13 @@ private struct DayComposerExerciseContent: View {
                     DayComposerReadOnlyContent(presentation: presentation)
                 }
             }
+        }
+    }
+
+    private func statusRow(_ presentation: DayComposerExecutionCoordinator.Presentation) -> some View {
+        HStack {
+            DayComposerSourceChip(source: item.assignedSource)
+            Text(presentation.label).font(.appCaption).foregroundStyle(Color.appTextSecondary)
         }
     }
 
@@ -536,7 +645,8 @@ private struct DayComposerReadOnlyContent: View {
                 DayComposerLocalSummary(result: result, tracking: result.trackingType ?? presentation.item.tracking)
             }
         }
-        .foregroundStyle(Color.appTextPrimary)
+        // Mise de côté : texte secondaire, sans opacité (contraste préservé sur thèmes clairs).
+        .foregroundStyle(presentation.rendering == .setAside ? Color.appTextSecondary : Color.appTextPrimary)
         .dayComposerSurface()
         .accessibilityElement(children: .contain)
     }
@@ -548,7 +658,7 @@ private struct DayComposerReadOnlyContent: View {
         case .unsupported: return "Cet exercice ne peut pas être saisi dans Ma journée. Consulte-le depuis sa séance habituelle."
         case .locked: return "La journée a changé. Tes saisies enregistrées restent disponibles."
         case .localReadOnly: return "Saisie conservée sur cet appareil, disponible en consultation."
-        case .setAside: return "Mis de côté aujourd’hui."
+        case .setAside: return "Rien ne sera enregistré pour cet exercice aujourd’hui."
         case .mutable: return ""
         }
     }

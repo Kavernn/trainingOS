@@ -58,6 +58,10 @@ struct DayComposerView: View {
     @State private var didValidate = false
     @State private var validationToken = UUID()
     @State private var representedCandidateID: UUID
+    /// Mises de côté du jour (têtes d'unité), lues/écrites via DayComposerStore v3.
+    @State private var setAside: Set<DayComposerItemID> = []
+    @State private var setAsideMessage: (unit: DayComposerItemID, text: String)?
+    @State private var setAsideToggles = 0
 
     init(candidate: DayComposerPreparationCandidate) {
         self.candidate = candidate
@@ -100,10 +104,12 @@ struct DayComposerView: View {
                 Section {
                     Text("2 séances · \(snapshot.initialIDs.count) exercices")
                         .font(.appBody.weight(.semibold))
-                    Text("Matin : \(units.filter { $0.source == .morning }.flatMap(\.items).count) · Soir : \(units.filter { $0.source == .evening }.flatMap(\.items).count)")
+                    Text(countsLine)
                         .font(.appCaption)
                     if sourcesLocked {
                         Text("Les créneaux ne peuvent plus être modifiés après le début de la journée.")
+                            .font(.appCaption).foregroundColor(.appTextSecondary)
+                        Text(DayComposerSetAsidePresentation.lockedPreparationHint)
                             .font(.appCaption).foregroundColor(.appTextSecondary)
                     }
                     if refreshing {
@@ -147,7 +153,8 @@ struct DayComposerView: View {
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .buttonStyle(.borderedProminent).tint(Color.forge)
                     .accessibilityHint("Ouvre l’entraînement dans l’ordre affiché, sans changer ton programme.")
-                    .disabled(starting || !executionAllowed || !snapshot.canStart(orderedIDs: units.flatMap { $0.items.map(\.id) },
+                    .disabled(starting || !executionAllowed || snapshot.isWhollySetAside(setAside)
+                        || !snapshot.canStart(orderedIDs: units.flatMap { $0.items.map(\.id) },
                         activeProgram: activeProgramID, date: DateFormatter.isoDate.string(from: Date()),
                         loading: loading, incompatible: incompatible))
                     Button("Restaurer la journée") { reset(snapshot) }
@@ -186,10 +193,48 @@ struct DayComposerView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .activeProgrammePlanningDidChange)) { _ in refresh = UUID() }
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in refresh = UUID() }
+        .sensoryFeedback(.impact(weight: .light), trigger: setAsideToggles)
+    }
+
+    /// Compteurs hors mises de côté, plus le nombre d'exercices mis de côté s'il y en a.
+    private var countsLine: String {
+        func count(_ source: DayComposerSource) -> Int {
+            units.filter { $0.source == source && !setAside.contains($0.id) }.flatMap(\.items).count
+        }
+        let asideCount = units.filter { setAside.contains($0.id) }.flatMap(\.items).count
+        let base = "Matin : \(count(.morning)) · Soir : \(count(.evening))"
+        return asideCount == 0 ? base : base + " · \(asideCount) mis de côté"
+    }
+
+    /// Préparation : n'est possible que créneaux NON verrouillés, donc sans aucun log
+    /// (ni local, ni observé côté serveur) → anyLogged = false pour la règle commune.
+    private func toggleSetAside(_ unit: DayComposerUnit) {
+        guard verified, !loading, !incompatible, let snapshot,
+              snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
+        guard !sourcesLocked, !DayComposerStore.sourcesLocked(snapshot) else { return }
+        var next = setAside
+        if next.contains(unit.id) {
+            next.remove(unit.id)
+        } else {
+            guard !snapshot.setAsideEmptiesUnloggedDay(unit.id, setAside: setAside, anyLogged: false) else {
+                setAsideMessage = (unit.id, DayComposerSetAsidePresentation.message(for: .lastUnitOfDay))
+                return
+            }
+            next.insert(unit.id)
+        }
+        do {
+            try store.saveSetAside(next, date: snapshot.date, program: snapshot.activeProgramID,
+                fingerprint: try snapshot.fingerprint, orderedIDs: units.flatMap { $0.items.map(\.id) })
+            setAside = next
+            setAsideMessage = nil
+            setAsideToggles += 1
+        } catch {
+            setAsideMessage = (unit.id, DayComposerSetAsidePresentation.message(for: .persistence))
+        }
     }
 
     @MainActor private func start() async {
-        guard !starting, executionAllowed, let snapshot,
+        guard !starting, executionAllowed, let snapshot, !snapshot.isWhollySetAside(setAside),
               snapshot.canStart(orderedIDs: units.flatMap { $0.items.map(\.id) }, activeProgram: activeProgramID,
                 date: DateFormatter.isoDate.string(from: Date()), loading: loading, incompatible: incompatible) else { return }
         starting = true
@@ -220,9 +265,24 @@ struct DayComposerView: View {
                     Label("Séance terminée", systemImage: "checkmark.circle")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                 }
+                Spacer(minLength: 8)
+                Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: setAside.contains(unit.id))) {
+                    toggleSetAside(unit)
+                }
+                .font(.appCaption.weight(.semibold))
+                .buttonStyle(.borderless).foregroundColor(.forge)
+                .frame(minHeight: 44).contentShape(Rectangle())
+                .disabled(sourcesLocked || !verified || incompatible || loading)
+            }
+            if let message = setAsideMessage, message.unit == unit.id {
+                Text(message.text).font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+            if setAside.contains(unit.id) {
+                Text("Mis de côté aujourd’hui").font(.appCaption).foregroundColor(.appTextSecondary)
             }
             ForEach(unit.items) { item in
                 Text(item.name).font(.appBody)
+                    .foregroundColor(setAside.contains(unit.id) ? .appTextSecondary : .appTextPrimary)
             }
             Button("Déplacer vers \(unit.source == .morning ? "Soir" : "Matin")") { transfer(unit) }
                 .buttonStyle(.borderless).frame(minHeight: 44)
@@ -252,8 +312,13 @@ struct DayComposerView: View {
         .padding(.vertical, 4)
         .listRowBackground(Color.appCard)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(unit.items.map(\.name).joined(separator: ", ")). \(unit.source.title). \(unit.group == nil ? "" : "Superset. ")Position \(index + 1) sur \(units.count).\(snapshot.completed(unit.source) ? " Séance terminée." : "")")
+        .accessibilityLabel("\(unit.items.map(\.name).joined(separator: ", ")). \(unit.source.title). \(unit.group == nil ? "" : "Superset. ")Position \(index + 1) sur \(units.count).\(snapshot.completed(unit.source) ? " Séance terminée." : "")\(setAside.contains(unit.id) ? " Mis de côté aujourd’hui." : "")")
         .accessibilityActions {
+            if verified && !incompatible && !sourcesLocked && !loading {
+                Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: setAside.contains(unit.id))) {
+                    toggleSetAside(unit)
+                }
+            }
             if verified && !incompatible && !sourcesLocked {
                 Button("Déplacer \(unit.items.map(\.name).joined(separator: ", ")) vers \(unit.source == .morning ? "Soir" : "Matin")") { transfer(unit) }
             }
@@ -342,6 +407,11 @@ struct DayComposerView: View {
             case .restored(let saved): units = saved
             case .incompatible: incompatible = true
             }
+            // Échec fort : un état d'un autre plan n'est jamais lu comme « aucune mise de côté ».
+            do {
+                setAside = try store.loadSetAside(date: fresh.date, program: fresh.activeProgramID,
+                                                  fingerprint: try fresh.fingerprint)
+            } catch { setAside = []; incompatible = true }
             let history = try await DayComposerServerProjection.load(date: fresh.date)
             guard !Task.isCancelled else { return }
             sourcesLocked = DayComposerStore.sourcesLocked(fresh) || !history.positivelyObserved.isEmpty
