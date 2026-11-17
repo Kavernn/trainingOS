@@ -1549,6 +1549,46 @@ final class DayComposerTests: XCTestCase {
         XCTAssertEqual(DayComposerDuration.totalLabel(s.initialUnits, setAside: [s.morning.units[0].id], in: s), "≈ 10 min")
     }
 
+    // MARK: Durée réelle
+
+    func testNetDurationMinutesIsTheChronoRule() {
+        XCTAssertEqual(ExerciseCalculator.netDurationMinutes(seconds: 0), 1, "Minimum 1 min")
+        XCTAssertEqual(ExerciseCalculator.netDurationMinutes(seconds: 60), 1)
+        XCTAssertEqual(ExerciseCalculator.netDurationMinutes(seconds: 61), 2, "Arrondi au supérieur")
+        let chrono = WorkoutChronoViewModel()
+        chrono.elapsedSeconds = 61
+        XCTAssertEqual(chrono.netDurationMinutes, 2, "Le chronomètre utilise la même règle")
+    }
+
+    func testActualDurationSplitsProportionallyAndSumsToTotal() {
+        typealias D = DayComposerActualDuration
+        // Première séance finalisée : l'autre a déjà 2× plus d'estimé fait.
+        let first = D.minutes(elapsedSeconds: 3600, doneSeconds: 600, other: .open(doneSeconds: 1200))
+        XCTAssertEqual(first.minutes, 20); XCTAssertNil(first.warning)
+        // Seconde : total − part déjà envoyée.
+        let second = D.minutes(elapsedSeconds: 3600, doneSeconds: 1200, other: .finalized(minutes: 20, doneSeconds: 600))
+        XCTAssertEqual(second.minutes, 40)
+        XCTAssertEqual((first.minutes ?? 0) + (second.minutes ?? 0), 60, "Somme des deux = durée totale")
+    }
+
+    func testActualDurationEdgeCases() {
+        typealias D = DayComposerActualDuration
+        XCTAssertEqual(D.minutes(elapsedSeconds: 3600, doneSeconds: 600, other: .open(doneSeconds: 0)).minutes, 60,
+                       "Autre séance mise de côté ou vide : toute la durée")
+        XCTAssertEqual(D.minutes(elapsedSeconds: 3600, doneSeconds: 0, other: .open(doneSeconds: 0)).minutes, 60,
+                       "Aucun estimé : toute la durée")
+        XCTAssertEqual(D.minutes(elapsedSeconds: 3600, doneSeconds: 2400, other: .finalized(minutes: nil, doneSeconds: 1200)).minutes, 40,
+                       "Première séance à nil : la seconde reçoit sa part proportionnelle")
+        XCTAssertEqual(D.minutes(elapsedSeconds: 300 * 60, doneSeconds: 1, other: .open(doneSeconds: 0)).minutes, 300)
+        let tooLong = D.minutes(elapsedSeconds: 300 * 60 + 1, doneSeconds: 1, other: .open(doneSeconds: 0))
+        XCTAssertNil(tooLong.minutes); XCTAssertNotNil(tooLong.warning, "> 300 min → nil + avertissement")
+        let negative = D.minutes(elapsedSeconds: 3600, doneSeconds: 600, other: .finalized(minutes: 70, doneSeconds: 600))
+        XCTAssertNil(negative.minutes); XCTAssertNotNil(negative.warning, "≤ 0 → nil + avertissement")
+        XCTAssertNil(D.minutes(elapsedSeconds: 0, doneSeconds: 600, other: .open(doneSeconds: 0)).minutes)
+        XCTAssertNil(D.minutes(elapsedSeconds: .nan, doneSeconds: 600, other: .open(doneSeconds: 0)).minutes)
+        XCTAssertEqual(D.minutes(elapsedSeconds: 3600, doneSeconds: 600, other: .open(doneSeconds: 1200)).minutes, 20)
+    }
+
     func testDurationRounding() {
         XCTAssertEqual(DayComposerDuration.unitLabel(20), "≈ 1 min", "Minimum 1 min")
         XCTAssertEqual(DayComposerDuration.unitLabel(89), "≈ 1 min")

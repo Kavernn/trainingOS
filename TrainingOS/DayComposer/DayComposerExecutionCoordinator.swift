@@ -294,8 +294,20 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
 
     @discardableResult
-    func setFinalRPE(_ rpe: Double, for source: DayComposerSource) throws -> DayComposerFinalInputsReceipt {
-        try finalInputsParticipant(for: source).setRPE(rpe)
+    func setFinalRPE(_ rpe: Double, durationMin: Double? = nil, for source: DayComposerSource) throws -> DayComposerFinalInputsReceipt {
+        try finalInputsParticipant(for: source).setRPE(rpe, durationMin: durationMin)
+    }
+
+    /// Heure de lancement (v3). nil si absente ; échec fort si l'état vient d'un autre plan.
+    func launchedAt() throws -> Date? {
+        try orderStore.loadStartedAt(date: context.date, program: context.activeProgramID,
+                                     fingerprint: input.planningFingerprint)
+    }
+
+    /// Estimé (s) des unités FAITES de la source : non mises de côté, ≥ 1 exercice logué.
+    func doneEstimateSeconds(_ source: DayComposerSource) -> Int {
+        orderedUnits.filter { $0.source == source && !setAside.contains($0.id) && $0.items.contains(where: isLogged) }
+            .map { DayComposerDuration.seconds($0, in: input.snapshot) }.reduce(0, +)
     }
 
     private static func validate(_ input: DayComposerValidatedExecutionInput) throws {

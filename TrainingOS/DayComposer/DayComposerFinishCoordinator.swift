@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import os
 
 /// Immutable request artifacts plus an expiring, read-only local-state witness.
 /// Reopening requires reconstruction and a fresh stabilization, never deserializing
@@ -146,7 +147,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
             guard let execution else { throw Failure.contextRejected }
             let tracks = execution.requiredItems(source).contains { WorkoutCompletion.tracks($0.tracking) }
             guard !tracks || rpe != 0 else { throw DayComposerFinalInputsError.invalidRPE }
-            try execution.setFinalRPE(tracks ? rpe : 0, for: source)
+            try execution.setFinalRPE(tracks ? rpe : 0, durationMin: actualDuration(source, execution), for: source)
             let artifact = try await prepareSource(source)
             let result = await advanceSource(artifact)
             productResults[source] = result
@@ -156,6 +157,40 @@ final class DayComposerFinishCoordinator: ObservableObject {
         } catch {
             productResults[source] = .init(reconciliation: nil, actions: [],
                 error: error is DayComposerFinalInputsError ? .durabilityFailure : .staleSnapshot)
+        }
+    }
+
+    /// Durée réelle de la séance, jamais bloquante (toute erreur → nil + avertissement).
+    /// Figée dès qu'une intention finale existe pour la séance (registre d'idempotence) :
+    /// une relance réutilise la valeur, donc les mêmes octets et la même clé finale.
+    private func actualDuration(_ source: DayComposerSource, _ execution: DayComposerExecutionCoordinator) -> Double? {
+        let other: DayComposerSource = source == .morning ? .evening : .morning
+        do {
+            let identity = execution.finalInputsParticipant(for: source).identity
+            let record = try store.load(identity: identity)
+            func submitted(_ s: DayComposerSource) -> Bool {
+                record?.finalIntents.contains { $0.sourceVersion.source == s } == true
+            }
+            func frozen(_ s: DayComposerSource) throws -> Double? {
+                try inputs.load(executionIdentity: identity, source: s)?.values.durationMin
+            }
+            if submitted(source) { return try frozen(source) }
+            guard let startedAt = try execution.launchedAt() else {
+                DayComposerLog.logger.warning("duration_min nil (\(source.rawValue, privacy: .public)) : journée lancée sans startedAt")
+                return nil
+            }
+            let otherState: DayComposerActualDuration.Other = submitted(other)
+                ? .finalized(minutes: try frozen(other), doneSeconds: execution.doneEstimateSeconds(other))
+                : .open(doneSeconds: execution.doneEstimateSeconds(other))
+            let result = DayComposerActualDuration.minutes(elapsedSeconds: Date().timeIntervalSince(startedAt),
+                doneSeconds: execution.doneEstimateSeconds(source), other: otherState)
+            if let warning = result.warning {
+                DayComposerLog.logger.warning("duration_min nil (\(source.rawValue, privacy: .public)) : \(warning, privacy: .public)")
+            }
+            return result.minutes
+        } catch {
+            DayComposerLog.logger.warning("duration_min nil (\(source.rawValue, privacy: .public)) : \(String(describing: error), privacy: .public)")
+            return nil
         }
     }
 

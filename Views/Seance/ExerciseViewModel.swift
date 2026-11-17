@@ -273,6 +273,12 @@ struct ExerciseDraftPersistence {
 
 enum ExerciseCalculator {
 
+    /// Minutes nettes d'une séance : arrondi au supérieur, minimum 1 min.
+    /// Règle unique : chronomètre de la Séance normale et durée réelle de Ma journée.
+    static func netDurationMinutes(seconds: Double) -> Int {
+        max(1, Int(ceil(seconds / 60.0)))
+    }
+
     /// Séries effectivement proposées en séance : mobilité = 1 (checklist), sinon setsCount.
     /// Source unique pour l'exécution et la durée estimée de Ma journée.
     static func effectiveSetsCount(scheme: String, prescription: ExercisePrescription?, tracking: String) -> Int {
@@ -1310,7 +1316,7 @@ final class WorkoutChronoViewModel: ObservableObject {
     }
 
     var netDurationMinutes: Int {
-        max(1, Int(ceil(Double(elapsedSeconds) / 60.0)))
+        ExerciseCalculator.netDurationMinutes(seconds: Double(elapsedSeconds))
     }
 
     func stop() -> Int {

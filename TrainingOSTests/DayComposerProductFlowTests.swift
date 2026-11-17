@@ -40,6 +40,42 @@ final class DayComposerProductFlowTests: XCTestCase {
         XCTAssertEqual(r.fixture.coordinator.context.date, original.date)
     }
 
+    /// Durée réelle : envoyée dans le payload final, figée dès l'intention finale ; une
+    /// relance plus tardive réutilise la même valeur (mêmes octets, rien de renvoyé).
+    func testActualDurationIsSentFrozenAndSplitBetweenSources() async throws {
+        let r = try DayComposerFinishRig(); defer { r.cleanup() }
+        let c = r.fixture.coordinator, s = c.input.snapshot
+        let order = DayComposerStore()
+        try order.save(c.orderedUnits, for: s)
+        try order.markStarted(Date().addingTimeInterval(-30 * 60), for: s)
+        final class Sent { var payloads: [DayComposerSource: [Data]] = [:] }
+        let box = Sent()
+        r.finalHook = { request in
+            box.payloads[request.source, default: []].append(request.payloadData)
+            r.statuses[request.operationKey] = .delivered(DayComposerFinishRig.record(request.operationKey))
+            return .applicationConfirmed(.init(success: true))
+        }
+        func sent(_ source: DayComposerSource) throws -> Double? {
+            let json = try JSONSerialization.jsonObject(with: XCTUnwrap(box.payloads[source]?.last)) as? [String: Any]
+            return (json?["duration_min"] as? NSNumber)?.doubleValue
+        }
+        let id = c.morningFinalInputs.identity
+        await r.engine.finishSource(.morning, rpe: 8)
+        // Estimés faits égaux Matin/Soir → moitié des ~30 min (arrondi au supérieur).
+        let morning = try XCTUnwrap(r.inputs.load(executionIdentity: id, source: .morning)?.values.durationMin)
+        XCTAssertTrue((15...16).contains(morning), "\(morning)")
+        XCTAssertEqual(try sent(.morning), morning, "La valeur figée est celle envoyée")
+        // Départ reculé (le temps passe) : relance → durée figée réutilisée, aucun nouvel envoi.
+        try order.markStarted(Date().addingTimeInterval(-90 * 60), for: s)
+        await r.engine.finishSource(.morning, rpe: 8)
+        XCTAssertEqual(try r.inputs.load(executionIdentity: id, source: .morning)?.values.durationMin, morning)
+        XCTAssertEqual(box.payloads[.morning]?.count, 1)
+        // Soir : total (~90 min) − part déjà envoyée.
+        await r.engine.finishSource(.evening, rpe: 8)
+        let evening = try XCTUnwrap(try sent(.evening))
+        XCTAssertTrue((89...91).contains(morning + evening), "Somme ≈ durée totale : \(morning) + \(evening)")
+    }
+
     func testInvalidRPECannotPostAndNoAutomaticFallback() async throws {
         let r = try DayComposerFinishRig(); defer { r.cleanup() }
         for value in [5.0, 7.5, 11.0] {

@@ -84,8 +84,12 @@ final class DayComposerFinalInputsTests: XCTestCase {
     }
 
     func testUnsupportedOptionalsIncludingZeroAndNonFinite() {
-        for duration in [0.0, 20, .nan, .infinity, -.infinity] {
+        // Durée réelle (Ma journée) : 1...300 min finies acceptées, le reste refusé.
+        for duration in [0.0, 0.5, -5, 301, .nan, .infinity, -.infinity] {
             fails(.unsupportedOptionalInput) { _ = try DayComposerFinalInputs(rpe: 7, durationMin: duration) }
+        }
+        for duration in [1.0, 20, 300] {
+            XCTAssertEqual(try DayComposerFinalInputs(rpe: 7, durationMin: duration).durationMin, duration)
         }
         for energy in [0, 3] {
             fails(.unsupportedOptionalInput) { _ = try DayComposerFinalInputs(rpe: 7, energyPre: energy) }

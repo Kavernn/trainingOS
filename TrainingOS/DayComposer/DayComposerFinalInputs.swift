@@ -24,8 +24,15 @@ struct DayComposerFinalInputs: Codable, Equatable {
         guard rpe.isFinite, [0.0, 6, 7, 8, 9, 10].contains(rpe) else {
             throw DayComposerFinalInputsError.invalidRPE
         }
-        // No producer for either optional exists in p1, including non-finite durations.
-        guard durationMin == nil, energyPre == nil else {
+        // Durée réelle (Ma journée) : nil ou minutes finies dans 1...maxMinutes (borne backend).
+        if let durationMin {
+            guard durationMin.isFinite, durationMin >= 1,
+                  durationMin <= Double(DayComposerActualDuration.maxMinutes) else {
+                throw DayComposerFinalInputsError.unsupportedOptionalInput
+            }
+        }
+        // No producer for energyPre exists.
+        guard energyPre == nil else {
             throw DayComposerFinalInputsError.unsupportedOptionalInput
         }
     }

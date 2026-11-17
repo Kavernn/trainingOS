@@ -51,7 +51,7 @@ struct DayComposerFinalizationRequestAdapter {
         let exos = summary.exos
         let bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.session(
             exos: exos, rpe: capture.finalInputs.values.rpe, comment: local.comment,
-            durationMin: nil, energyPre: nil, secondSession: local.source == .evening,
+            durationMin: capture.finalInputs.values.durationMin, energyPre: nil, secondSession: local.source == .evening,
             bonusSession: false, sessionName: local.identity.session(for: local.source),
             exerciseLogs: summary.exerciseLogs, date: local.identity.date, tracksPerformance: tracksPerformance))
         self.snapshot = snapshot

@@ -328,3 +328,36 @@ enum DayComposerDuration {
         return minutes < 60 ? "≈ \(minutes) min" : "≈ \(minutes / 60) h \(String(format: "%02d", minutes % 60))"
     }
 }
+
+/// Durée réelle envoyée (duration_min), par séance. Calcul pur, sans horloge ni stockage.
+/// T = maintenant − startedAt. Part de la séance = T × estimé fait / (estimé fait + estimé
+/// fait de l'autre séance) ; si l'autre séance a déjà figé d, la seconde reçoit T − d
+/// (somme des deux = durée totale). Arrondi au supérieur comme le chronomètre de la Séance.
+/// Jamais bloquant : une valeur invalide donne nil, avec la raison à journaliser.
+enum DayComposerActualDuration {
+    /// Borne backend (`duration_min_implausible` au-delà, api/routes/workout_logging.py).
+    static let maxMinutes = 300
+
+    enum Other {
+        /// Pas encore finalisée (ou entièrement mise de côté : doneSeconds = 0).
+        case open(doneSeconds: Int)
+        /// Déjà finalisée avec la durée figée (nil si elle n'a rien pu envoyer).
+        case finalized(minutes: Double?, doneSeconds: Int)
+    }
+
+    static func minutes(elapsedSeconds: Double, doneSeconds: Int, other: Other) -> (minutes: Double?, warning: String?) {
+        guard elapsedSeconds.isFinite, elapsedSeconds > 0 else { return (nil, "temps écoulé ≤ 0 ou invalide") }
+        let share: Double
+        switch other {
+        case .finalized(let sent?, _):
+            share = elapsedSeconds - sent * 60
+        case .open(let otherDone), .finalized(nil, let otherDone):
+            let total = doneSeconds + otherDone
+            share = total == 0 ? elapsedSeconds : elapsedSeconds * Double(doneSeconds) / Double(total)
+        }
+        guard share > 0 else { return (nil, "durée calculée ≤ 0") }
+        let minutes = ExerciseCalculator.netDurationMinutes(seconds: share)
+        guard minutes <= maxMinutes else { return (nil, "durée calculée \(minutes) min > \(maxMinutes) min") }
+        return (Double(minutes), nil)
+    }
+}

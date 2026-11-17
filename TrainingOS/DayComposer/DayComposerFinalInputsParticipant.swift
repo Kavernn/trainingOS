@@ -41,7 +41,7 @@ final class DayComposerFinalInputsParticipant {
     }
 
     @discardableResult
-    func setRPE(_ rpe: Double) throws -> DayComposerFinalInputsReceipt {
+    func setRPE(_ rpe: Double, durationMin: Double? = nil) throws -> DayComposerFinalInputsReceipt {
         // Includes same-content edits. Refusal cannot touch disk or the projection.
         try authorizeMutation()
         let expected: DayComposerFinalInputsReceipt?
@@ -55,7 +55,7 @@ final class DayComposerFinalInputsParticipant {
         // Reconcile without adopting an external edit as this caller's CAS baseline.
         // The caller must explicitly reload after a stale refusal, then retry.
         guard current == expected else { throw DayComposerFinalInputsError.staleInputs }
-        let values = try DayComposerFinalInputs(rpe: rpe)
+        let values = try DayComposerFinalInputs(rpe: rpe, durationMin: durationMin)
         try authorizeMutation()
         let receipt = try store.save(executionIdentity: identity, source: source,
             values: values, expectedRevision: expected?.revision)
