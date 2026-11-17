@@ -1,7 +1,14 @@
 import SwiftUI
 
+/// Source unique de la clé et de la valeur par défaut du repos automatique.
+/// Toute lecture via @AppStorage passe par ces deux constantes.
+enum AutoRestPreference {
+    static let key = "auto_start_rest_timer"
+    static let defaultValue = true
+}
+
 struct TrainingSettingsView: View {
-    @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
+    @AppStorage(AutoRestPreference.key) private var autoStartTimer = AutoRestPreference.defaultValue
     @AppStorage("show_rir_column")       private var showRIRColumn  = false
     @AppStorage("increment_upper_kg")    private var upperKg: Double = 1.25
     @AppStorage("increment_lower_kg")    private var lowerKg: Double = 2.5

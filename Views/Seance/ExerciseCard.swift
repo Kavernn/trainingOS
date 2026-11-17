@@ -66,7 +66,7 @@ struct ExerciseCard: View {
     @ObservedObject private var units = UnitSettings.shared
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("exo_notes_data")          private var exoNotesData: String = "{}"
-    @AppStorage("auto_start_rest_timer")   private var autoStartTimer = false
+    @AppStorage(AutoRestPreference.key)    private var autoStartTimer = AutoRestPreference.defaultValue
     @AppStorage("show_rir_column")         private var showRIRColumn = false
     @AppStorage("increment_upper_kg")      private var incrementUpperKg: Double = 1.25
     @AppStorage("increment_lower_kg")      private var incrementLowerKg: Double = 2.5
