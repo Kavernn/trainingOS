@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 from unittest.mock import patch
 from conftest import BaseRouteTest, TODAY
+from db_sessions import _normalize_session_patch
 
 
 # ── /api/session/edit ─────────────────────────────────────────────────────────
@@ -192,23 +193,23 @@ class TestLogSession(BaseRouteTest):
         self.evening = {}
         self.evening_calls = []
         db = sys.modules["db"]
-        self.original_update = db.update_workout_session_by_type
 
         def get_or_create(date):
             self.evening_calls.append("get_or_create")
             return self.evening.setdefault(date, {"id": date + "_pm", "completed": False})
 
-        def update(date, session_type, values):
-            if session_type != "evening":
-                return self.original_update(date, session_type, values)
+        def complete_by_id(session_id, patch=None):
+            # Fake miroir de db_sessions.complete_workout_session_by_id : même
+            # normalisation (vraie fonction), mise à jour de la ligne d'id donné.
             self.evening_calls.append("update")
-            if date not in self.evening:
+            row = next((r for r in self.evening.values() if r["id"] == session_id), None)
+            if row is None:
                 return False
-            self.evening[date].update(values)
+            row.update({"completed": True, **_normalize_session_patch(patch)})
             return True
 
         db.get_or_create_workout_session_second = get_or_create
-        db.update_workout_session_by_type = update
+        db.complete_workout_session_by_id = complete_by_id
 
     def test_evening_existing_session_persists_exact_patch(self):
         self.evening[TODAY] = {"id": "existing-pm", "completed": False}
@@ -236,17 +237,18 @@ class TestLogSession(BaseRouteTest):
                 self.evening.clear()
                 if existing:
                     self.evening[TODAY] = {"id": "existing-pm", "completed": False}
-                with patch.object(sys.modules["db"], "update_workout_session_by_type", return_value=False) as update:
+                with patch.object(sys.modules["db"], "complete_workout_session_by_id", return_value=False) as update:
                     response = self.post("/api/log_session", {"date": TODAY, "second_session": True})
                 self.assertEqual(500, response.status_code)
                 self.assertIn("error", self.json(response))
                 self.assertNotIn("success", self.json(response))
-                update.assert_called_once_with(TODAY, "evening", {"comment": "", "completed": True})
+                session_id = update.call_args.args[0]
+                self.assertEqual(self.evening[TODAY]["id"], session_id)  # même ligne que get_or_create
                 self.assertFalse(self.evening[TODAY]["completed"])
 
     def test_evening_create_failure_skips_update(self):
         with patch.object(sys.modules["db"], "get_or_create_workout_session_second", return_value={}):
-            with patch.object(sys.modules["db"], "update_workout_session_by_type") as update:
+            with patch.object(sys.modules["db"], "complete_workout_session_by_id") as update:
                 response = self.post("/api/log_session", {"date": TODAY, "second_session": True})
         self.assertEqual(500, response.status_code)
         self.assertIn("error", self.json(response))
@@ -254,7 +256,7 @@ class TestLogSession(BaseRouteTest):
         update.assert_not_called()
 
     def test_evening_persistence_exception_returns_json_500(self):
-        with patch.object(sys.modules["db"], "update_workout_session_by_type", side_effect=RuntimeError("DB unavailable")):
+        with patch.object(sys.modules["db"], "complete_workout_session_by_id", side_effect=RuntimeError("DB unavailable")):
             response = self.post("/api/log_session", {"date": TODAY, "second_session": True})
         self.assertEqual(500, response.status_code)
         self.assertIn("error", self.json(response))

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import math
 from typing import Dict, List, Optional, Tuple
 import db_core
 from db_exercises import get_exercise_id, get_or_create_exercise_id
@@ -340,6 +341,28 @@ def get_daily_session_volumes(days: int = 500) -> dict[str, float]:
     return result
 
 
+def _round_rpe_half(value) -> float:
+    """RPE arrondi au demi-point, demi vers le haut (7.25 → 7.5) ; round() arrondirait au pair."""
+    return math.floor(float(value) * 2 + 0.5) / 2
+
+
+def _normalize_session_patch(patch: Optional[dict]) -> dict:
+    """Règle unique matin / soir / bonus : rpe au 0,5 (colonne NUMERIC(4,1), migration 107),
+    duration_min et energy_pre entiers, valeurs None ignorées, autres clés écartées."""
+    out: dict = {}
+    for k in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
+        v = (patch or {}).get(k)
+        if v is None:
+            continue
+        if k == "rpe":
+            out[k] = _round_rpe_half(v)
+        elif k in ("duration_min", "energy_pre"):
+            out[k] = int(float(v))
+        else:
+            out[k] = v
+    return out
+
+
 def create_workout_session(
     date: str,
     rpe=None,
@@ -353,7 +376,7 @@ def create_workout_session(
     """Insert a new workout session row. Returns the created record."""
     payload: dict = {"date": date, "is_second": is_second, "session_type": session_type}
     if rpe is not None:
-        payload["rpe"] = int(round(float(rpe)))
+        payload["rpe"] = _round_rpe_half(rpe)
     if duration_min is not None:
         payload["duration_min"] = int(float(duration_min))
     if energy_pre is not None:
@@ -417,19 +440,7 @@ def complete_workout_session(date: str, patch: Optional[dict] = None) -> bool:
         except Exception:
             pass  # guard should never block completion
 
-        data = {"completed": True}
-        if patch:
-            for k, v in patch.items():
-                if k not in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
-                    continue
-                if v is None:
-                    continue
-                if k == "rpe":
-                    data[k] = int(round(float(v)))
-                elif k in ("duration_min", "energy_pre"):
-                    data[k] = int(float(v))
-                else:
-                    data[k] = v
+        data = {"completed": True, **_normalize_session_patch(patch)}
         resp = (
             db_core._client.table("workout_sessions")
             .update(data)
@@ -458,19 +469,7 @@ def complete_workout_session_bonus(date: str, patch: Optional[dict] = None) -> b
         return False
 
     def _do() -> bool:
-        data = {"completed": True}
-        if patch:
-            for k, v in patch.items():
-                if k not in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
-                    continue
-                if v is None:
-                    continue
-                if k == "rpe":
-                    data[k] = int(round(float(v)))
-                elif k in ("duration_min", "energy_pre"):
-                    data[k] = int(float(v))
-                else:
-                    data[k] = v
+        data = {"completed": True, **_normalize_session_patch(patch)}
         resp = (
             db_core._client.table("workout_sessions")
             .update(data)
@@ -720,7 +719,38 @@ def update_workout_session_by_type(date: str, session_type: str, patch: dict) ->
         return False
 
 
-INT_FIELDS = {"duration_min", "energy_pre", "rpe"}  # rpe is SMALLINT in DB
+def complete_workout_session_by_id(session_id: str, patch: Optional[dict] = None) -> bool:
+    """Marque terminée la séance d'id donné (une seule clé : la ligne trouvée par get_or_create
+    est celle mise à jour). 0 ligne touchée = échec journalisé, jamais silencieux."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        resp = (
+            db_core._client.table("workout_sessions")
+            .update({"completed": True, **_normalize_session_patch(patch)})
+            .eq("id", session_id)
+            .execute()
+        )
+        if not resp.data:
+            db_core.logger.error("complete_workout_session_by_id(%s): 0 row updated", session_id)
+            return False
+        return True
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("complete_workout_session_by_id(%s) retry error: %s", session_id, e2)
+                return False
+        db_core.logger.error("complete_workout_session_by_id(%s) error: %s", session_id, e)
+        return False
+
+
+INT_FIELDS = {"duration_min", "energy_pre"}  # rpe : NUMERIC(4,1) depuis 107, arrondi au 0,5 ci-dessous
 DECIMAL_FIELDS: set = set()
 
 def update_workout_session(date: str, patch: dict) -> bool:
@@ -734,6 +764,8 @@ def update_workout_session(date: str, patch: dict) -> bool:
         for k, v in patch.items():
             if v is None:
                 cleaned[k] = None
+            elif k == "rpe":
+                cleaned[k] = _round_rpe_half(v)
             elif k in INT_FIELDS:
                 cleaned[k] = int(float(v))
             elif k in DECIMAL_FIELDS:

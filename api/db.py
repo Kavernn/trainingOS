@@ -63,6 +63,7 @@ from db_sessions import (
     upsert_exercise_log_direct,
     get_exercise_history_grouped_by_session,
     update_workout_session_by_type,
+    complete_workout_session_by_id,
     update_workout_session,
     delete_workout_session,
     get_exercise_history,

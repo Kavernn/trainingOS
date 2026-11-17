@@ -560,17 +560,16 @@ def api_log_session():
             # Volet H : log_second_session supprimé (vestige KV — écrivait
             # extra_sessions (colonne morte) et déclenchait save_sessions →
             # ~120 PATCH par fin de séance 2). Le vrai patch de la row evening
-            # se fait ci-dessous via update_workout_session_by_type, aucune
+            # se fait ci-dessous via complete_workout_session_by_id, aucune
             # perte fonctionnelle.
             # A missing Evening row is valid, but creating a stub alone does
             # not acknowledge completion. Create first, then require the PATCH.
+            # Une seule clé : la ligne trouvée/créée est mise à jour par son id
+            # (avant : recherche par is_second, mise à jour par session_type).
             evening_session = _db.get_or_create_workout_session_second(today)
             if not (evening_session or {}).get("id"):
                 return jsonify({"error": "Impossible de créer la séance du soir"}), 500
-            updated = _db.update_workout_session_by_type(today, "evening", {
-                **{k: v for k, v in session_patch.items() if v is not None},
-                "completed": True,
-            })
+            updated = _db.complete_workout_session_by_id(evening_session["id"], session_patch)
             if not updated:
                 return jsonify({"error": "Impossible de marquer la séance du soir comme terminée"}), 500
         else:
