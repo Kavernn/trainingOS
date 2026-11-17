@@ -203,11 +203,14 @@ struct DayComposerView: View {
         }
         let asideCount = units.filter { setAside.contains($0.id) }.flatMap(\.items).count
         let base = "Matin : \(count(.morning)) · Soir : \(count(.evening))"
-        return asideCount == 0 ? base : base + " · \(asideCount) mis de côté"
+        // Incompatible : mises de côté inconnues, jamais affichées comme « aucune ».
+        return asideCount == 0 || incompatible ? base : base + " · \(asideCount) mis de côté"
     }
 
-    /// Préparation : n'est possible que créneaux NON verrouillés, donc sans aucun log
-    /// (ni local, ni observé côté serveur) → anyLogged = false pour la règle commune.
+    /// Invariant : la préparation n'agit que créneaux NON verrouillés. `sourcesLocked` couvre
+    /// séance terminée, provenance d'exécution, candidats de finalisation, inventaire local
+    /// (DayComposerStore.sourcesLocked) et logs observés côté serveur (positivelyObserved,
+    /// voir reload). Aucun log n'existe donc ici → anyLogged = false pour la règle commune.
     private func toggleSetAside(_ unit: DayComposerUnit) {
         guard verified, !loading, !incompatible, let snapshot,
               snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
@@ -228,6 +231,8 @@ struct DayComposerView: View {
             setAside = next
             setAsideMessage = nil
             setAsideToggles += 1
+        } catch DayComposerError.contextChanged {
+            setAsideMessage = (unit.id, DayComposerSetAsidePresentation.message(for: .locked))
         } catch {
             setAsideMessage = (unit.id, DayComposerSetAsidePresentation.message(for: .persistence))
         }
@@ -266,13 +271,15 @@ struct DayComposerView: View {
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                 }
                 Spacer(minLength: 8)
-                Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: setAside.contains(unit.id))) {
-                    toggleSetAside(unit)
+                if !incompatible {
+                    Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: setAside.contains(unit.id))) {
+                        toggleSetAside(unit)
+                    }
+                    .font(.appCaption.weight(.semibold))
+                    .buttonStyle(.borderless).foregroundColor(.forge)
+                    .frame(minHeight: 44).contentShape(Rectangle())
+                    .disabled(sourcesLocked || !verified || loading)
                 }
-                .font(.appCaption.weight(.semibold))
-                .buttonStyle(.borderless).foregroundColor(.forge)
-                .frame(minHeight: 44).contentShape(Rectangle())
-                .disabled(sourcesLocked || !verified || incompatible || loading)
             }
             if let message = setAsideMessage, message.unit == unit.id {
                 Text(message.text).font(.appCaption).foregroundColor(.appTextSecondary)
@@ -386,6 +393,8 @@ struct DayComposerView: View {
             verified = initial.verified
             representedCandidateID = candidate.id
             didValidate = false
+            setAside = []
+            setAsideMessage = nil
         }
         refreshing = true
         sourcesLocked = true

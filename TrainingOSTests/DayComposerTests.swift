@@ -1570,6 +1570,24 @@ final class DayComposerTests: XCTestCase {
         }
     }
 
+    /// État de mises de côté d'un autre plan : « la journée a changé », jamais « Réessaie ».
+    @MainActor
+    func testSetAsideOnOtherPlanStateReportsDayChanged() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B"], evening: ["E"]))
+            let c = try coordinator(input)
+            let store = DayComposerStore()
+            store.clear(date: date, program: input.context.activeProgramID)
+            try store.saveSetAside([], date: date, program: input.context.activeProgramID,
+                                   fingerprint: "other-plan", orderedIDs: input.snapshot.initialIDs)
+            XCTAssertThrowsError(try c.setAsideUnit(input.snapshot.morning.units[0].id, discardingDrafts: false)) {
+                XCTAssertEqual($0 as? DayComposerExecutionCoordinator.SetAsideRefusal, .locked)
+            }
+            XCTAssertEqual(DayComposerSetAsidePresentation.message(for: .locked),
+                           "La journée a changé. Tes données sont conservées.")
+        }
+    }
+
     @MainActor
     func testSetAsideRefusesLoggedUnitAndPendingEdits() throws {
         try withExecution { date in

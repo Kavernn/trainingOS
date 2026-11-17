@@ -270,6 +270,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         do {
             try orderStore.saveSetAside(updated, date: context.date, program: context.activeProgramID,
                 fingerprint: input.planningFingerprint, orderedIDs: items.map(\.id))
+        } catch DayComposerError.contextChanged {
+            throw SetAsideRefusal.locked
         } catch { throw SetAsideRefusal.persistence }
         setAside = updated
         refreshDerivedState()

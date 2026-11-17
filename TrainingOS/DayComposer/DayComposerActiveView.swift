@@ -495,6 +495,9 @@ private struct DayComposerUnitHeader<Leading: View>: View {
             Button("Annuler", role: .cancel) {}
         }
         .sensoryFeedback(.impact(weight: .light), trigger: toggles)
+        // Un refus ne survit pas au changement qui l'a peut-être levé.
+        .onChange(of: coordinator.setAside) { _, _ in refusal = nil }
+        .onChange(of: unit.items.map { coordinator.status(for: $0.id) }) { _, _ in refusal = nil }
     }
 
     private func tap(_ isSetAside: Bool) {
