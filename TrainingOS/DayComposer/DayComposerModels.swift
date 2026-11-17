@@ -135,6 +135,10 @@ struct DayComposerSnapshot {
         }
     }
 
+    /// `hasSavedOrder` (DayComposerStore) repose sur un invariant d'écriture : `save` écrit
+    /// toujours les affectations ; `saveSetAside` sans état préalable n'en écrit pas ;
+    /// `saveSetAside` sur un état existant les conserve. Une mise de côté seule ne rend donc
+    /// pas pertinente une journée aux deux séances terminées.
     func isRelevant(hasSavedOrder: Bool) -> Bool {
         // One completed source can still be represented alongside the other.
         // A wholly completed day is only offered as an existing saved recovery,

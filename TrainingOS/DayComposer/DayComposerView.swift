@@ -366,6 +366,8 @@ struct DayComposerView: View {
         do {
             try store.reset(snapshot)
             units = snapshot.initialUnits
+            setAside = []
+            setAsideMessage = nil
             incompatible = false
             error = nil
         } catch { self.error = "Impossible de réinitialiser cet ordre local." }

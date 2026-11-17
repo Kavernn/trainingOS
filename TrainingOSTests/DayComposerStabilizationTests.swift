@@ -887,6 +887,23 @@ final class DayComposerStabilizationTests: XCTestCase {
         XCTAssertFalse(f.coordinator.isLocked); XCTAssertFalse(f.barrier.isInteractionFrozen)
     }
 
+    /// Mise de côté modifiée entre la capture et l'envoi : la capture expire (staleEvidence),
+    /// jamais d'envoi sur un plan requis périmé.
+    func testSetAsideChangedAfterCaptureExpiresFinalCapture() throws {
+        try withFinalFixture { f, _, _ in
+            _ = try f.coordinator.setFinalRPE(7, for: .morning)
+            let capture = try f.barrier.withStabilizedFinalSource(.morning) { evidence in
+                try f.coordinator.captureFinalSource(for: .morning, evidence: evidence)
+            }
+            XCTAssertNoThrow(try f.coordinator.verifyFinalCapture(capture))
+            let evening = try XCTUnwrap(f.coordinator.orderedUnits.first { $0.source == .evening }?.id)
+            try f.coordinator.setAsideUnit(evening, discardingDrafts: false)
+            XCTAssertThrowsError(try f.coordinator.verifyFinalCapture(capture)) {
+                XCTAssertEqual($0 as? DayComposerStabilizationError, .staleEvidence)
+            }
+        }
+    }
+
     func testCommentGenerationInvalidatesEvenWhenTextReturnsToOriginal() throws {
         let h = try Harness(); let otherEntry = try Harness()
         XCTAssertThrowsError(try h.barrier.withStabilizedSource(.morning) { _ in

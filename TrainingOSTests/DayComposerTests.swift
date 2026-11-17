@@ -1514,6 +1514,62 @@ final class DayComposerTests: XCTestCase {
         XCTAssertThrowsError(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: "other"))
     }
 
+    func testSaveOnOtherPlanStateThrowsWithoutOverwriting() throws {
+        try withStore { store in
+            let s = try setAsideSnapshot()
+            try store.saveSetAside([s.morning.units[1].id], date: s.date, program: s.activeProgramID,
+                                   fingerprint: "other-plan", orderedIDs: s.initialIDs)
+            let before = store.defaults.dictionaryRepresentation() as NSDictionary
+            XCTAssertThrowsError(try store.save(s.initialUnits, for: s)) {
+                guard case DayComposerError.contextChanged = $0 else { return XCTFail("Attendu contextChanged, reçu \($0)") }
+            }
+            XCTAssertEqual(store.defaults.dictionaryRepresentation() as NSDictionary, before,
+                           "Les mises de côté ne sont jamais effacées en silence")
+        }
+    }
+
+    func testResetClearsSetAsideOnCompatibleState() throws {
+        try withStore { store in
+            let s = try setAsideSnapshot(), fp = try s.fingerprint
+            try store.save(DayComposerSnapshot.moving(s.initialUnits, from: IndexSet(integer: 2), to: 0), for: s)
+            try store.saveSetAside([s.morning.units[1].id], date: s.date, program: s.activeProgramID,
+                                   fingerprint: fp, orderedIDs: s.initialIDs)
+            try store.reset(s)
+            XCTAssertEqual(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: fp), [])
+            guard case .restored(let units) = try store.load(s) else { return XCTFail("Reset manquant") }
+            XCTAssertEqual(units.flatMap { $0.items.map(\.id) }, s.initialIDs)
+        }
+    }
+
+    func testResetReplacesIncompatibleState() throws {
+        try withStore { store in
+            let s = try setAsideSnapshot()
+            try store.saveSetAside([s.morning.units[1].id], date: s.date, program: s.activeProgramID,
+                                   fingerprint: "other-plan", orderedIDs: s.initialIDs)
+            guard case .incompatible = try store.load(s) else { return XCTFail("État d'un autre plan accepté") }
+            try store.reset(s)
+            guard case .restored = try store.load(s) else { return XCTFail("État incompatible non remplacé") }
+            XCTAssertEqual(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: try s.fingerprint), [])
+        }
+    }
+
+    func testSetAsideAloneDoesNotKeepCompletedDayRelevant() throws {
+        try withStore { store in
+            let s = try setAsideSnapshot()
+            let done = DayComposerSnapshot(date: s.date, activeProgramID: s.activeProgramID, morning: s.morning,
+                evening: s.evening, morningCompleted: true, eveningCompleted: true)
+            try store.saveSetAside([s.morning.units[1].id], date: s.date, program: s.activeProgramID,
+                                   fingerprint: try done.fingerprint, orderedIDs: s.initialIDs)
+            XCTAssertFalse(store.hasSavedOrder(date: s.date, program: s.activeProgramID))
+            XCTAssertFalse(done.isRelevant(hasSavedOrder: store.hasSavedOrder(date: s.date, program: s.activeProgramID)))
+            // Écrit ensuite par save (lancement) : ordre sauvegardé, mise de côté conservée.
+            try store.save(done.initialUnits, for: done)
+            XCTAssertTrue(done.isRelevant(hasSavedOrder: store.hasSavedOrder(date: s.date, program: s.activeProgramID)))
+            XCTAssertEqual(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: try done.fingerprint),
+                           [s.morning.units[1].id])
+        }
+    }
+
     @MainActor
     func testSetAsideRefusesLoggedUnitAndPendingEdits() throws {
         try withExecution { date in

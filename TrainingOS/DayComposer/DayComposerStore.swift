@@ -9,8 +9,14 @@ struct DayComposerStore {
         "day_composer_order.\(date.utf8.count):\(date).\(program.utf8.count):\(program)"
     }
 
+    /// Ordre sauvegardé = état écrit par `save` (affectations présentes ; v1/v2 n'étaient écrits
+    /// que par `save`), jamais par `saveSetAside` seul. Illisible → compté présent : `load` le
+    /// signalera incompatible au lieu de le cacher.
     func hasSavedOrder(date: String, program: String) -> Bool {
-        defaults.object(forKey: key(date: date, program: program)) != nil
+        guard let raw = defaults.object(forKey: key(date: date, program: program)) else { return false }
+        guard let data = raw as? Data,
+              let saved = try? JSONDecoder().decode(DayComposerState.self, from: data) else { return true }
+        return saved.version < 3 || saved.assignments != nil
     }
 
     enum Resolution {
@@ -47,21 +53,25 @@ struct DayComposerStore {
         return .restored(assigned)
     }
 
+    /// Réordonner ou déplacer conserve les mises de côté. Un état présent mais incompatible
+    /// échoue fort (contextChanged) : seul `reset` le remplace.
     func save(_ units: [DayComposerUnit], for snapshot: DayComposerSnapshot) throws {
+        let kept = try loadSetAside(date: snapshot.date, program: snapshot.activeProgramID,
+                                    fingerprint: try snapshot.fingerprint)
+        try write(units, for: snapshot, setAside: kept)
+    }
+
+    private func write(_ units: [DayComposerUnit], for snapshot: DayComposerSnapshot,
+                       setAside: Set<DayComposerItemID>) throws {
         let ids = units.flatMap { $0.items.map(\.id) }
         guard snapshot.units(for: ids) != nil else { throw DayComposerError.invalidPlan }
         _ = try snapshot.assigning(units)
         let fingerprint = try snapshot.fingerprint
-        // Réordonner ou déplacer ne perd jamais les mises de côté d'un état compatible.
-        // Un état incompatible n'est atteint que par reset (moves désactivés) : il est
-        // remplacé EN ENTIER, ses mises de côté avec — c'est le but de « Restaurer la journée ».
-        let kept = (try? loadSetAside(date: snapshot.date, program: snapshot.activeProgramID,
-                                      fingerprint: fingerprint)) ?? []
         let state = DayComposerState(version: 3, date: snapshot.date,
                                      activeProgramID: snapshot.activeProgramID,
                                      sourceFingerprint: fingerprint, orderedItemIDs: ids,
                                      assignments: units.flatMap(\.items).map { .init(id: $0.id, source: $0.assignedSource) },
-                                     setAside: Self.sorted(kept))
+                                     setAside: Self.sorted(setAside))
         let data = try JSONEncoder().encode(state)
         defaults.set(data, forKey: key(date: snapshot.date, program: snapshot.activeProgramID))
     }
@@ -116,8 +126,10 @@ struct DayComposerStore {
         } catch { return true }
     }
 
+    /// « Restaurer la journée » : état neuf, mises de côté effacées. Ne relit rien, donc
+    /// remplace aussi explicitement un état incompatible (autre plan, illisible).
     func reset(_ snapshot: DayComposerSnapshot) throws {
-        try save(snapshot.initialUnits, for: snapshot)
+        try write(snapshot.initialUnits, for: snapshot, setAside: [])
     }
 
     func clear(date: String, program: String) {
