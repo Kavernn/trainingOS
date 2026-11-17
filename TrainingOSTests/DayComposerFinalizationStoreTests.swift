@@ -93,6 +93,20 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
         }
     }
 
+    /// writeFailed : on vérifie domaine/code/type de la cause, jamais son texte complet —
+    /// la description varie selon le pont Swift/NSError.
+    private func assertWriteFailed(containing fragments: [String], file: StaticString = #filePath,
+                                   line: UInt = #line, _ body: () throws -> Void) {
+        XCTAssertThrowsError(try body(), file: file, line: line) {
+            guard case .writeFailed(let cause)? = $0 as? DayComposerFinalizationError else {
+                return XCTFail("Attendu writeFailed, reçu \($0)", file: file, line: line)
+            }
+            for fragment in fragments {
+                XCTAssertTrue(cause.contains(fragment), "Cause sans « \(fragment) » : \(cause)", file: file, line: line)
+            }
+        }
+    }
+
     private func bytes(_ store: DayComposerFinalizationStore) throws -> Data {
         try Data(contentsOf: store.recordURL(identity: identity()))
     }
@@ -434,13 +448,8 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
     func testWriteFailureExposesUnderlyingCause() throws {
         struct DiskFull: Error { let freeBytes = 0 }
         let failing = DayComposerFinalizationStore(baseDirectory: directory, writeRecord: { _, _ in throw DiskFull() })
-        XCTAssertThrowsError(try failing.recordExerciseIntent(identity: identity(), version: exercise(.evening))) {
-            guard case .writeFailed(let cause)? = $0 as? DayComposerFinalizationError else {
-                return XCTFail("Attendu writeFailed, reçu \($0)")
-            }
-            XCTAssertEqual(cause, String(describing: DiskFull()))
-            XCTAssertTrue(cause.contains("DiskFull"), "La cause nomme l'erreur d'origine : \(cause)")
-        }
+        let id = try identity()
+        assertWriteFailed(containing: ["DiskFull"]) { try failing.recordExerciseIntent(identity: id, version: exercise(.evening)) }
     }
 
     func testWriteFailurePreservesOldFileAndDoesNotExposeNewIntentOrMarker() throws {
@@ -450,9 +459,9 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
         let failing = DayComposerFinalizationStore(baseDirectory: directory, writeRecord: { _, _ in
             throw CocoaError(.fileWriteNoPermission)
         })
-        let cause = String(describing: CocoaError(.fileWriteNoPermission))
-        assertError(.writeFailed(cause: cause)) { try failing.recordExerciseIntent(identity: id, version: exercise(.evening)) }
-        assertError(.writeFailed(cause: cause)) { try failing.markSubmissionMayHaveStarted(identity: id, operationKey: exercise().operationKey(identity: id)) }
+        let cocoa = ["NSCocoaErrorDomain", "513"]
+        assertWriteFailed(containing: cocoa) { try failing.recordExerciseIntent(identity: id, version: exercise(.evening)) }
+        assertWriteFailed(containing: cocoa) { try failing.markSubmissionMayHaveStarted(identity: id, operationKey: exercise().operationKey(identity: id)) }
         XCTAssertEqual(try bytes(s), before)
         XCTAssertEqual(try store().load(identity: id)?.exerciseIntents.count, 1)
         XCTAssertEqual(try store().load(identity: id)?.exerciseIntents[0].submissionPhase, .intentRecorded)
