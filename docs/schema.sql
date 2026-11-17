@@ -144,7 +144,7 @@ CREATE POLICY "anon_all" ON public.weekly_schedule FOR ALL TO anon USING (true) 
 CREATE TABLE IF NOT EXISTS workout_sessions (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     date            DATE        NOT NULL,
-    rpe             NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),
+    rpe             NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),  -- 006 jamais exécutée en prod : réelle à partir de 107 (2026-11-17)
     comment         TEXT,
     duration_min    INT,
     energy_pre      INT         CHECK (energy_pre BETWEEN 1 AND 10),
@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS hiit_logs (
     session_type        TEXT        NOT NULL,   -- ex. "HIIT 1", "Sprint"
     rounds_planned      SMALLINT,
     rounds_completed    SMALLINT,
-    rpe                 NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),
+    rpe                 NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),  -- idem : 107 (2026-11-17)
     feeling             TEXT,
     comment             TEXT,
     speed_max           NUMERIC,
@@ -1230,3 +1230,38 @@ FROM workout_sessions ws
 LEFT JOIN exercise_logs el ON el.session_id = ws.id
 GROUP BY DATE_TRUNC('week', ws.date), EXTRACT(WEEK FROM ws.date), EXTRACT(YEAR FROM ws.date)
 ORDER BY week_start DESC;
+
+
+-- v_session_category (migrations 085/086 ; définition prod recréée par 107)
+-- Classe chaque séance en force / accessory / unknown selon la part d'exercices
+-- push/pull/legs parmi les exercices catégorisés.
+CREATE OR REPLACE VIEW v_session_category WITH (security_invoker = true) AS
+WITH session_classification AS (
+    SELECT el.session_id,
+        COUNT(DISTINCT el.exercise_id) FILTER (WHERE e.category = ANY (ARRAY['push', 'pull', 'legs'])) AS force_exos,
+        COUNT(DISTINCT el.exercise_id) FILTER (WHERE e.category IS NOT NULL)                           AS classified_exos
+    FROM exercise_logs el
+    JOIN exercises e ON e.id = el.exercise_id
+    GROUP BY el.session_id
+)
+SELECT
+    sv.session_id,
+    sv.date,
+    sv.rpe,
+    sv.duration_min,
+    sv.total_volume,
+    sv.total_sets,
+    sv.total_reps,
+    COALESCE(sc.force_exos, 0)      AS force_exos,
+    COALESCE(sc.classified_exos, 0) AS classified_exos,
+    CASE
+        WHEN COALESCE(sc.classified_exos, 0) = 0 THEN NULL::NUMERIC
+        ELSE ROUND(sc.force_exos::NUMERIC / sc.classified_exos::NUMERIC, 3)
+    END AS ratio_force,
+    CASE
+        WHEN COALESCE(sc.classified_exos, 0) = 0 THEN 'unknown'
+        WHEN (sc.force_exos::NUMERIC / sc.classified_exos::NUMERIC) >= 0.5 THEN 'force'
+        ELSE 'accessory'
+    END AS session_category
+FROM v_session_volume sv
+LEFT JOIN session_classification sc ON sc.session_id = sv.session_id;
