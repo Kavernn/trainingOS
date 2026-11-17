@@ -689,12 +689,10 @@ struct WorkoutSeanceView: View {
                 Text("MOBILITÉ")
                     .font(.appMicro).fontWeight(.bold).tracking(2)
                     .foregroundColor(Color.appTextMuted)
-            } else {
-                let exoIdx = (exercises.firstIndex { $0.0 == currentExerciseName } ?? 0) + 1
-                let setLabel: String = activeSetProgress.setCount > 0
-                    ? " · S\(min(activeSetProgress.setIndex + 1, activeSetProgress.setCount))/\(activeSetProgress.setCount)"
-                    : ""
-                Text("EXO \(exoIdx)/\(progressTotal)\(setLabel)")
+            } else if activeSetProgress.setCount > 0 {
+                // Progression séance = puces du navigateur (représentation unique).
+                // Ici seulement le compteur de séries, absent ailleurs.
+                Text("S\(min(activeSetProgress.setIndex + 1, activeSetProgress.setCount))/\(activeSetProgress.setCount)")
                     .font(.appMicro).fontWeight(.bold).tracking(2)
                     .foregroundColor(Color.appTextMuted)
             }
@@ -1929,7 +1927,8 @@ struct WorkoutSeanceView: View {
                     } else {
                         Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
                     }
-                    Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
+                    Text(vm.isFinishing ? "Enregistrement…"
+                         : (completionGlow ? "Séance complète · Terminer" : "Terminer la séance"))
                         .font(.appBody).fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 16)
@@ -2035,43 +2034,6 @@ struct WorkoutSeanceView: View {
                 Spacer(minLength: 0)
             }
 
-            // Progress bar — superset-aware
-            let done = progressDone
-            let total = progressTotal
-            let allDone = progressComplete
-            VStack(spacing: 6) {
-                HStack(spacing: 8) {
-                    Text(allDone ? "SÉANCE COMPLÈTE" : "PROGRESSION")
-                        .font(.appMicro).fontWeight(.bold).tracking(1.4)
-                        .foregroundColor(allDone ? Color.appSuccess : Color.appTextMuted)
-                        .animation(.easeInOut(duration: 0.2), value: allDone)
-                    Spacer()
-                    Text(total == 0 ? "Checklist" : "\(done) / \(total)")
-                        .font(.appCaption).fontWeight(.bold)
-                        .foregroundColor(allDone ? Color.appSuccess : Color.appTextPrimary)
-                        .monospacedDigit()
-                    if allDone {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.appMicro).fontWeight(.bold)
-                            .foregroundColor(Color.appSuccess)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                .animation(.easeInOut(duration: 0.3), value: allDone)
-                Capsule()
-                    .fill(Color.appSurfaceInset)
-                    .frame(height: 4)
-                    .overlay(
-                        GeometryReader { g in
-                            let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
-                            Capsule()
-                                .fill(allDone ? Color.appSuccess : Color.forge)
-                                .frame(width: g.size.width * fraction)
-                                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
-                        },
-                        alignment: .leading
-                    )
-            }
 
             contextToggleButton
             if showContextPanel {
