@@ -10,7 +10,7 @@ class SeanceSoirViewModel: SeanceViewModel {
     @Published var saveStatusMessage: String?
 
     // Narrow test seams: no change to the shared exercise gate or offline queue.
-    func sendEveningSession(exos: [String], rpe: Double, comment: String,
+    func sendEveningSession(exos: [String], rpe: Double?, comment: String,
                             durationMin: Double?, energyPre: Int?, sessionName: String?,
                             exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
         try await APIService.shared.logEveningSessionOutcome(exos: exos, rpe: rpe, comment: comment,
@@ -93,7 +93,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         isLoading = false
     }
 
-    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
+    override func finish(rpe: Double?, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
         precondition(!bonusSession, "SeanceSoirViewModel ne supporte pas bonus — path bonus via SeanceViewModel(draftSessionType: \"bonus\") + ExtraSessionSheet.")
         // Guard double-submit — symétrie avec SeanceViewModel.finish (L778-788, parent
         // matin). Sans ça, un tap répété sur "Terminer" pouvait lancer 2 tâches

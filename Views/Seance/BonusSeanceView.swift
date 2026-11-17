@@ -97,7 +97,7 @@ class BonusSeanceViewModel: SeanceViewModel {
     @Published private(set) var isSessionQueued = false
 
     // Narrow outcome/side-effect seams, matching the Evening pattern.
-    func sendBonusSession(exos: [String], rpe: Double, comment: String,
+    func sendBonusSession(exos: [String], rpe: Double?, comment: String,
                           durationMin: Double?, energyPre: Int?,
                           exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
         try await APIService.shared.logBonusSessionOutcome(exos: exos, rpe: rpe, comment: comment,
@@ -151,7 +151,7 @@ class BonusSeanceViewModel: SeanceViewModel {
         return bonus
     }
 
-    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = true, closeSession: Bool = true) async {
+    override func finish(rpe: Double?, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = true, closeSession: Bool = true) async {
         guard !isFinishing, !isSessionQueued else { return }
         showSuccess = false
         isFinishing = true
@@ -201,7 +201,7 @@ struct BonusSeanceView: View {
     // W-B3 — quit without saving, with confirmation
     @State private var showQuitConfirm = false
     @Environment(\.dismiss) private var dismiss
-    @State private var rpe: Double = 7
+    @State private var rpe: Double? = nil   // aucun RPE inventé (5b)
     @State private var comment = ""
     private var commentBinding: Binding<String> {
         Binding(get: { comment }, set: { value in
@@ -515,11 +515,11 @@ struct BonusSeanceView: View {
             elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
             rpe: $rpe,
             comment: commentBinding,
-            onSubmit: { energy in
+            onSubmit: { energy, chosenRPE in
                 let dur = Date().timeIntervalSince(sessionStart) / 60
                 Task {
                     await vm.finish(
-                        rpe: rpe,
+                        rpe: chosenRPE,
                         comment: comment,
                         durationMin: dur,
                         energyPre: energy

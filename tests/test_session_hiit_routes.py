@@ -262,6 +262,25 @@ class TestLogSession(BaseRouteTest):
         self.assertIn("error", self.json(response))
         self.assertNotIn("success", self.json(response))
 
+    # E 5b : RPE de séance non choisi → clé absente côté iOS ; aucune valeur écrite, sur les 3 branches.
+    def test_rpe_absent_writes_no_rpe_on_morning_evening_bonus(self):
+        db = sys.modules["db"]
+        for branch, flags, writer in (
+            ("morning", {}, "complete_workout_session"),
+            ("bonus", {"bonus_session": True}, "complete_workout_session_bonus"),
+            ("evening", {"second_session": True}, "complete_workout_session_by_id"),
+        ):
+            with self.subTest(branch=branch):
+                self.store["sessions"].pop(TODAY, None)
+                self.store["sessions"][TODAY] = {"rpe": None, "comment": ""}
+                with patch.object(db, writer, return_value=True) as spy:
+                    response = self.post("/api/log_session",
+                                         {"date": TODAY, "comment": "sans RPE", "duration_min": 41, **flags})
+                self.assertEqual(200, response.status_code, self.json(response))
+                patch_sent = spy.call_args.kwargs.get("patch") if spy.call_args.kwargs else spy.call_args.args[-1]
+                self.assertNotIn("rpe", _normalize_session_patch(patch_sent))
+                self.assertEqual(41, _normalize_session_patch(patch_sent)["duration_min"])
+
     def test_morning_completed_keeps_previous_comment(self):
         self.store["sessions"][TODAY] = {"completed": True, "comment": "original", "rpe": 7}
         response = self.post("/api/log_session", {"date": TODAY, "comment": "new", "rpe": 9})

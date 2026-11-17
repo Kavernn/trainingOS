@@ -632,7 +632,7 @@ final class SeanceViewModelTests: XCTestCase {
             externalCalls += 1
             throw URLError(.cancelled)
         }
-        override func sendMorningSession(exos: [String], rpe: Double, comment: String, date: String,
+        override func sendMorningSession(exos: [String], rpe: Double?, comment: String, date: String,
                                          durationMin: Double?, energyPre: Int?, sessionName: String?,
                                          exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             externalCalls += 1
@@ -647,7 +647,7 @@ final class SeanceViewModelTests: XCTestCase {
             externalCalls += 1
             throw URLError(.cancelled)
         }
-        override func sendEveningSession(exos: [String], rpe: Double, comment: String,
+        override func sendEveningSession(exos: [String], rpe: Double?, comment: String,
                                          durationMin: Double?, energyPre: Int?, sessionName: String?,
                                          exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             externalCalls += 1
@@ -920,7 +920,7 @@ final class SeanceViewModelTests: XCTestCase {
             return .queuedOffline
         }
 
-        override func sendBonusSession(exos: [String], rpe: Double, comment: String,
+        override func sendBonusSession(exos: [String], rpe: Double?, comment: String,
                                        durationMin: Double?, energyPre: Int?,
                                        exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             sessionComments.append(comment)
@@ -1548,7 +1548,7 @@ final class SeanceViewModelTests: XCTestCase {
         var dates: [String?] = []
         var recorded = 0
         override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome { .queuedOffline }
-        override func sendEveningSession(exos: [String], rpe: Double, comment: String,
+        override func sendEveningSession(exos: [String], rpe: Double?, comment: String,
                                         durationMin: Double?, energyPre: Int?, sessionName: String?,
                                         exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             comments.append(comment)
@@ -1910,7 +1910,7 @@ final class SeanceViewModelTests: XCTestCase {
     private final class CommentRetryProbe: SeanceViewModel {
         var receivedComment: String?
         var receivedClose: Bool?
-        override func finish(rpe: Double, comment: String, durationMin: Double? = nil,
+        override func finish(rpe: Double?, comment: String, durationMin: Double? = nil,
                              energyPre: Int? = nil, sessionName: String? = nil,
                              bonusSession: Bool = false, closeSession: Bool = true) async {
             receivedComment = comment
@@ -2154,7 +2154,7 @@ final class SeanceViewModelTests: XCTestCase {
         var postedDates: [String] = []
         var postedComments: [String] = []
         override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome { .queuedOffline }
-        override func sendMorningSession(exos: [String], rpe: Double, comment: String, date: String,
+        override func sendMorningSession(exos: [String], rpe: Double?, comment: String, date: String,
                                          durationMin: Double?, energyPre: Int?, sessionName: String?,
                                          exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             postedDates.append(date)

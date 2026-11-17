@@ -11,7 +11,7 @@ struct SessionRecapSnapshot {
     let durationMin: Double
     let logResults: [String: ExerciseLogResult]
     let exercises: [String]
-    let rpe: Double
+    let rpe: Double?   // nil = aucun RPE de séance envoyé (5b)
     let comment: String
     let energyPre: Int
     let previousVolume: Double?
@@ -39,7 +39,7 @@ struct WorkoutSeanceView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var rpe: Double = 7
+    @State private var rpe: Double? = nil   // choix confirmé ; aucun 7 par défaut (5b)
     private var comment: String { vm.sessionComment }
     private var commentBinding: Binding<String> {
         $vm.sessionComment
@@ -190,12 +190,8 @@ struct WorkoutSeanceView: View {
     @State private var showSeanceSoir = false
     @State private var showRefusionConfirm = false
 
-    /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
-    private var computedSessionRPE: Double {
-        let vals = vm.logResults.values.compactMap(\.rpe)
-        guard !vals.isEmpty else { return 7.0 }
-        return (vals.reduce(0, +) / Double(vals.count) * 2).rounded() / 2  // arrondi au 0.5
-    }
+    /// Proposition de RPE de séance (RPE réels uniquement) ; nil si aucun — pas de 7 par défaut.
+    private var sessionRPEProposal: Double? { RPEHelper.sessionProposal(vm.logResults.values) }
 
     private var trackedExercises: [(String, String)] {
         exercises.filter { WorkoutCompletion.tracks(inventoryTracking[$0.0] ?? data.inventoryTracking[$0.0]) }
@@ -1518,7 +1514,8 @@ struct WorkoutSeanceView: View {
             rpe: $rpe,
             comment: commentBinding,
             preEnergy: energyPre,
-            onSubmit: { _ in
+            onSubmit: { _, chosenRPE in
+                rpe = chosenRPE   // exactement la valeur affichée sur le bouton de fin
                 let dur = Double(vm.chrono.stop())
                 // Garde-fou chrono oublié : > 180 min → confirmation éditable
                 // avant d'envoyer. Backend rejette > 300 min (fail-loud), ici
@@ -1528,14 +1525,14 @@ struct WorkoutSeanceView: View {
                     durationOverrideText = String(Int(dur))
                     showDurationConfirm = true
                 } else {
-                    performFinishSubmit(durationMin: dur)
+                    performFinishSubmit(durationMin: dur, rpe: chosenRPE)
                 }
             }
         )
         .presentationDetents([.medium, .large])
         .onAppear {
             restoreComment()
-            rpe = computedSessionRPE
+            rpe = nil   // le choix se fait dans la feuille ; la proposition y est affichée
         }
         .alert("Durée inhabituelle", isPresented: $showDurationConfirm) {
             TextField("Durée (min, max 300)", text: $durationOverrideText)
@@ -1547,7 +1544,7 @@ struct WorkoutSeanceView: View {
                     DispatchQueue.main.async { showDurationConfirm = true }
                     return
                 }
-                performFinishSubmit(durationMin: dur)
+                performFinishSubmit(durationMin: dur, rpe: rpe)
             }
             Button("Annuler", role: .cancel) { }
         } message: {
@@ -1555,14 +1552,14 @@ struct WorkoutSeanceView: View {
         }
     }
 
-    private func performFinishSubmit(durationMin dur: Double) {
+    private func performFinishSubmit(durationMin dur: Double, rpe: Double?) {
         recapSnapshot = SessionRecapSnapshot(
             sessionName: data.today,
             coachingContext: progressionContext,
             durationMin: dur,
             logResults: trackedResults,
             exercises: trackedExercises.map(\.0),
-            rpe: trackedResults.isEmpty ? 0 : rpe,
+            rpe: trackedResults.isEmpty ? nil : rpe,
             comment: comment,
             energyPre: energyPre,
             previousVolume: ghostData?.volume
@@ -1852,23 +1849,24 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder
     private var effortLiveBanner: some View {
-        if !vm.logResults.isEmpty {
+        // Proposition seulement (RPE réels) ; rien à montrer sans RPE saisi.
+        if let proposal = sessionRPEProposal {
             HStack(spacing: 8) {
                 Image(systemName: "gauge.with.dots.needle.67percent")
                     .font(.appLabel)
-                    .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+                    .foregroundColor(RPEHelper.color(for: proposal))
                 VStack(alignment: .leading, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
-                    Text("Effort séance")
+                    Text("Effort proposé")
                         .font(.appCaption).fontWeight(.semibold)
                         .foregroundColor(Color.appTextSecondary)
-                    Text(RPEHelper.option(for: RPEHelper.rirFromRPE(computedSessionRPE)).label)
+                    Text(RPEHelper.option(for: RPEHelper.rirFromRPE(proposal)).label)
                         .font(.appCaption)
-                        .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+                        .foregroundColor(RPEHelper.color(for: proposal))
                 }
                 Spacer()
-                Text("RPE \(String(format: "%.0f", computedSessionRPE))")
+                Text("RPE \(RPEHelper.display(proposal))")
                     .font(.appBody).fontWeight(.black)
-                    .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+                    .foregroundColor(RPEHelper.color(for: proposal))
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .overlay(alignment: .top) {
@@ -2406,7 +2404,7 @@ struct WorkoutSeanceView: View {
         // logExercise, vm retenu par @StateObject (pas seulement la capture Task),
         // spinner isFinishing visible, submitError → alert avant dismiss.
         Task {
-            await vm.finish(rpe: 0, comment: comment, sessionName: data.today, closeSession: false)
+            await vm.finish(rpe: nil, comment: comment, sessionName: data.today, closeSession: false)
             await MainActor.run { if vm.partialSaveAccepted { dismiss() } }
         }
     }

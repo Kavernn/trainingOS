@@ -53,6 +53,19 @@ enum RPEHelper {
         }
     }
 
+    /// Proposition de RPE de séance = moyenne des RPE RÉELS des exercices, arrondie au 0,5 ;
+    /// nil si aucun (jamais de 7 par défaut). Seule règle de proposition (5b).
+    static func sessionProposal<C: Collection>(_ results: C) -> Double? where C.Element == ExerciseLogResult {
+        let vals = results.compactMap(\.rpe)
+        guard !vals.isEmpty else { return nil }
+        return (vals.reduce(0, +) / Double(vals.count) * 2).rounded() / 2
+    }
+
+    /// Affichage exact au demi-point : 7.5 → "7.5", 8 → "8" (la valeur montrée = la valeur envoyée).
+    static func display(_ rpe: Double) -> String {
+        rpe == rpe.rounded() ? String(format: "%.0f", rpe) : String(format: "%.1f", rpe)
+    }
+
     // Maps any RPE value back to a RIR bucket (for tile selection)
     static func rirFromRPE(_ rpe: Double) -> Int {
         if rpe >= 9.5 { return 0 }

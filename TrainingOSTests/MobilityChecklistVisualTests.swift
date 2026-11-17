@@ -16,7 +16,7 @@ final class MobilityChecklistVisualTests: XCTestCase {
                 let logs = Dictionary(uniqueKeysWithValues: tracked.map { ($0, DayComposerFinishRig.log($0, source: .morning)) })
                 let snapshot = SessionRecapSnapshot(sessionName: onlyMobility ? "Mobilité" : "Séance mixte",
                     coachingContext: .init(date: "2098-10-08", sessionType: "morning", sessionName: "Fixture"),
-                    durationMin: 12, logResults: logs, exercises: tracked, rpe: onlyMobility ? 0 : 7,
+                    durationMin: 12, logResults: logs, exercises: tracked, rpe: onlyMobility ? nil : 7,
                     comment: "", energyPre: 3, previousVolume: nil)
                 let screens: [(String, AnyView)] = [
                     ("checklist", AnyView(VStack(spacing: 16) {
@@ -28,7 +28,7 @@ final class MobilityChecklistVisualTests: XCTestCase {
                             isChecked: false, onCheckToggle: {}, sessionDate: "mobility-visual-fixture")
                     }.padding().frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.appBg))),
                     ("finish", AnyView(FinishSessionSheet(exercises: tracked, logResults: logs, elapsedMin: 12,
-                        rpe: .constant(7), comment: .constant(""), onSubmit: { _ in }))),
+                        rpe: .constant(7), comment: .constant(""), onSubmit: { _, _ in }))),
                     ("recap", AnyView(SessionRecapSheet(snapshot: snapshot, prs: [], trends: [:],
                         inventoryTracking: ["M1": "mobility", "M2": "mobility"], inventoryUnilateral: [:], exerciseMuscleMetadata: [:])))
                 ]

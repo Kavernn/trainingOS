@@ -168,16 +168,26 @@ struct FinishSessionSheet: View {
     let exercises: [String]
     let logResults: [String: ExerciseLogResult]
     let elapsedMin: Double
-    @Binding var rpe: Double
+    /// RPE CONFIRMÉ (tuile touchée). nil = aucun choix : la proposition éventuelle est
+    /// confirmée par le bouton de fin, sinon aucun RPE n'est envoyé (5b).
+    @Binding var rpe: Double?
     @Binding var comment: String
     var preEnergy: Int? = nil
-    var onSubmit: (Int?) -> Void
+    /// (énergie, RPE envoyé) — le RPE est exactement celui affiché sur le bouton.
+    var onSubmit: (Int?, Double?) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var energyPre: Int = 3
     @State private var confirmDiscard = false
     @State private var showConfirmSubmit = false
     @State private var pendingEnergy: Int? = nil
+    @State private var pendingRPE: Double? = nil
+
+    /// Proposition issue des RPE réels des exercices ; affichée seulement sans choix confirmé.
+    private var proposal: Double? { rpe == nil ? RPEHelper.sessionProposal(logResults.values) : nil }
+    /// RPE qui partira au serveur : choix confirmé, sinon proposition confirmée par le bouton.
+    private var submitRPE: Double? { rpe ?? proposal }
+    private var rpeSuffix: String { submitRPE.map { " · RPE \(RPEHelper.display($0))" } ?? "" }
     @State private var showExtras = false
 
     private var hasUnsavedData: Bool { !comment.isEmpty || energyPre != 3 }
@@ -253,19 +263,34 @@ struct FinishSessionSheet: View {
                             Text("EFFORT GLOBAL").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                             Text("Combien de reps aurais-tu pu faire en plus ?")
                                 .font(.appLabel).foregroundColor(Color.appOnSurface.opacity(0.75))
+                            // Tuile cochée = choix confirmé seulement ; toucher une tuile remplace la proposition.
                             let selectedRIR = Binding<Int?>(
-                                get: { RPEHelper.rirFromRPE(rpe) },
+                                get: { rpe.map(RPEHelper.rirFromRPE) },
                                 set: { if let v = $0 { rpe = RPEHelper.rirToRPE(v) } }
                             )
                             RPEHelper.RIRTiles(rir: selectedRIR, showLabels: true)
-                            Text("RPE estimé : \(String(format: "%.1f", 10.0 - Double(RPEHelper.rirFromRPE(rpe))))")
+                            if let r = rpe {
+                                Text("RPE \(RPEHelper.display(r))")
+                                    .font(.appCaption).fontWeight(.semibold)
+                                    .foregroundColor(RPEHelper.color(for: r))
+                            } else if let p = proposal {
+                                // « Proposé » : contour pointillé, sans remplissage — distinct d'un choix confirmé.
+                                Text("Proposé : RPE \(RPEHelper.display(p)) · confirmé en terminant")
+                                    .font(.appCaption).foregroundColor(Color.appTextSecondary)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                                    .overlay(Capsule().strokeBorder(Color.appTextSecondary,
+                                                                    style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                            } else {
+                                Text("Effort non renseigné")
+                                    .font(.appCaption).foregroundColor(.gray)
+                            }
+                            if let r = submitRPE {
+                            Text(RPEHelper.feedback(for: r))
                                 .font(.appCaption)
-                                .foregroundColor(.gray)
-                            Text(RPEHelper.feedback(for: rpe))
-                                .font(.appCaption)
-                                .foregroundColor(RPEHelper.color(for: rpe))
+                                .foregroundColor(RPEHelper.color(for: r))
                                 .fixedSize(horizontal: false, vertical: true)
-                            if let hint = RPEHelper.progressionHint(for: rpe) {
+                            }
+                            if let r = submitRPE, let hint = RPEHelper.progressionHint(for: r) {
                                 HStack(spacing: 5) {
                                     Image(systemName: "arrow.up.forward.circle")
                                         .font(.appCaption).foregroundColor(Color.statusCyan.opacity(0.7))
@@ -356,11 +381,12 @@ struct FinishSessionSheet: View {
                         if loggedCount < exercises.count && loggedCount > 0 {
                             Button(action: {
                                 pendingEnergy = preEnergy ?? energyPre
+                                pendingRPE = submitRPE
                                 showConfirmSubmit = true
                             }) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "checkmark.circle")
-                                    Text("Soumettre \(loggedCount) exercice\(loggedCount > 1 ? "s" : "") seulement")
+                                    Text("Soumettre \(loggedCount) exercice\(loggedCount > 1 ? "s" : "") seulement\(rpeSuffix)")
                                         .font(.appLabel).fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -374,9 +400,10 @@ struct FinishSessionSheet: View {
 
                         Button(action: {
                             pendingEnergy = preEnergy ?? energyPre
+                            pendingRPE = submitRPE
                             showConfirmSubmit = true
                         }) {
-                            Text(loggedCount == exercises.count ? "Enregistrer la séance" : "Enregistrer quand même tout")
+                            Text((loggedCount == exercises.count ? "Terminer" : "Terminer quand même tout") + rpeSuffix)
                                 .font(.appBody).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(Color.forge).foregroundColor(Color.onAccent).cornerRadius(14)
                         }
@@ -404,7 +431,7 @@ struct FinishSessionSheet: View {
             }
             .confirmationDialog("Enregistrer la séance ?", isPresented: $showConfirmSubmit, titleVisibility: .visible) {
                 Button("Enregistrer") {
-                    onSubmit(pendingEnergy)
+                    onSubmit(pendingEnergy, pendingRPE)
                     dismiss()
                 }
                 Button("Continuer l'entraînement", role: .cancel) {}
@@ -475,8 +502,8 @@ struct SessionRecapSheet: View {
     private var shareText: String {
         let dur = Int(snapshot.durationMin)
         let vol = UnitSettings.shared.format(totalVolume)
-        let rpe = String(format: "%.1f", snapshot.rpe)
-        return "Séance complétée — \(snapshot.sessionName)\nDurée \(dur) min · Volume \(vol) · RPE \(rpe)"
+        let rpe = snapshot.rpe.map { " · RPE \(RPEHelper.display($0))" } ?? ""
+        return "Séance complétée — \(snapshot.sessionName)\nDurée \(dur) min · Volume \(vol)\(rpe)"
     }
 
     var body: some View {
@@ -555,9 +582,9 @@ struct SessionRecapSheet: View {
         if totalVolume > 0 {
             metrics.append(SessionReportMetric(label: "VOLUME", value: totalVolumeCompact))
         }
-        if snapshot.rpe > 0 {
+        if let snapshotRPE = snapshot.rpe {
             metrics.append(
-                SessionReportMetric(label: "RPE", value: String(format: "%.1f", snapshot.rpe))
+                SessionReportMetric(label: "RPE", value: RPEHelper.display(snapshotRPE))
             )
         }
         return metrics

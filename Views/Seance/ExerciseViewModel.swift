@@ -1521,7 +1521,7 @@ class SeanceViewModel: ObservableObject {
     var canRetryFinish: Bool { retryFinishAction != nil }
     private(set) var partialSaveAccepted = false
 
-    func prepareFinishRetry(rpe: Double, comment: String, durationMin: Double?, energyPre: Int?,
+    func prepareFinishRetry(rpe: Double?, comment: String, durationMin: Double?, energyPre: Int?,
                             sessionName: String?, bonusSession: Bool, closeSession: Bool) {
         guard !rejectLocalFinalization() else { return }
         submitError = nil
@@ -1557,7 +1557,7 @@ class SeanceViewModel: ObservableObject {
             date: draftSessionType == "bonus" ? nil : finishSourceDate, invalidate: false)
     }
 
-    func sendMorningSession(exos: [String], rpe: Double, comment: String, date: String,
+    func sendMorningSession(exos: [String], rpe: Double?, comment: String, date: String,
                             durationMin: Double?, energyPre: Int?, sessionName: String?,
                             exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
         guard !isDayComposerLocal else { throw PreparationError.finalizationDisabled }
@@ -1915,7 +1915,7 @@ class SeanceViewModel: ObservableObject {
     // closeSession : knob PM-only honoré par SeanceSoirViewModel.finish
     // (branche "Reprendre plus tard" = persist exos sans écrire completed=True).
     // Ignoré ici : AM/bonus ferment toujours.
-    func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
+    func finish(rpe: Double?, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
         guard !rejectLocalFinalization() else { return }
         guard !isFinishing else { return }
         isFinishing = true

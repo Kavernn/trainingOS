@@ -5,7 +5,7 @@ import XCTest
 final class MobilityChecklistTests: XCTestCase {
     private final class EveningProbe: SeanceSoirViewModel {
         var healthKitCalls = 0
-        override func sendEveningSession(exos: [String], rpe: Double, comment: String,
+        override func sendEveningSession(exos: [String], rpe: Double?, comment: String,
             durationMin: Double?, energyPre: Int?, sessionName: String?,
             exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             XCTAssertTrue(exos.isEmpty); XCTAssertTrue(exerciseLogs.isEmpty)
@@ -17,7 +17,7 @@ final class MobilityChecklistTests: XCTestCase {
     }
     private final class BonusProbe: BonusSeanceViewModel {
         var healthKitCalls = 0
-        override func sendBonusSession(exos: [String], rpe: Double, comment: String,
+        override func sendBonusSession(exos: [String], rpe: Double?, comment: String,
             durationMin: Double?, energyPre: Int?, exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             XCTAssertTrue(exos.isEmpty); XCTAssertTrue(exerciseLogs.isEmpty)
             return .serverResponse(.init(success: true))

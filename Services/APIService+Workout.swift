@@ -96,12 +96,13 @@ enum WorkoutPayloadBuilder {
         return body
     }
 
-    static func session(exos: [String], rpe: Double, comment: String,
+    static func session(exos: [String], rpe: Double?, comment: String,
                         durationMin: Double?, energyPre: Int?, secondSession: Bool,
                         bonusSession: Bool, sessionName: String?, exerciseLogs: [[String: Any]],
                         date: String?, tracksPerformance: Bool? = nil) -> [String: Any] {
         var body: [String: Any] = ["exos": exos, "comment": comment]
-        if tracksPerformance ?? (!exos.isEmpty || !exerciseLogs.isEmpty) { body["rpe"] = rpe }
+        // RPE de séance : clé absente si non choisi (jamais de 7 par défaut, 5b).
+        if let rpe, tracksPerformance ?? (!exos.isEmpty || !exerciseLogs.isEmpty) { body["rpe"] = rpe }
         if let durationMin { body["duration_min"] = durationMin }
         if let energyPre { body["energy_pre"] = energyPre }
         if secondSession { body["second_session"] = true }
@@ -487,7 +488,7 @@ extension APIService {
         return outcome
     }
 
-    func logSession(exos: [String], rpe: Double, comment: String,
+    func logSession(exos: [String], rpe: Double?, comment: String,
                     durationMin: Double? = nil, energyPre: Int? = nil,
                     secondSession: Bool = false, bonusSession: Bool = false,
                     sessionName: String? = nil,
@@ -506,7 +507,7 @@ extension APIService {
     }
 
     /// Explicit Morning boundary. A response is not an ACK of local recovery.
-    func logMorningSessionOutcome(exos: [String], rpe: Double, comment: String,
+    func logMorningSessionOutcome(exos: [String], rpe: Double?, comment: String,
                                   date: String, durationMin: Double? = nil, energyPre: Int? = nil,
                                   sessionName: String? = nil, exerciseLogs: [[String: Any]] = [],
                                   post: (([String: Any]) async throws -> Data?)? = nil) async throws -> SessionSaveOutcome {
@@ -525,7 +526,7 @@ extension APIService {
     }
 
     /// Dedicated Bonus adopter; legacy logSession remains unchanged.
-    func logBonusSessionOutcome(exos: [String], rpe: Double, comment: String,
+    func logBonusSessionOutcome(exos: [String], rpe: Double?, comment: String,
                                 durationMin: Double?, energyPre: Int?,
                                 exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
         let body = WorkoutPayloadBuilder.session(exos: exos, rpe: rpe, comment: comment,
@@ -547,7 +548,7 @@ extension APIService {
     }
 
     /// Evening-only adopter. Legacy logSession intentionally retains its permissive contract.
-    func logEveningSessionOutcome(exos: [String], rpe: Double, comment: String,
+    func logEveningSessionOutcome(exos: [String], rpe: Double?, comment: String,
                                  durationMin: Double?, energyPre: Int?, sessionName: String?,
                                  exerciseLogs: [[String: Any]], date: String? = nil,
                                  post: (([String: Any]) async throws -> Data?)? = nil) async throws -> SessionSaveOutcome {
