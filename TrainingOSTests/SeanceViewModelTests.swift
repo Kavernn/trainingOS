@@ -1194,9 +1194,16 @@ final class SeanceViewModelTests: XCTestCase {
             schemes: ["3x8"], equipment: ["machine"], tracking: ["reps", "time"], unilateral: [false]))
         XCTAssertNil(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
             schemes: ["3x8"], equipment: ["machine"], tracking: ["reps"], unilateral: []))
-        var incomplete = log
-        incomplete.sets[0].removeValue(forKey: "rir")
-        XCTAssertNil(ExerciseRecoveryHydration.make(incomplete, equipment: "machine",
+        // E point 5 : RIR absent = non saisi, toléré (jamais de 3 inventé) ; RIR hors bornes refusé.
+        var withoutRIR = log
+        withoutRIR.sets[0].removeValue(forKey: "rir")
+        let tolerant = try XCTUnwrap(ExerciseRecoveryHydration.make(withoutRIR, equipment: "machine",
+            tracking: "reps", unilateral: false, displayWeight: { $0 }))
+        XCTAssertNil(tolerant.sets[0].rir)
+        XCTAssertEqual(tolerant.sets[0].rpe, 8)
+        var invalid = log
+        invalid.sets[0]["rir"] = 7
+        XCTAssertNil(ExerciseRecoveryHydration.make(invalid, equipment: "machine",
             tracking: "reps", unilateral: false, displayWeight: { $0 }))
         let conflict = BonusRecoveryPresentation.reconcile(order: [], snapshotOrder: [log.name],
             local: [:], logs: [log.name: log], resolve: { _, _ in nil }, displayWeight: { $0 })

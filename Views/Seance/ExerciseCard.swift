@@ -797,7 +797,7 @@ struct ExerciseCard: View {
                             evm.sets[i].rir = option.rir
                             triggerImpact(style: .light)
                         }
-                        .accessibilityAddTraits(min(evm.sets[i].rir, 4) == option.rir ? .isSelected : [])
+                        .accessibilityAddTraits(evm.sets[i].rir.map { min($0, 4) } == option.rir ? .isSelected : [])
                         .disabled(evm.setBySetMode && !isActive && !isDone)
                     }
                 }
@@ -2027,11 +2027,14 @@ struct ExerciseCard: View {
                     Image(systemName: "equal.circle.fill").foregroundColor(Color.gray)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Stagné — même poids").font(.appLabel).fontWeight(.semibold).foregroundColor(Color.gray)
-                        if let hint = RPEHelper.progressionHint(for: evm.exerciseRPE) {
-                            Text(hint).font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
-                        } else {
-                            Text(RPEHelper.feedback(for: evm.exerciseRPE))
-                                .font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
+                        // Sans RIR saisi, pas de RPE d'exercice : aucun conseil inventé.
+                        if let rpe = evm.exerciseRPE {
+                            if let hint = RPEHelper.progressionHint(for: rpe) {
+                                Text(hint).font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
+                            } else {
+                                Text(RPEHelper.feedback(for: rpe))
+                                    .font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
+                            }
                         }
                     }
                 case .loading:

@@ -21,7 +21,7 @@ struct SetInput: Identifiable {
     var durationRight: Int? = nil   // seconds, right side (unilateral)
     var distance: String = "" // meters, used when tracking_type == "carry"
     var intensity: String = "" // hauteur (cm) ou distance (m), used when tracking_type == "plyo"
-    var rir: Int = 3         // Reps In Reserve
+    var rir: Int? = nil      // Reps In Reserve — nil tant que non saisi (jamais de valeur inventée)
     var rpe: Double? = nil   // Per-set RPE (optionnel)
     // ponytail: tracking_type == "protocol" — bouton Fait binaire. Un log protocol = fait par
     // définition ; annuler = supprimer la ligne (chantier delete transverse, hors ici).
@@ -86,9 +86,16 @@ struct ExerciseRecoveryHydration {
         for raw in log.sets {
             guard Set(raw.keys).isSubset(of: ["weight", "reps", "rir", "rpe"]),
                   let weight = raw["weight"] as? Double, weight.isFinite, weight >= 0,
-                  let reps = raw.repsString(), let count = Int(reps), count > 0,
-                  let rir = raw["rir"] as? Int, (0...4).contains(rir),
-                  let rpe = raw["rpe"] as? Double, rpe.isFinite else { return nil }
+                  let reps = raw.repsString(), let count = Int(reps), count > 0 else { return nil }
+            // Effort optionnel (jamais inventé) : clé absente = OK ; clé présente = valeur valide exigée.
+            let rir = raw["rir"] as? Int
+            let rpe = raw["rpe"] as? Double
+            if raw["rir"] != nil {
+                guard let rir, (0...4).contains(rir) else { return nil }
+            }
+            if raw["rpe"] != nil {
+                guard let rpe, rpe.isFinite else { return nil }
+            }
             let input: Double
             switch equipment {
             case "landmine":
@@ -114,7 +121,7 @@ struct ExerciseRecoveryHydration {
 struct DraftSet: Codable {
     var weight: String
     var reps: String
-    var rir: Int
+    var rir: Int?            // ancien brouillon avec rir → relu tel quel ; absent → nil
     var duration: Int
     var rpe: Double? = nil
     var distance: String? = nil
@@ -306,9 +313,11 @@ enum ExerciseCalculator {
         return n
     }
 
-    static func exerciseRPE(sets: [SetInput]) -> Double {
-        guard !sets.isEmpty else { return 7.0 }
-        let avgRIR = Int((Double(sets.map(\.rir).reduce(0, +)) / Double(sets.count)).rounded())
+    /// RPE de l'exercice = moyenne des RIR SAISIS ; nil si aucun (pas de 7 inventé).
+    static func exerciseRPE(sets: [SetInput]) -> Double? {
+        let rirs = sets.compactMap(\.rir)
+        guard !rirs.isEmpty else { return nil }
+        let avgRIR = Int((Double(rirs.reduce(0, +)) / Double(rirs.count)).rounded())
         return RPEHelper.rirToRPE(min(avgRIR, 4))
     }
 
@@ -461,7 +470,7 @@ final class ExerciseViewModel: ObservableObject {
     @Published var showHistory = false
     @Published var logStatus: LogStatus? = nil
     // Auto-calculé depuis le RIR moyen des sets (ne plus modifier manuellement)
-    var exerciseRPE: Double { ExerciseCalculator.exerciseRPE(sets: sets) }
+    var exerciseRPE: Double? { ExerciseCalculator.exerciseRPE(sets: sets) }
     @Published var painZone: String = "" {
         didSet {
             if !isHydratingRecovery && painZone != oldValue { localEditGeneration += 1 }
@@ -999,7 +1008,7 @@ final class ExerciseViewModel: ObservableObject {
             guard sets.count <= 1, sets.allSatisfy({
                 $0.weight.isEmpty && $0.reps.isEmpty && $0.duration == 0 &&
                 $0.durationLeft == nil && $0.durationRight == nil &&
-                $0.distance.isEmpty && $0.intensity.isEmpty && $0.rir == 3 && $0.rpe == nil
+                $0.distance.isEmpty && $0.intensity.isEmpty && $0.rir == nil && $0.rpe == nil
             }) else { return "Brouillon incompatible avec une validation simple de mobilité" }
             return sets.first?.protocolCompleted == true ? nil : "Marquer comme fait"
         case "protocol":
@@ -1161,14 +1170,17 @@ final class ExerciseViewModel: ObservableObject {
         let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
             let reps = s.reps.isEmpty ? (isFixedWeight ? "0" : nil) : s.reps
             guard let reps = reps else { return nil }
-            let setRPE = s.rpe ?? RPEHelper.rirToRPE(s.rir)
+            // Effort : clés présentes seulement si saisies (jamais de RIR 3 / RPE 7 inventés).
+            var effort: [String: Any] = [:]
+            if let rir = s.rir { effort["rir"] = rir }
+            if let rpe = s.rpe ?? s.rir.map(RPEHelper.rirToRPE) { effort["rpe"] = rpe }
             if equipmentType == "bodyweight" {
                 let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
-                return ["weight": units.toStorage(lest), "reps": reps, "rir": s.rir, "rpe": setRPE]
+                return ["weight": units.toStorage(lest), "reps": reps].merging(effort) { $1 }
             }
             guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")), sw > 0 || (equipmentType == "landmine" && sw == 0) else { return nil }
             let setTotal = totalWeight(for: units.toStorage(sw))
-            return ["weight": setTotal, "reps": reps, "rir": s.rir, "rpe": setRPE]
+            return ["weight": setTotal, "reps": reps].merging(effort) { $1 }
         }
         let repsForResult = repsStr.isEmpty && isFixedWeight ? "0" : repsStr
         let result = ExerciseLogResult(name: name, weight: total, reps: repsForResult, rpe: exerciseRPE,

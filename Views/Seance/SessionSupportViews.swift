@@ -253,9 +253,9 @@ struct FinishSessionSheet: View {
                             Text("EFFORT GLOBAL").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                             Text("Combien de reps aurais-tu pu faire en plus ?")
                                 .font(.appLabel).foregroundColor(Color.appOnSurface.opacity(0.75))
-                            let selectedRIR = Binding<Int>(
+                            let selectedRIR = Binding<Int?>(
                                 get: { RPEHelper.rirFromRPE(rpe) },
-                                set: { rpe = RPEHelper.rirToRPE($0) }
+                                set: { if let v = $0 { rpe = RPEHelper.rirToRPE(v) } }
                             )
                             RPEHelper.RIRTiles(rir: selectedRIR, showLabels: true)
                             Text("RPE estimé : \(String(format: "%.1f", 10.0 - Double(RPEHelper.rirFromRPE(rpe))))")

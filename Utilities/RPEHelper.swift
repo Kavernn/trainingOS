@@ -116,15 +116,14 @@ enum RPEHelper {
     // MARK: - RIR Tiles View (composant réutilisable)
 
     struct RIRTiles: View {
-        @Binding var rir: Int
+        @Binding var rir: Int?   // nil = non saisi → aucune tuile cochée
         var showLabels: Bool = false
         var disabled: Bool = false
 
         var body: some View {
             HStack(spacing: 2) {
                 ForEach(RPEHelper.options) { opt in
-                    let effectiveRIR = min(rir, 4)
-                    let selected = opt.rir == effectiveRIR
+                    let selected = rir.map { min($0, 4) } == opt.rir
                     Button {
                         rir = opt.rir
                         triggerImpact(style: .light)
