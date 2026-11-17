@@ -428,7 +428,6 @@ struct ExerciseCard: View {
         if !requiresAcceptance { onLogged?() }
         triggerNotificationFeedback(.success)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        startAutoRestIfEnabled()
         undoCountdown = 8
         undoTask?.cancel()
         undoTask = Task { @MainActor in
@@ -873,8 +872,9 @@ struct ExerciseCard: View {
         .padding(.top, 4)
     }
 
-    /// Seul déclencheur automatique du repos : fin d'une série intermédiaire ou log
-    /// de l'exercice (dernière série incluse, via doLog). Gardes d'origine inchangées :
+    /// Seul déclencheur automatique du repos : fin d'une série INTERMÉDIAIRE (advanceSet).
+    /// Jamais au log de l'exercice / dernière série (doLog) : transition vers l'exercice
+    /// suivant (Build G). Gardes d'origine inchangées :
     /// réglage `auto_start_rest_timer`, repos > 0, hors mobilité. Superset : le 1er
     /// membre reçoit restSeconds == nil (WorkoutActiveView forceNoRest, DayComposer
     /// firstInPair) → le repos ne part qu'après B.
@@ -2183,8 +2183,8 @@ struct ExerciseCard: View {
             if showUndo {
                 Button {
                     guard removeLog(undo: true) else { return }
-                    // Le repos lancé par ce log devient fantôme : on l'arrête seulement s'il est encore le sien.
-                    if RestTimerManager.shared.exerciseName == name { RestTimerManager.shared.dismiss() }
+                    // Le log ne lance plus de repos (Build G) : l'undo ne touche pas au repos en cours,
+                    // qu'il soit manuel ou issu de l'avant-dernière série.
                     undoTask?.cancel(); undoTask = nil
                     withAnimation(.easeOut(duration: 0.25)) { showUndo = false }
                 } label: {

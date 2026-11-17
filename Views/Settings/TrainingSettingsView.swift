@@ -27,8 +27,8 @@ struct TrainingSettingsView: View {
                 Section("Séances") {
                     Toggle(isOn: $autoStartTimer) {
                         settingsLabel(icon: "timer", color: Color.forge,
-                                      title: "Timer automatique entre les sets",
-                                      subtitle: "Lance le chrono dès qu'un set est loggé")
+                                      title: "Repos automatique entre les séries",
+                                      subtitle: "Lance le repos à la fin de chaque série, sauf la dernière de l'exercice")
                     }
                     .tint(Color.forge)
                     Toggle(isOn: $showRIRColumn) {
