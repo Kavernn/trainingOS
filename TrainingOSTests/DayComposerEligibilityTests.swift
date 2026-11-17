@@ -75,7 +75,8 @@ final class DayComposerEligibilityTests: XCTestCase {
     func testMakeCandidateReusesInstanceUntilPlanChangesAndDefersMorningRead() async throws {
         let f = PlanningFixture()
         f.date = Date()
-        let candidate = try XCTUnwrap(try await DayComposerLoader.makeCandidate(date: f.date, reusing: nil, transport: f.transport))
+        let made = try await DayComposerLoader.makeCandidate(date: f.date, reusing: nil, transport: f.transport)
+        let candidate = try XCTUnwrap(made)
         XCTAssertTrue(candidate.canPresent(on: DateFormatter.isoDate.string(from: f.date)))
         XCTAssertEqual(Set(paths(f)), ["/api/programme_data", "/api/evening_schedule"], "Aucune lecture seance_data avant l'ouverture")
         let same = try await DayComposerLoader.makeCandidate(date: f.date, reusing: candidate, transport: f.transport)
