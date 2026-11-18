@@ -19,6 +19,18 @@ enum ActiveExercisePresentation: Int {
 
 // MARK: - Exercise Card
 
+/// Undo d'une avancée de série intermédiaire (4.2). Pur : testable sans vue.
+struct SetAdvanceUndo: Equatable {
+    let fromIndex: Int          // série qui vient d'être terminée (S2 → fromIndex 1)
+    let restRun: UUID?          // run du repos lancé PAR CETTE avancée, sinon nil
+
+    /// nil = undo périmé (l'index a bougé depuis) → ignoré.
+    func resolve(currentIndex: Int, activeRun: UUID?) -> (index: Int, stopsRest: Bool)? {
+        guard currentIndex == fromIndex + 1 else { return nil }
+        return (fromIndex, restRun != nil && restRun == activeRun)
+    }
+}
+
 /// Mode d'affichage d'une carte d'exercice (étape 4). `.list` = rendu actuel, inchangé.
 enum ExerciseCardPresentation: Equatable { case list, focus }
 
@@ -80,6 +92,9 @@ struct ExerciseCard: View {
     @AppStorage("increment_lower_lbs")     private var incrementLowerLbs: Double = 5.0
     @State private var confirmSkip = false
     @State private var lastSetAdvanceAt = Date.distantPast
+    // Undo de la dernière avancée de série intermédiaire (4.2) — même code en liste et en Focus.
+    @State private var setUndo: SetAdvanceUndo?
+    @State private var setUndoTask: Task<Void, Never>?
     @State private var confirmSwapAfterLog = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
@@ -882,9 +897,12 @@ struct ExerciseCard: View {
     /// réglage `auto_start_rest_timer`, repos > 0, hors mobilité. Superset : le 1er
     /// membre reçoit restSeconds == nil (WorkoutActiveView forceNoRest, DayComposer
     /// firstInPair) → le repos ne part qu'après B.
-    private func startAutoRestIfEnabled() {
-        guard trackingType != "mobility", autoStartTimer, let secs = restSeconds, secs > 0 else { return }
+    /// Renvoie true s'il a démarré un repos (son run est retenu pour l'undo, 4.2).
+    @discardableResult
+    private func startAutoRestIfEnabled() -> Bool {
+        guard trackingType != "mobility", autoStartTimer, let secs = restSeconds, secs > 0 else { return false }
         RestTimerManager.shared.start(seconds: secs, exerciseName: name)
+        return true
     }
 
     /// Avancée de série commune au bouton « Terminer la série N » et au swipe.
@@ -897,17 +915,67 @@ struct ExerciseCard: View {
         withAnimation {
             triggerImpact(style: .medium)
             if evm.currentSetIndex < evm.sets.count - 1 {
+                let from = evm.currentSetIndex
                 evm.currentSetIndex += 1
-                startAutoRestIfEnabled()
+                let started = startAutoRestIfEnabled()
+                armSetUndo(.init(fromIndex: from, restRun: started ? RestTimerManager.shared.runID : nil))
             } else {
+                clearSetUndo()   // dernière série : l'undo du log (doLog) prend le relais
                 evm.setBySetMode = false
                 doLog()
             }
         }
     }
 
+    /// Une seule fenêtre d'undo : celle de la dernière avancée (~8 s).
+    private func armSetUndo(_ undo: SetAdvanceUndo) {
+        setUndo = undo
+        setUndoTask?.cancel()
+        setUndoTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.25)) { setUndo = nil }
+        }
+    }
+
+    private func clearSetUndo() {
+        setUndoTask?.cancel(); setUndoTask = nil
+        setUndo = nil
+    }
+
+    /// Recule d'une série ; valeurs conservées ; arrête SEULEMENT le repos lancé par cette avancée.
+    /// Pas soumis à l'anti-rebond (0,8 s) et le réinitialise : la série suivante n'est pas bloquée.
+    private func undoSetAdvance() {
+        guard let undo = setUndo, allowAction() else { return }
+        defer { clearSetUndo() }
+        guard let r = undo.resolve(currentIndex: evm.currentSetIndex,
+                                   activeRun: RestTimerManager.shared.runID) else { return }
+        if r.stopsRest { RestTimerManager.shared.dismiss() }
+        withAnimation { evm.currentSetIndex = r.index }
+        lastSetAdvanceAt = .distantPast
+        triggerImpact(style: .light)
+    }
+
+    @ViewBuilder private var setUndoButton: some View {
+        if let undo = setUndo {
+            Button(action: undoSetAdvance) {
+                Label("Annuler · S\(undo.fromIndex + 1)", systemImage: "arrow.uturn.backward")
+                    .font(.appLabel.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .foregroundColor(Color.appTextSecondary)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Annuler la série \(undo.fromIndex + 1)")
+            .transition(.opacity)
+        }
+    }
+
     @ViewBuilder private var setBySetLogButton: some View {
-        if evm.setBySetMode { setCompletionButton }
+        if evm.setBySetMode {
+            setCompletionButton
+            setUndoButton
+        }
     }
 
     @ViewBuilder private func timeSetRows() -> some View {
@@ -1308,6 +1376,7 @@ struct ExerciseCard: View {
             onSetChange?(evm.currentSetIndex, count)
         }
         .onDisappear {
+            clearSetUndo()
             sourceRegistration?.disappear(editorController)
             if preparesEditors { editorController.detach() }
         }
