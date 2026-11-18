@@ -26,6 +26,8 @@ struct SetInput: Identifiable {
     // ponytail: tracking_type == "protocol" — bouton Fait binaire. Un log protocol = fait par
     // définition ; annuler = supprimer la ligne (chantier delete transverse, hors ici).
     var protocolCompleted: Bool = false
+    /// Série validée (« Série terminée »), état EXPLICITE persisté (4.3) — plus déduit des valeurs.
+    var done: Bool = false
 }
 
 enum LogStatus { case success(Double), stagné, loading, error(String) }
@@ -129,6 +131,7 @@ struct DraftSet: Codable {
     var durationLeft: Int? = nil
     var durationRight: Int? = nil
     var protocolCompleted: Bool? = nil
+    var done: Bool? = nil        // encodé seulement si true (octets inchangés pour une série non faite)
 }
 
 // MARK: - ExerciseDraftPersistence
@@ -139,6 +142,8 @@ struct ExerciseCardDraft: Codable {
     var sessionNote: String? = nil
     var equipmentType: String? = nil
     var barWeight: Double? = nil
+    /// 1 = `done` par série fait foi (4.3). nil = ancien brouillon : index déduit des valeurs, une fois.
+    var setStateVersion: Int? = nil
 }
 
 // Draft par carte d'exercice. Scopé par (date, session_type, name) pour éviter
@@ -196,9 +201,10 @@ struct ExerciseDraftPersistence {
         return id == authorization.executionID
     }
 
-    func saveResult(_ drafts: [DraftSet], sessionNote: String? = nil, equipmentType: String? = nil, barWeight: Double? = nil) -> LocalPersistenceResult {
+    func saveResult(_ drafts: [DraftSet], sessionNote: String? = nil, equipmentType: String? = nil, barWeight: Double? = nil,
+                    setStateVersion: Int? = nil) -> LocalPersistenceResult {
         guard authorizationIsValid else { return .rejectedContext }
-        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(mobilityChecked: loadCard()?.mobilityChecked, sets: drafts, sessionNote: sessionNote, equipmentType: equipmentType, barWeight: barWeight)) else { return .failed }
+        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(mobilityChecked: loadCard()?.mobilityChecked, sets: drafts, sessionNote: sessionNote, equipmentType: equipmentType, barWeight: barWeight, setStateVersion: setStateVersion)) else { return .failed }
         // An unchanged restoration/debounce is a no-op, not a classic edit.
         if let previous = UserDefaults.standard.data(forKey: key),
            let oldJSON = try? JSONSerialization.jsonObject(with: previous),
@@ -706,7 +712,8 @@ final class ExerciseViewModel: ObservableObject {
                      distance: $0.distance.isEmpty ? nil : $0.distance,
                      intensity: $0.intensity.isEmpty ? nil : $0.intensity,
                      durationLeft: $0.durationLeft, durationRight: $0.durationRight,
-                     protocolCompleted: $0.protocolCompleted ? true : nil)
+                     protocolCompleted: $0.protocolCompleted ? true : nil,
+                     done: $0.done ? true : nil)
         }
     }
 
@@ -719,7 +726,8 @@ final class ExerciseViewModel: ObservableObject {
     private var currentDraft: ExerciseCardDraft {
         ExerciseCardDraft(sets: draftSets(sets), sessionNote: sessionNote,
             equipmentType: equipmentType == "landmine" ? equipmentType : nil,
-            barWeight: equipmentType == "landmine" ? barWeight : nil)
+            barWeight: equipmentType == "landmine" ? barWeight : nil,
+            setStateVersion: Self.setStateVersion)
     }
 
     private func canonical(_ draft: ExerciseCardDraft) -> Data? {
@@ -804,7 +812,8 @@ final class ExerciseViewModel: ObservableObject {
         }
         let projection = currentDraft
         let result = draftStore.saveResult(projection.sets, sessionNote: projection.sessionNote,
-            equipmentType: projection.equipmentType, barWeight: projection.barWeight)
+            equipmentType: projection.equipmentType, barWeight: projection.barWeight,
+            setStateVersion: projection.setStateVersion)
         if draftAuthorization != nil { recordPersistenceResult(result) }
         if result == .accepted {
             baselineEditor = canonical(projection)
@@ -863,7 +872,8 @@ final class ExerciseViewModel: ObservableObject {
                 SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration,
                          durationLeft: $0.durationLeft, durationRight: $0.durationRight,
                          distance: $0.distance ?? "", intensity: $0.intensity ?? "",
-                         rir: $0.rir, rpe: $0.rpe, protocolCompleted: $0.protocolCompleted ?? false)
+                         rir: $0.rir, rpe: $0.rpe, protocolCompleted: $0.protocolCompleted ?? false,
+                         done: $0.done ?? false)
             }
             sessionNote = draft.sessionNote ?? recovery.note
         } else {
@@ -893,18 +903,46 @@ final class ExerciseViewModel: ObservableObject {
                 SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration,
                          durationLeft: $0.durationLeft, durationRight: $0.durationRight,
                          distance: $0.distance ?? "", intensity: $0.intensity ?? "",
-                         rir: $0.rir, rpe: $0.rpe, protocolCompleted: $0.protocolCompleted ?? false)
+                         rir: $0.rir, rpe: $0.rpe, protocolCompleted: $0.protocolCompleted ?? false,
+                         done: $0.done ?? false)
             }
         } else {
             sets = Array(repeating: SetInput(duration: trackingType == "mobility" ? 0 : 30), count: setsCount)
         }
-        sessionNote = draft?.sessionNote ?? ""
+        // Index et done AVANT sessionNote : son didSet réécrit le brouillon (séance classique) ;
+        // la déduction unique d'un ancien brouillon doit donc déjà être en mémoire à ce moment-là.
         if !isTimeBased && !sets.isEmpty {
             setBySetMode = true
-            // Reprend au 1er set incomplet ; si tous remplis (✓ final pas tapé),
-            // reste sur le dernier — prêt à valider.
-            currentSetIndex = firstIncompleteSetIndex() ?? max(0, sets.count - 1)
+            if draft?.setStateVersion == Self.setStateVersion {
+                // 4.3 : état explicite — 1re série non validée (undo et reps pré-remplies inclus).
+                currentSetIndex = sets.firstIndex(where: { !$0.done }) ?? max(0, sets.count - 1)
+            } else {
+                // Ancien brouillon (ou aucun) : déduction par les valeurs, UNE fois ; les séries
+                // avant l'index deviennent done (persisté à la prochaine écriture, version 1).
+                let index = firstIncompleteSetIndex() ?? max(0, sets.count - 1)
+                for i in sets.indices where i < index { sets[i].done = true }
+                currentSetIndex = index
+            }
         }
+        sessionNote = draft?.sessionNote ?? ""
+    }
+
+    static let setStateVersion = 1
+
+    /// Valide / dévalide une série (avancée 4.3, undo 4.2) avec écriture IMMÉDIATE du brouillon.
+    /// Refus (contexte Day Composer, échec local) → état rétabli, refus enregistré : jamais un
+    /// état non persisté qu'un remontage effacerait. Le debounce relit l'état courant (pas de copie).
+    @discardableResult
+    func markSet(_ index: Int, done: Bool) -> LocalPersistenceResult {
+        guard sets.indices.contains(index) else { return .failed }
+        let previous = sets[index].done
+        sets[index].done = done
+        let result = saveDraft()
+        if result != .accepted {
+            sets[index].done = previous
+            recordPersistenceResult(result)
+        }
+        return result
     }
 
     func syncSetsCount() {

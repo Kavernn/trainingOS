@@ -95,6 +95,8 @@ struct ExerciseCard: View {
     // Undo de la dernière avancée de série intermédiaire (4.2) — même code en liste et en Focus.
     @State private var setUndo: SetAdvanceUndo?
     @State private var setUndoTask: Task<Void, Never>?
+    /// Refus d'écriture d'une avancée / undo (4.3) — message actionnable, pas une erreur brute.
+    @State private var setStateRefusal: LocalPersistenceResult?
     @State private var confirmSwapAfterLog = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
@@ -916,6 +918,10 @@ struct ExerciseCard: View {
             triggerImpact(style: .medium)
             if evm.currentSetIndex < evm.sets.count - 1 {
                 let from = evm.currentSetIndex
+                // 4.3 : done persisté AVANT d'avancer ; refus → l'avancée n'a pas lieu.
+                let write = evm.markSet(from, done: true)
+                guard write == .accepted else { setStateRefusal = write; return }
+                setStateRefusal = nil
                 evm.currentSetIndex += 1
                 let started = startAutoRestIfEnabled()
                 armSetUndo(.init(fromIndex: from, restRun: started ? RestTimerManager.shared.runID : nil))
@@ -950,10 +956,28 @@ struct ExerciseCard: View {
         defer { clearSetUndo() }
         guard let r = undo.resolve(currentIndex: evm.currentSetIndex,
                                    activeRun: RestTimerManager.shared.runID) else { return }
+        // 4.3 : la série redevient « non faite » (persisté) ; refus → undo non appliqué.
+        let write = evm.markSet(r.index, done: false)
+        guard write == .accepted else { setStateRefusal = write; return }
+        setStateRefusal = nil
         if r.stopsRest { RestTimerManager.shared.dismiss() }
         withAnimation { evm.currentSetIndex = r.index }
         lastSetAdvanceAt = .distantPast
         triggerImpact(style: .light)
+    }
+
+    /// Message actionnable : ce qui s'est passé et quoi faire (4.3).
+    @ViewBuilder private var setStateRefusalBanner: some View {
+        if let refusal = setStateRefusal {
+            Text(refusal == .rejectedContext
+                 ? "Série non validée : la journée a changé (minuit passé ou plan modifié). Tes séries déjà enregistrées sont conservées ; celle-ci reste affichée mais n’est pas enregistrée. Note-la avant de fermer."
+                 : "Série non validée : enregistrement local impossible. Ta saisie reste à l’écran. Réessaie « Terminer la série ».")
+                .font(.appCaption)
+                .foregroundColor(Color.appDanger)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isStaticText)
+        }
     }
 
     @ViewBuilder private var setUndoButton: some View {
@@ -974,6 +998,7 @@ struct ExerciseCard: View {
     @ViewBuilder private var setBySetLogButton: some View {
         if evm.setBySetMode {
             setCompletionButton
+            setStateRefusalBanner
             setUndoButton
         }
     }
