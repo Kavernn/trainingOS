@@ -683,10 +683,9 @@ struct ExerciseCard: View {
         if showRIRColumn && !isTimeBased {
             HStack(spacing: 4) {
                 VStack(spacing: 1) { // ponytail: micro-align, hors échelle volontaire
+                    // « avant échec » retiré : se cassait lettre par lettre dans 70 pt ; le bouton info l'explique.
                     Text("RIR")
                         .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(Color.gray.opacity(0.7))
-                    Text("avant échec")
-                        .font(.appMicro).foregroundColor(.gray.opacity(0.45))
                 }
                 CardInfoButton(title: "RPE & RIR", entries: InfoEntry.rpeRirEntries)
             }
@@ -1391,8 +1390,9 @@ struct ExerciseCard: View {
                             .fontWeight(titleWeight)
                             .tracking(cardExpanded ? 0.3 : 0)
                             .foregroundColor(isCompletedCompact ? Color.appTextSecondary : Color.appTextPrimary)
-                            .lineLimit(isCurrentHero ? 2 : nil)
-                            .minimumScaleFactor(isCurrentHero ? 0.82 : 1)
+                            // Une ligne qui rétrécit plutôt qu'un mot coupé (« Pendla / y Row »).
+                            .lineLimit(isCurrentHero ? 1 : nil)
+                            .minimumScaleFactor(isCurrentHero ? 0.6 : 1)
                             .layoutPriority(isCurrentHero ? 1 : 0)
                         if isReplaced && !isCompletedCompact {
                             Text("remplacé")
