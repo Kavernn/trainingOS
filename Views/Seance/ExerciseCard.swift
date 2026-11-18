@@ -767,6 +767,23 @@ struct ExerciseCard: View {
         .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
     }
 
+    /// Règle unique d'affichage du poids (E point 1) : un nombre SANS suffixe est toujours le TOTAL
+    /// (historique, PR, e1RM) ; le poids par côté n'apparaît qu'avec un suffixe explicite.
+    private var perSideSuffix: String? {
+        switch evm.equipmentType {
+        case "barbell":      return "/côté"
+        case "dumbbell":     return "/haltère"
+        case "cable_double": return "/câble"
+        default:             return nil
+        }
+    }
+    /// « 205 lbs · 80/côté » (total d'abord) ; total seul hors barre/haltères/câbles.
+    private func totalWithPerSide(_ totalLbs: Double) -> String {
+        guard let suffix = perSideSuffix else { return units.format(totalLbs, decimals: 0) }
+        let side = ExerciseCalculator.inputHint(currentWeight: totalLbs, equipmentType: evm.equipmentType, barWeight: evm.barWeight)
+        return "\(units.format(totalLbs, decimals: 0)) · \(units.inputStr(side))\(suffix)"
+    }
+
     /// Prescription du jour (séries ajoutées par la progression) sinon schéma du programme (E point 2).
     /// Même source que le nombre de séries (ExerciseCalculator.setsCount) : jamais « 3x5-8 » au-dessus de 4 séries.
     private var displayedScheme: String { prescription?.label ?? scheme }
@@ -1135,7 +1152,8 @@ struct ExerciseCard: View {
                     Text("MOY. → TOTAL")
                         .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
                     Spacer()
-                    Text("\(units.format(avgLbs)) → \(units.format(total))")
+                    // Par côté explicite → total sans suffixe (E point 1)
+                    Text("\(perSideSuffix.map { "\(units.inputStr(avgLbs))\($0)" } ?? units.format(avgLbs)) → \(units.format(total, decimals: 0))")
                         .font(.appLabel).fontWeight(.black).foregroundColor(Color.forge)
                 }
                 .padding(.top, 4)
@@ -1836,7 +1854,7 @@ struct ExerciseCard: View {
                 Text("RECOMMANDÉ")
                     .font(.appMicro).fontWeight(.semibold).tracking(1).foregroundColor(.gray)
                 Spacer()
-                Text(units.format(evm.currentWeight))
+                Text(totalWithPerSide(evm.currentWeight))
                     .font(.appLabel).fontWeight(.bold).foregroundColor(Color.forge.opacity(0.7))
             }
         } else if !alreadyLogged {
@@ -2075,20 +2093,8 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var historySection: some View {
         if let history = weightData?.history, !history.isEmpty {
-            let historyPerSide: (Double) -> Double = { stored in
-                switch evm.equipmentType {
-                case "barbell":                  return max(0, (stored - 45) / 2)
-                case "dumbbell", "cable_double": return stored / 2
-                default:                         return stored
-                }
-            }
-            let showPerSide = evm.equipmentType == "barbell"
-                           || evm.equipmentType == "dumbbell"
-                           || evm.equipmentType == "cable_double"
-            let sparkData: [Double] = history.reversed().compactMap { entry -> Double? in
-                guard let w = entry.weight else { return nil }
-                return historyPerSide(w)
-            }.filter { $0 > 0 }
+            // Historique en TOTAL (valeur stockée), comme les PR et l'e1RM (E point 1).
+            let sparkData: [Double] = history.reversed().compactMap(\.weight).filter { $0 > 0 }
             let defaultCount = min(3, history.count)
             let visibleEntries = evm.showHistory ? history : Array(history.prefix(defaultCount))
             VStack(spacing: 4) {
@@ -2106,13 +2112,6 @@ struct ExerciseCard: View {
                         }
                     }
                     .chartXAxis(.hidden).chartYAxis(.hidden).frame(height: 32)
-                }
-                if showPerSide {
-                    HStack {
-                        Text(evm.equipmentType == "barbell" ? "poids par côté" : "par haltère")
-                            .font(.appMicro).foregroundColor(.gray.opacity(0.45))
-                        Spacer()
-                    }
                 }
                 VStack(spacing: 4) {
                     ForEach(Array(visibleEntries.enumerated()), id: \.offset) { i, entry in
@@ -2147,7 +2146,7 @@ struct ExerciseCard: View {
                                             .font(.appMicro).fontWeight(.bold)
                                             .foregroundColor(.gray.opacity(0.4))
                                             .frame(width: 16)
-                                        Text(units.format(historyPerSide(s.weight)))
+                                        Text(units.format(s.weight))
                                             .font(.appMicro).fontWeight(j == 0 && i == 0 ? .semibold : .regular)
                                             .foregroundColor(i == 0 ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.5))
                                         Text("×")
@@ -2160,7 +2159,7 @@ struct ExerciseCard: View {
                             } else {
                                 HStack(spacing: 8) {
                                     Text("·").foregroundColor(.gray.opacity(0.3)).font(.appMicro)
-                                    Text(units.format(historyPerSide(entry.weight ?? 0)))
+                                    Text(units.format(entry.weight ?? 0))
                                         .font(.appMicro).fontWeight(i == 0 ? .semibold : .regular)
                                         .foregroundColor(i == 0 ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.5))
                                     Text(entry.reps ?? "—").font(.appMicro).foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))
