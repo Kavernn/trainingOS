@@ -606,47 +606,14 @@ struct ExerciseCard: View {
         return evm.overloadReached ? 1.0 : min(best, 0.97)
     }
 
-    /// Ligne d'entête du hint. Format non dépassé :
-    ///   "Dern. : 24 reps · 2 480 lbs — encore 8 reps ou 340 lbs"
-    /// Format dépassé :
-    ///   "Dépassé — dern. : 24 reps · 2 480 lbs"
+    /// Message de surcharge progressive (E point 4) — voir OverloadMessage.
     private var overloadLabel: String {
-        let reference = overloadReferenceLabel
-        if evm.overloadReached {
-            return reference.isEmpty ? "Dépassé" : "Dépassé — dern. : \(reference)"
-        }
-        let deficit = overloadDeficitLabel
-        if reference.isEmpty { return deficit }
-        if deficit.isEmpty   { return "Dern. : \(reference)" }
-        return "Dern. : \(reference) — \(deficit.lowercased())"
-    }
-
-    /// Fabrique la partie référence : "24 reps · 2 480 lbs" (chaque partie
-    /// omise si sa cible n'existe pas).
-    private var overloadReferenceLabel: String {
-        var parts: [String] = []
-        if let t = evm.overloadTargetReps       { parts.append("\(t) reps") }
-        if let t = evm.overloadTargetVolumeLbs {
-            let displayed = UnitSettings.shared.display(t)
-            parts.append("\(Int(displayed.rounded())) \(UnitSettings.shared.label)")
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    private var overloadDeficitLabel: String {
-        var parts: [String] = []
-        if let target = evm.overloadTargetReps {
-            let strict = max(1, target + 1 - evm.overloadCurrentReps)
-            parts.append("\(strict) reps")
-        }
-        if let target = evm.overloadTargetVolumeLbs {
-            let rawLbs = max(0, target - evm.overloadCurrentVolumeLbs)
-            let displayed = UnitSettings.shared.display(rawLbs)
-            let strict = max(1, Int(displayed.rounded(.up)))
-            parts.append("\(strict) \(UnitSettings.shared.label)")
-        }
-        guard !parts.isEmpty else { return "" }
-        return "Encore " + parts.joined(separator: " ou ")
+        let u = UnitSettings.shared
+        return OverloadMessage.text(
+            targetReps: evm.overloadTargetReps, currentReps: evm.overloadCurrentReps,
+            targetVolume: evm.overloadTargetVolumeLbs.map(u.display),
+            currentVolume: u.display(evm.overloadCurrentVolumeLbs),
+            reached: evm.overloadReached, unit: u.label)
     }
 
     @ViewBuilder private func setHeaderWeightLabels() -> some View {
@@ -2835,5 +2802,40 @@ struct ExerciseRestCountdown: View {
                 .background(Color.gray.opacity(0.1)).clipShape(Capsule())
             }
         }
+    }
+}
+
+
+/// Texte « à battre » de la surcharge progressive (E point 4). Pur, testable.
+/// Seuils RÉELS : reps → dernière + 1 (dépassement strict) ; volume → strictement supérieur à la
+/// dernière (« plus de »). Le volume porte toujours la mention « de volume » (ce n'est pas une charge).
+enum OverloadMessage {
+    static func text(targetReps: Int?, currentReps: Int, targetVolume: Double?, currentVolume: Double,
+                     reached: Bool, unit: String) -> String {
+        func vol(_ v: Double) -> String { "\(grouped(Int(v.rounded()))) \(unit) de volume" }
+        func reps(_ n: Int) -> String { "\(n) rep\(n > 1 ? "s" : "")" }
+        if reached {
+            var ref: [String] = []
+            if let t = targetReps { ref.append(reps(t)) }
+            if let t = targetVolume { ref.append(vol(t)) }
+            return ref.isEmpty ? "Dernière fois battue" : "Dernière fois battue : " + ref.joined(separator: " · ")
+        }
+        var beat: [String] = [], missing: [String] = []
+        if let t = targetReps {
+            beat.append(reps(t + 1))
+            missing.append(reps(max(1, t + 1 - currentReps)))
+        }
+        if let t = targetVolume {
+            beat.append("plus de " + vol(t))
+            // Entier minimal qui dépasse strictement : floor(écart) + 1.
+            missing.append("au moins " + vol(Double(Int(max(0, t - currentVolume).rounded(.down)) + 1)))
+        }
+        guard !beat.isEmpty else { return "" }
+        return "À battre : " + beat.joined(separator: " ou ") + " · il manque " + missing.joined(separator: " ou ")
+    }
+
+    /// 2480 → « 2 480 » (formateur existant de l'app).
+    static func grouped(_ n: Int) -> String {
+        NumberFormatter.spaceGrouped.string(from: NSNumber(value: n)) ?? "\(n)"
     }
 }
