@@ -767,13 +767,22 @@ struct ExerciseCard: View {
         .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
     }
 
+    /// Placeholder reps (E point 3) : valeur de la même série la dernière fois ; sinon (série ajoutée
+    /// par la progression) bas de la fourchette prescrite ; sinon dernière valeur connue ; 1 en dernier recours.
+    private func repsPlaceholder(for i: Int) -> Double {
+        let last = evm.lastRepsParts
+        if last.indices.contains(i), let v = Double(last[i]) { return v }
+        if let p = prescription { return Double(p.repMin) }
+        if let v = last.last.flatMap(Double.init) { return v }
+        return 1
+    }
+
     @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
         StepperInput(
             valueStr: setText(i, \.reps),
             increment: 1,
             minimum: evm.equipmentType == "fixed_weight" ? 0 : 1,
-            placeholder: Double(evm.lastRepsParts.indices.contains(i)
-                ? evm.lastRepsParts[i] : "1") ?? 1,
+            placeholder: repsPlaceholder(for: i),
             isInteger: true,
             isDisabled: evm.setBySetMode && !isActive && !isDone,
             isCompact: evm.setBySetMode,
