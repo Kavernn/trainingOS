@@ -437,6 +437,13 @@ enum ExerciseCalculator {
 @MainActor
 final class ExerciseViewModel: ObservableObject {
 
+    #if DEBUG
+    /// Seam de test (étape 4.1) : instances vivantes par exercice — prouve qu'une bascule
+    /// liste ↔ Focus n'ouvre jamais deux evm sur le même exercice. Absent des builds Release.
+    nonisolated(unsafe) static var debugLiveCount: [String: Int] = [:]
+    deinit { Self.debugLiveCount[name, default: 1] -= 1 }
+    #endif
+
     // Config (immutable after init)
     let occurrenceKey: String?
     let name: String
@@ -530,6 +537,9 @@ final class ExerciseViewModel: ObservableObject {
          sessionDate: String = "", reconstructionMetadata: ExerciseReconstructionMetadata? = nil,
          draftAuthorization: DayComposerProvenanceStore.Authorization? = nil,
          validateLocalPersistence: (() -> LocalPersistenceResult)? = nil, occurrenceKey: String? = nil) {
+        #if DEBUG
+        Self.debugLiveCount[name, default: 0] += 1
+        #endif
         self.occurrenceKey = occurrenceKey
         self.draftAuthorization = draftAuthorization
         self.validateLocalPersistence = validateLocalPersistence

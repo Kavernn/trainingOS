@@ -19,6 +19,9 @@ enum ActiveExercisePresentation: Int {
 
 // MARK: - Exercise Card
 
+/// Mode d'affichage d'une carte d'exercice (étape 4). `.list` = rendu actuel, inchangé.
+enum ExerciseCardPresentation: Equatable { case list, focus }
+
 struct ExerciseCard: View {
     let name: String
     let scheme: String
@@ -58,6 +61,9 @@ struct ExerciseCard: View {
     // (parent, restauré depuis le draft de carte). Ignorés si !isCheckOnly.
     var isChecked: Bool = false
     var onCheckToggle: (() -> Void)? = nil
+    /// Étape 4 : même carte, même logique, même evm ; seul le rendu change (.focus = écran Effort/Repos).
+    /// Le rendu Focus vivra dans une extension de CE fichier (accès aux membres private).
+    var presentation: ExerciseCardPresentation = .list
 
     @StateObject private var evm: ExerciseViewModel
     @StateObject private var editorController: ExerciseEditorPreparationController
@@ -117,7 +123,9 @@ struct ExerciseCard: View {
          sourceRegistration: DayComposerCardRegistration? = nil,
          onSkippedChanged: ((Bool) -> Void)? = nil,
          onSetChange: ((Int, Int) -> Void)? = nil,
-         occurrenceKey: String? = nil) {
+         occurrenceKey: String? = nil,
+         presentation: ExerciseCardPresentation = .list) {
+        self.presentation = presentation
         self.onSkippedChanged = onSkippedChanged
         self.onSetChange = onSetChange
         self.sourceRegistration = sourceRegistration
