@@ -767,6 +767,10 @@ struct ExerciseCard: View {
         .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
     }
 
+    /// Prescription du jour (séries ajoutées par la progression) sinon schéma du programme (E point 2).
+    /// Même source que le nombre de séries (ExerciseCalculator.setsCount) : jamais « 3x5-8 » au-dessus de 4 séries.
+    private var displayedScheme: String { prescription?.label ?? scheme }
+
     /// Placeholder reps (E point 3) : valeur de la même série la dernière fois ; sinon (série ajoutée
     /// par la progression) bas de la fourchette prescrite ; sinon dernière valeur connue ; 1 en dernier recours.
     private func repsPlaceholder(for i: Int) -> Double {
@@ -1183,7 +1187,7 @@ struct ExerciseCard: View {
                     Text(name)
                         .font(.appHeadline).fontWeight(.bold)
                         .foregroundColor(.appTextPrimary)
-                    Text(scheme).font(.appCaption).foregroundColor(.gray)
+                    Text(displayedScheme).font(.appCaption).foregroundColor(.gray)
                     if let h = hint, !h.isEmpty {
                         Text(h)
                             .font(.appCaption).foregroundColor(.secondary)
@@ -1424,7 +1428,7 @@ struct ExerciseCard: View {
                                 .clipShape(Circle())
                         }
                     }
-                    Text(isSkippedCompact ? "Sauté" : scheme)
+                    Text(isSkippedCompact ? "Sauté" : displayedScheme)
                         .font(isCurrentHero
                               ? .appLabel
                               : ((isUpcomingCompact || isCompletedCompact) ? .appMicro : .appCaption))
@@ -1897,7 +1901,7 @@ struct ExerciseCard: View {
                     .foregroundColor(evm.sets.count > 1 ? Color.appDanger.opacity(0.45) : .gray.opacity(0.2))
             }
             .disabled(evm.sets.count <= 1).buttonStyle(.plain)
-            Text("\(evm.sets.count) set\(evm.sets.count > 1 ? "s" : "")")
+            Text("\(evm.sets.count) série\(evm.sets.count > 1 ? "s" : "")")
                 .font(.appCaption).fontWeight(.medium).foregroundColor(.gray)
             // W-C1 — show "Max" label and accessibility hint when set limit is reached
             Button {

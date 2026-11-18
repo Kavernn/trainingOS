@@ -395,7 +395,8 @@ struct WorkoutSeanceView: View {
                     VStack(alignment: .leading, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                         Text(name).font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
                             .foregroundColor(r != nil ? .white : .gray)
-                        Text(scheme).font(.appMicro).foregroundColor(.gray)
+                        // Prescription du jour si présente (même source que le nombre de séries, E point 2).
+                        Text(data.prescriptions?[name]?.label ?? scheme).font(.appMicro).foregroundColor(.gray)
                     }
                     Spacer()
                     if let r = r {
