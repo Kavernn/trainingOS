@@ -8,6 +8,17 @@ extension Font {
     /// 64pt black rounded — chiffre display plein écran (compteur reps, timer séance)
     static let appDisplay = Font.system(size: 64, weight: .black, design: .rounded)
 
+    /// 96pt — chiffres de l'écran Focus Effort/Repos UNIQUEMENT (charge, reps, minuteur).
+    /// Token validé 2026-11-16 : design hero du thème ; poids = max(displayWeight, .semibold) ;
+    /// condensé sur les thèmes en police système (heroFontDesign .default) ; chiffres à chasse fixe.
+    /// À l'usage : `.appFocusStyle()` (1 ligne, minimumScaleFactor 0.6, taille fixe hors Dynamic Type).
+    static var appFocus: Font {
+        let theme = AppTheme.shared
+        let base = Font.system(size: 96, weight: FontWeightOrder.atLeast(theme.displayWeight, .semibold),
+                               design: theme.heroFontDesign).monospacedDigit()
+        return theme.heroFontDesign == .default ? base.width(.condensed) : base
+    }
+
     /// 42pt — métriques principales, design et poids lus depuis le thème actif
     static var appHero: Font {
         .system(size: 42, weight: AppTheme.shared.displayWeight, design: AppTheme.shared.heroFontDesign)
@@ -42,6 +53,26 @@ extension Font {
 
     /// 9pt regular — badges, tags, indicateurs très discrets
     static let appMicro = Font.system(size: 9, weight: .regular, design: .default)
+}
+
+/// Font.Weight n'est pas Comparable : ordre explicite pour les planchers de graisse (appFocus).
+enum FontWeightOrder {
+    static let ascending: [Font.Weight] = [.ultraLight, .thin, .light, .regular, .medium,
+                                           .semibold, .bold, .heavy, .black]
+    /// La plus lourde des deux graisses (graisse inconnue → plancher).
+    static func atLeast(_ weight: Font.Weight, _ floor: Font.Weight) -> Font.Weight {
+        let floorIndex = ascending.firstIndex(of: floor) ?? 0
+        guard let index = ascending.firstIndex(of: weight) else { return floor }
+        return ascending[max(index, floorIndex)]
+    }
+}
+
+extension View {
+    /// Usage unique de `Font.appFocus` : une ligne, rétrécit plutôt que couper, taille fixe
+    /// (lisibilité téléphone posé au sol à 1,5–2 m — l'échelle Dynamic Type ne s'applique pas ici).
+    func appFocusStyle() -> some View {
+        font(.appFocus).lineLimit(1).minimumScaleFactor(0.6)
+    }
 }
 
 // MARK: - Card Modifiers
