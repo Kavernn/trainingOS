@@ -131,7 +131,7 @@ struct BodyCompView: View {
                     Text("POIDS ACTUEL")
                         .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                     if let w = latest?.weight {
-                        Text(units.format(w))
+                        Text(units.format(w, decimals: 1))
                             .font(.system(size: 44, weight: .black))
                             .foregroundColor(Color.forge).glow(Color.forge)
                             .contentTransition(.numericText())
@@ -150,7 +150,7 @@ struct BodyCompView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
                                     .font(.appCaption.weight(.bold))
-                                Text("\(diff >= 0 ? "+" : "")\(units.format(diff))")
+                                Text("\(diff >= 0 ? "+" : "")\(units.format(diff, decimals: 1))")
                                     .font(.appCaption.weight(.semibold))
                             }
                             .foregroundColor(diff >= 0 ? Color.statusOrange.opacity(0.8) : Color.statusGreen.opacity(0.8))
@@ -167,7 +167,7 @@ struct BodyCompView: View {
                 let lean = w * (1 - bf / 100)
                 let fat  = w * bf / 100
                 HStack(spacing: 8) {
-                    CompChip(label: "MASSE MAIGRE", value: units.format(lean), color: .statusGreen)
+                    CompChip(label: "MASSE MAIGRE", value: units.format(lean, decimals: 1), color: .statusGreen)
                     CompChip(label: "MASSE GRASSE", value: "\(units.format(fat)) · \(String(format: "%.1f", bf))%", color: .statusBlue)
                 }
             }
@@ -362,10 +362,10 @@ struct CompositionChartCard: View {
             if let last = entries.last, let bf = last.bodyFat {
                 HStack {
                     Spacer()
-                    Text("Maigre \(units.format(last.weight * (1 - bf/100)))")
+                    Text("Maigre \(units.format(last.weight * (1 - bf/100), decimals: 1))")
                         .font(.appCaption.weight(.semibold)).foregroundColor(.statusGreen)
                     Text("·").foregroundColor(.gray)
-                    Text("Gras \(units.format(last.weight * bf/100))")
+                    Text("Gras \(units.format(last.weight * bf/100, decimals: 1))")
                         .font(.appCaption.weight(.semibold)).foregroundColor(.statusBlue)
                     Spacer()
                 }
@@ -678,7 +678,7 @@ struct BodyWeightRow: View {
                 }
             }
             Spacer()
-            Text(units.format(entry.weight))
+            Text(units.format(entry.weight, decimals: 1))
                 .font(.appBody.weight(.semibold))
                 .foregroundColor(.appTextPrimary)
 

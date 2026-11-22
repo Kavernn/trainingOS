@@ -407,13 +407,13 @@ struct ProfileView: View {
 
     private func bodyCompWeightCol(latest: BodyWeightEntry, delta: Double?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(units.format(latest.weight))
+            Text(units.format(latest.weight, decimals: 1))
                 .font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary)
             if let d = delta {
                 HStack(spacing: 3) {
                     Image(systemName: d > 0 ? "arrow.up" : "arrow.down")
                         .font(.appMicro).fontWeight(.bold)
-                    Text(units.format(abs(d)))
+                    Text(units.format(abs(d), decimals: 1))
                         .font(.appCaption).fontWeight(.semibold)
                 }
                 .foregroundColor(d <= 0 ? Color.appSuccess : Color.appWarning)

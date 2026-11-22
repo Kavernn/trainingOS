@@ -260,7 +260,7 @@ struct NavyCalculatorView: View {
 
     private func measuresRow(_ e: BodyWeightEntry) -> some View {
         HStack(spacing: 16) {
-            measureChip(label: "POIDS", value: units.format(e.weight))
+            measureChip(label: "POIDS", value: units.format(e.weight, decimals: 1))
             if let w = e.waistCm {
                 measureChip(label: "TAILLE", value: String(format: "%.0f cm", w))
             }
@@ -292,10 +292,10 @@ struct NavyCalculatorView: View {
                        color: .statusBlue,
                        subtitle: "±4% vs DEXA")
             resultCard(label: "MASSE GRASSE",
-                       value: units.format(res.fatMassLbs),
+                       value: units.format(res.fatMassLbs, decimals: 1),
                        color: Color.forge)
             resultCard(label: "MASSE MAIGRE",
-                       value: units.format(res.leanMassLbs),
+                       value: units.format(res.leanMassLbs, decimals: 1),
                        color: .statusGreen)
         }
         .padding(.horizontal, 16)

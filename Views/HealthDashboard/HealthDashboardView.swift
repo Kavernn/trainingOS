@@ -679,7 +679,7 @@ struct BodyMetricsCard: View {
             HStack(spacing: 20) {
                 if let w = summary.bodyWeight {
                     VStack(spacing: 2) {
-                        Text(units.format(w))
+                        Text(units.format(w, decimals: 1))
                             .font(.appTitle.weight(.black)).foregroundColor(Color.forge)
                         Text("Poids").font(.appCaption).foregroundColor(.gray)
                     }
@@ -1267,7 +1267,7 @@ struct HealthDayDetailSheet: View {
                 if let w = day.bodyWeight {
                     Section("Corps") {
                         DetailMetricRow(icon: "scalemass.fill", color: Color.forge, label: "Poids",
-                                        value: units.format(w))
+                                        value: units.format(w, decimals: 1))
                         if let bf = day.bodyFatPct {
                             DetailMetricRow(icon: "chart.pie.fill", color: .statusBlue, label: "Masse grasse",
                                             value: String(format: "%.1f%%", bf))
