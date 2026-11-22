@@ -976,13 +976,15 @@ final class ExerciseViewModel: ObservableObject {
     func initializeSets() {
         guard sets.isEmpty else { return }
         isInitializingSets = true
-        isHydratingRecovery = draftAuthorization != nil
+        let draft = draftStore.loadCard()
+        // Sans brouillon, l'affichage d'une carte n'écrit rien : seule une saisie crée la clé
+        // (sinon un brouillon vide verrouille Ma journée sans action — 2026-11-18, Deadlift).
+        isHydratingRecovery = draftAuthorization != nil || draft == nil
         defer {
             establishHydratedBaseline()
             isHydratingRecovery = false
             isInitializingSets = false
         }
-        let draft = draftStore.loadCard()
         if let draft, !draft.sets.isEmpty {
             if draft.equipmentType == "landmine", let bar = draft.barWeight, bar.isFinite, bar >= 0 {
                 equipmentType = "landmine"

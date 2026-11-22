@@ -2482,6 +2482,53 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertNil(store.loadCard())
     }
 
+    // MARK: c — l'affichage d'une carte sans brouillon n'écrit rien (Séance normale)
+
+    func testClassicCardAppearanceWithoutDraftWritesNoKey() async throws {
+        let date = "appear-no-draft-\(UUID().uuidString)"
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "Deadlift")
+        defer { store.clear() }
+        let vm = ExerciseViewModel(name: "Deadlift", scheme: "3x5", weightData: nil, sessionDate: date)
+        vm.initializeSets()
+        XCTAssertEqual(vm.sets.count, 3)
+        try await Task.sleep(nanoseconds: 700_000_000) // au-delà du debounce de 0,5 s
+        XCTAssertEqual(store.presence(), .absent)
+        XCTAssertNil(vm.draftSavedAt)
+    }
+
+    func testClassicCardFirstInputAfterBlankAppearanceWritesDraft() async throws {
+        let date = "appear-first-input-\(UUID().uuidString)"
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "Deadlift")
+        defer { store.clear() }
+        let vm = ExerciseViewModel(name: "Deadlift", scheme: "3x5", weightData: nil, sessionDate: date)
+        vm.initializeSets()
+        vm.sets[0].reps = "5"
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(store.load()?.first?.reps, "5")
+        let noteDate = "appear-first-note-\(UUID().uuidString)"
+        let noteStore = ExerciseDraftPersistence(date: noteDate, sessionType: "morning", exerciseName: "Deadlift")
+        defer { noteStore.clear() }
+        let noted = ExerciseViewModel(name: "Deadlift", scheme: "3x5", weightData: nil, sessionDate: noteDate)
+        noted.initializeSets()
+        noted.sessionNote = "Dos neutre"
+        XCTAssertEqual(noteStore.loadCard()?.sessionNote, "Dos neutre")
+    }
+
+    func testClassicCardLegacyDraftStillPersistsDeducedDoneSets() throws {
+        let date = "appear-legacy-\(UUID().uuidString)"
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "Deadlift")
+        defer { store.clear() }
+        // Ancien brouillon (sans setStateVersion) : 1re série remplie, déduite faite à l'ouverture.
+        XCTAssertTrue(store.save([DraftSet(weight: "140", reps: "5", rir: 2, duration: 30),
+                                  DraftSet(weight: "", reps: "", rir: 2, duration: 30)]))
+        let vm = ExerciseViewModel(name: "Deadlift", scheme: "2x5", weightData: nil, sessionDate: date)
+        vm.initializeSets()
+        XCTAssertEqual(vm.currentSetIndex, 1)
+        let card = try XCTUnwrap(store.loadCard())
+        XCTAssertEqual(card.sets.first?.done, true)
+        XCTAssertEqual(card.setStateVersion, ExerciseViewModel.setStateVersion)
+    }
+
     func testLegacyExerciseCardDraftRestoresWithoutNote() throws {
         let date = "legacy-card-test-\(UUID().uuidString)"
         let exerciseName = "Legacy draft"
