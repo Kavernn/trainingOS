@@ -150,6 +150,7 @@ struct FloatingRestTimerCard: View {
                                 .font(.appCaption.weight(.bold))
                             Text("Passer")
                                 .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.semibold) : .appLabel.weight(.semibold))
+                                .lineLimit(1).minimumScaleFactor(0.6)   // jamais « Pass / er » sur deux lignes
                         }
                         .foregroundColor(Color.appOnSurface.opacity(0.7))
                         .frame(minWidth: 52, minHeight: 44)
