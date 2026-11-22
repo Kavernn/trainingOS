@@ -19,56 +19,145 @@ enum ActiveExercisePresentation: Int {
 
 // MARK: - Exercise Card
 
-// MARK: - Focus Effort (étape 4.3 — LECTURE SEULE ; actions en 4.4)
+// MARK: - Focus Effort (4.3 rendu ; 4.4a « Série terminée » + undo, exercice seul)
 extension ExerciseCard {
-    /// Reps visées de la série courante : fourchette prescrite, sinon partie reps du schéma (« 3x5-8 » → « 5–8 »).
-    fileprivate var focusRepsTarget: String {
-        if let p = prescription { return p.repMin == p.repMax ? "\(p.repMin)" : "\(p.repMin)–\(p.repMax)" }
-        let parts = scheme.lowercased().split(separator: "x", maxSplits: 1)
-        return parts.count == 2 ? parts[1].replacingOccurrences(of: "-", with: "–") : scheme
+    /// Valeur affichée en Focus : saisie (pleine) ou proposée (contour pointillé). Toujours pleine couleur.
+    fileprivate struct FocusValue { let text: String; let proposed: Bool }
+
+    fileprivate var focusSetIndex: Int { min(evm.currentSetIndex, max(0, evm.sets.count - 1)) }
+
+    /// « cible 6–10 » : même fourchette que les reps proposées (ExerciseCalculator.repRange).
+    fileprivate var focusRepsTarget: String? {
+        ExerciseCalculator.repRange(scheme: scheme, prescription: prescription)
+            .map { $0.lowerBound == $0.upperBound ? "\($0.lowerBound)" : "\($0.lowerBound)–\($0.upperBound)" }
     }
 
-    /// Charge TOTALE de la série courante (saisie par côté convertie), sinon la recommandée.
-    fileprivate var focusTotalLbs: Double {
-        let i = min(evm.currentSetIndex, max(0, evm.sets.count - 1))
-        if evm.sets.indices.contains(i),
-           let input = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) {
-            return evm.totalWeight(for: units.toStorage(input))
-        }
-        return evm.currentWeight
+    /// Charge de la série courante en saisie (par côté si l'équipement l'exige) : saisie, sinon proposée.
+    fileprivate var focusWeightInput: (value: String, proposed: Bool)? {
+        let i = focusSetIndex
+        guard evm.sets.indices.contains(i) else { return nil }
+        if !evm.sets[i].weight.isEmpty { return (evm.sets[i].weight, false) }
+        return evm.proposedWeightInput(for: i).map { ($0, true) }
+    }
+
+    fileprivate var focusReps: FocusValue? {
+        let i = focusSetIndex
+        guard evm.sets.indices.contains(i) else { return nil }
+        if !evm.sets[i].reps.isEmpty { return FocusValue(text: evm.sets[i].reps, proposed: false) }
+        return evm.proposedReps(for: i).map { FocusValue(text: "\($0)", proposed: true) }
+    }
+
+    /// Charge TOTALE affichée (règle « sans suffixe = total ») ; nil si aucune.
+    fileprivate var focusTotalLbs: Double? {
+        guard let input = focusWeightInput,
+              let v = Double(input.value.replacingOccurrences(of: ",", with: ".")) else { return nil }
+        return evm.totalWeight(for: units.toStorage(v))
+    }
+
+    /// Ce qui manque pour « Série terminée » (saisie possible en Liste jusqu'aux +/− de 4.4b).
+    fileprivate var focusMissing: String? {
+        if focusReps == nil { return "Reps à saisir — passe en Liste" }
+        if focusWeightInput == nil && evm.equipmentType != "bodyweight" { return "Charge à saisir — passe en Liste" }
+        return nil
     }
 
     @ViewBuilder fileprivate var focusEffortContent: some View {
         let total = focusTotalLbs
+        let weightProposed = focusWeightInput?.proposed ?? false
+        let reps = focusReps
         VStack(spacing: 4) {
-            Text(total > 0 ? units.inputStr(total) : "—")
-                .appFocusStyle()
-                .foregroundColor(.appTextPrimary)
-            Text(total > 0 ? focusUnitLine(total) : "Charge à saisir")
+            Spacer(minLength: 16)
+            Group {
+                if let total {
+                    Text(units.inputStr(total)).appFocusStyle()
+                } else {
+                    Text(evm.equipmentType == "bodyweight" ? "PDC" : "—").appFocusStyle()
+                }
+            }
+            .foregroundColor(.appTextPrimary)
+            .modifier(FocusProposedOutline(active: total != nil && weightProposed))
+            Text(total.map(focusUnitLine) ?? (evm.equipmentType == "bodyweight" ? "Poids du corps" : "Charge à saisir"))
                 .font(.appHeadline).foregroundColor(Color.appTextSecondary)
             // Groupe compact et centré : × petit collé au nombre ; reps en 64 pt sous la charge (96 pt).
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("×")
                     .font(.appFocusFamily(size: 36))
                     .foregroundColor(Color.appTextSecondary)
-                Text(focusRepsTarget)
+                Text(reps?.text ?? "—")
                     .font(.appFocusFamily(size: 64))
                     .foregroundColor(.appTextPrimary)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.6)
+            .modifier(FocusProposedOutline(active: reps?.proposed ?? false))
             .padding(.top, 8)
+            if let target = focusRepsTarget {
+                Text("cible \(target)")
+                    .font(.appLabel).foregroundColor(Color.appTextSecondary)
+            }
+            Spacer(minLength: 24)
+            setStateRefusalBanner
+            setUndoButton
+            focusCompleteButton
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(name), \(total > 0 ? units.format(total, decimals: 0) : "charge à saisir"), \(focusRepsTarget) répétitions")
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .accessibilityElement(children: .contain)
+    }
+
+    /// « Série terminée » (≥ 88 pt, zone du pouce) : complète la série avec les valeurs AFFICHÉES puis
+    /// passe par advanceSet (anti-rebond, done persisté, repos, undo 4.2 ; dernière série → doLog).
+    @ViewBuilder private var focusCompleteButton: some View {
+        let missing = focusMissing
+        Button(action: focusCompleteSet) {
+            Text(missing ?? "Série terminée")
+                .font(missing == nil ? .appTitle : .appBody.weight(.semibold))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, minHeight: 88)
+                .foregroundColor(missing == nil ? Color.onAccent : Color.appTextSecondary)
+                .background(missing == nil ? Color.forge : Color.appSurfaceInset)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(SpringButtonStyle(scale: 0.95))
+        .disabled(missing != nil)
+        .accessibilityLabel(missing ?? "Série terminée, série \(focusSetIndex + 1) sur \(evm.sets.count)")
+    }
+
+    private func focusCompleteSet() {
+        let i = focusSetIndex
+        guard focusMissing == nil, allowAction(), let before = evm.fillDisplayedValues(at: i) else { return }
+        let wasLogged = evm.isLogged || logResult != nil
+        advanceSet()
+        let advanced = (evm.sets.indices.contains(i) && evm.sets[i].done) || (!wasLogged && (evm.isLogged || logResult != nil))
+        // Avancée refusée (anti-rebond, journée invalidée, log bloqué) : rien n'a été validé → valeurs d'avant.
+        if !advanced, evm.sets.indices.contains(i) {
+            evm.sets[i].weight = before.weight
+            evm.sets[i].reps = before.reps
+        }
     }
 
     /// « lbs · 80/côté » sous le total (règle E point 1 : par côté toujours suffixé).
     private func focusUnitLine(_ totalLbs: Double) -> String {
         let full = totalWithPerSide(totalLbs)                   // « 205 lbs · 80/côté »
         return full.split(separator: " ", maxSplits: 1).dropFirst().joined()   // « lbs · 80/côté »
+    }
+}
+
+/// Valeur proposée (pas encore saisie) : contour pointillé, chiffre en pleine couleur (décision point A).
+private struct FocusProposedOutline: ViewModifier {
+    let active: Bool
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 12)
+            .overlay {
+                if active {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.appTextSecondary, style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                        .accessibilityHidden(true)
+                }
+            }
+            .accessibilityValue(active ? "proposé" : "")
     }
 }
 
@@ -851,11 +940,7 @@ struct ExerciseCard: View {
     /// Placeholder reps (E point 3) : valeur de la même série la dernière fois ; sinon (série ajoutée
     /// par la progression) bas de la fourchette prescrite ; sinon dernière valeur connue ; 1 en dernier recours.
     private func repsPlaceholder(for i: Int) -> Double {
-        let last = evm.lastRepsParts
-        if last.indices.contains(i), let v = Double(last[i]) { return v }
-        if let p = prescription { return Double(p.repMin) }
-        if let v = last.last.flatMap(Double.init) { return v }
-        return 1
+        Double(evm.proposedReps(for: i) ?? 1)                  // règle unique : ExerciseViewModel.proposedReps
     }
 
     @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {

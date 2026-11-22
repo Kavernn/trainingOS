@@ -114,4 +114,56 @@ final class FocusRenderSnapshotTests: XCTestCase {
         main.setContentOffset(CGPoint(x: 0, y: max(0, bottom)), animated: false)
         try await shot("3-bas")
     }
+
+    /// 4.4a : écran Focus complet (chrome, chiffres proposés en pointillé, « Série terminée » en bas), 4 thèmes.
+    func testRenderFocusScreenWithCompleteButton() async throws {
+        let flagBefore = UserDefaults.standard.object(forKey: FocusModePreference.key)
+        let previous = AppTheme.shared.selectedTheme
+        var dates: [String] = []
+        defer {
+            AppTheme.shared.applyTheme(previous)
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where dates.contains(where: key.contains) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+            if let flagBefore { UserDefaults.standard.set(flagBefore, forKey: FocusModePreference.key) }
+            else { UserDefaults.standard.removeObject(forKey: FocusModePreference.key) }
+        }
+        UserDefaults.standard.set(true, forKey: FocusModePreference.key)
+        let dir = ProcessInfo.processInfo.environment["FOCUS_SNAPSHOT_DIR"]
+        let tag = ProcessInfo.processInfo.environment["FOCUS_SNAPSHOT_TAG"] ?? "shot"
+        for theme in [AppThemeOption.sinCity, .pearl, .oledBlack, .blood] {
+            AppTheme.shared.applyTheme(theme)
+            let date = "focus-shot-\(UUID().uuidString)"; dates.append(date)
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: Fixtures.seanceDataJSON(
+                today: "Pull B", todayDate: date, exerciseName: "T-Bar Row",
+                historyDate: "2026-11-15", historyWeight: 85, historyReps: "10,9,8")) as? [String: Any])
+            json["full_program"] = ["Pull B": ["T-Bar Row": "3x10-12"]]
+            let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
+            let owner = SeanceViewModel(draftSessionType: "morning", followsActivePlanning: true)
+            owner.seanceData = data
+            owner.startSession()
+            owner.currentPlanningLoader = { _, _ in ("stale", data) }
+            let root = TabView {
+                NavigationStack { WorkoutSeanceView(data: data, vm: owner, isOverride: true) }
+                    .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
+            }
+            let host = UIHostingController(rootView: root)
+            host.overrideUserInterfaceStyle = theme == .pearl ? .light : .dark
+            let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 393, height: 852)
+            window.rootViewController = host; window.makeKeyAndVisible()
+            for _ in 0..<5 { host.view.layoutIfNeeded(); try await Task.sleep(nanoseconds: 200_000_000) }
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            let file = "\(tag)-ecran-\(theme.rawValue).png"
+            let attachment = XCTAttachment(image: image); attachment.name = file
+            attachment.lifetime = .keepAlways; add(attachment)
+            if let dir, let png = image.pngData() {
+                try png.write(to: URL(fileURLWithPath: dir).appendingPathComponent(file))
+            }
+            window.isHidden = true; window.rootViewController = nil
+        }
+    }
 }

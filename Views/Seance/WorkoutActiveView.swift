@@ -744,6 +744,8 @@ struct WorkoutSeanceView: View {
                           forceNoRest: member?.a == target.name,
                           restOverride: member.flatMap { $0.b == target.name ? SupersetRest.secondMemberRest($0.rest) : nil },
                           presentation: .focus)
+            // 4.4a : la carte occupe la hauteur visible → « Série terminée » fixé en bas, sous le pouce.
+            .containerRelativeFrame(.vertical, alignment: .top) { height, _ in max(0, height - 32) }
         }
     }
 

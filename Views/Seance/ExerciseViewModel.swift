@@ -310,6 +310,18 @@ enum ExerciseCalculator {
         return 3
     }
 
+    /// Fourchette de reps du jour (source unique : « cible » Focus, reps proposées) :
+    /// prescription, sinon partie reps du schéma (« 4x5-8 » → 5...8, « 3x10 » → 10...10). Nil si non numérique.
+    static func repRange(scheme: String, prescription: ExercisePrescription?) -> ClosedRange<Int>? {
+        if let p = prescription { return min(p.repMin, p.repMax)...max(p.repMin, p.repMax) }
+        let parts = scheme.lowercased().split(separator: "x", maxSplits: 1)
+        guard parts.count == 2 else { return nil }
+        let bounds = parts[1].split(separator: "-").map { Int($0.trimmingCharacters(in: .whitespaces)) }
+        guard let lo = bounds.first ?? nil else { return nil }
+        let hi = bounds.count > 1 ? (bounds[1] ?? lo) : lo
+        return min(lo, hi)...max(lo, hi)
+    }
+
     // "4x40m" → 40. Nil sinon. Placeholder du champ Distance (carry).
     static func distanceTarget(scheme: String) -> Int? {
         let s = scheme.lowercased()
@@ -901,6 +913,37 @@ final class ExerciseViewModel: ObservableObject {
 
     func totalWeight(for input: Double) -> Double { ExerciseCalculator.totalWeight(for: input, equipmentType: equipmentType, barWeight: barWeight) }
     func perSetHint(for index: Int) -> String { ExerciseCalculator.perSetHint(for: index, weightData: weightData, equipmentType: equipmentType, barWeight: barWeight) }
+
+    /// Reps proposées — règle UNIQUE (E point 3 / point A), placeholder de la liste et Focus :
+    /// même série la dernière fois, sinon BAS de la fourchette du jour, sinon dernière valeur connue. Nil si rien.
+    func proposedReps(for index: Int) -> Int? {
+        let last = lastRepsParts.map { Double($0.trimmingCharacters(in: .whitespaces)).map { Int($0) } }
+        if last.indices.contains(index), let v = last[index] { return v }
+        if let range = ExerciseCalculator.repRange(scheme: scheme, prescription: prescription) { return range.lowerBound }
+        return last.last ?? nil
+    }
+
+    /// Charge proposée (saisie telle que tapée, par côté si l'équipement l'exige) : même source que
+    /// le placeholder de la liste (perSetHint). Nil si aucune charge connue (hors poids du corps).
+    func proposedWeightInput(for index: Int) -> String? {
+        let hint = perSetHint(for: index)
+        if equipmentType == "bodyweight" { return nil }        // lest facultatif : jamais proposé
+        return (Double(hint.replacingOccurrences(of: ",", with: ".")) ?? 0) > 0 ? hint : nil
+    }
+
+    /// Focus (4.4a, décision (a)) : complète la série `index` avec les valeurs AFFICHÉES (saisies, sinon
+    /// proposées). Renvoie les valeurs d'avant pour annuler si l'avancée n'a pas lieu ; nil si une valeur
+    /// requise manque (rien n'est écrit).
+    func fillDisplayedValues(at index: Int) -> (weight: String, reps: String)? {
+        guard sets.indices.contains(index) else { return nil }
+        let before = (weight: sets[index].weight, reps: sets[index].reps)
+        let weight = before.weight.isEmpty ? proposedWeightInput(for: index) : before.weight
+        let reps = before.reps.isEmpty ? proposedReps(for: index).map(String.init) : before.reps
+        guard let reps, weight != nil || equipmentType == "bodyweight" else { return nil }
+        if before.weight.isEmpty, let weight { sets[index].weight = weight }
+        if before.reps.isEmpty { sets[index].reps = reps }
+        return before
+    }
     func formatDuration(_ secs: Int) -> String { ExerciseCalculator.formatDuration(secs) }
 
     func initializeRecovery(_ recovery: ExerciseRecoveryHydration) {
@@ -1124,9 +1167,13 @@ final class ExerciseViewModel: ObservableObject {
         for (i, s) in sets.enumerated() {
             let weightStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
             let repsTrimmed = s.reps.trimmingCharacters(in: .whitespaces)
+            let n = i + 1
+            // 4.4a : une série validée n'est jamais envoyée vide (elle serait perdue en silence).
+            if s.done && repsTrimmed.isEmpty && equipmentType != "fixed_weight" {
+                return "Série \(n) validée sans reps : saisis-les avant de logger"
+            }
             if weightStr.isEmpty && repsTrimmed.isEmpty { continue }
             anyStarted = true
-            let n = i + 1
             switch equipmentType {
             case "bodyweight":
                 if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
