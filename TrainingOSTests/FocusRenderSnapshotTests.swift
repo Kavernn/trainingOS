@@ -190,6 +190,68 @@ final class FocusRenderSnapshotTests: XCTestCase {
         }
     }
 
+    /// units.format (2 décimales, affiché = enregistré) : mises en page étroites de la liste en kg avec 61.25 —
+    /// carte loggée repliée (puce d'en-tête), carte dépliée (dernière charge, historique).
+    func testRenderListNarrowLayoutsWithTwoDecimalLoad() async throws {
+        let date = "focus-shot-\(UUID().uuidString)"
+        let flagBefore = UserDefaults.standard.object(forKey: FocusModePreference.key)
+        let kgBefore = UnitSettings.shared.isKg
+        let previous = AppTheme.shared.selectedTheme
+        defer {
+            UnitSettings.shared.isKg = kgBefore
+            AppTheme.shared.applyTheme(previous)
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(date) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+            if let flagBefore { UserDefaults.standard.set(flagBefore, forKey: FocusModePreference.key) }
+            else { UserDefaults.standard.removeObject(forKey: FocusModePreference.key) }
+        }
+        UserDefaults.standard.set(false, forKey: FocusModePreference.key)
+        UnitSettings.shared.isKg = true
+        let lbs = 61.25 / 0.453592
+        XCTAssertEqual(UnitSettings.shared.format(lbs), "61.25 kg")
+        XCTAssertEqual(UnitSettings.shared.format(60 / 0.453592), "60 kg")
+        XCTAssertEqual(UnitSettings.shared.format(62.5 / 0.453592), "62.5 kg")
+        XCTAssertEqual(UnitSettings.shared.format(lbs, decimals: 0), "61 kg", "arrondi explicite inchangé")
+        let dir = ProcessInfo.processInfo.environment["FOCUS_SNAPSHOT_DIR"]
+        let tag = ProcessInfo.processInfo.environment["FOCUS_SNAPSHOT_TAG"] ?? "shot"
+        for theme in [AppThemeOption.sinCity, .pearl] {
+            AppTheme.shared.applyTheme(theme)
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: Fixtures.seanceDataJSON(
+                today: "Push", todayDate: date, exerciseName: "Incline Dumbbell Press",
+                historyDate: "2026-11-15", historyWeight: lbs, historyReps: "10,9,8")) as? [String: Any])
+            json["full_program"] = ["Push": ["Barbell Bench Press": "3x8-10", "Incline Dumbbell Press": "3x8-10"]]
+            json["exercise_order"] = ["Push": ["Barbell Bench Press", "Incline Dumbbell Press"]]
+            let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
+            let owner = SeanceViewModel(draftSessionType: "morning", followsActivePlanning: true)
+            owner.seanceData = data
+            owner.startSession()
+            owner.logResults["Barbell Bench Press"] = ExerciseLogResult(name: "Barbell Bench Press", weight: lbs, reps: "10,10,9")
+            owner.currentPlanningLoader = { _, _ in ("stale", data) }
+            let root = TabView {
+                NavigationStack { WorkoutSeanceView(data: data, vm: owner, isOverride: true) }
+                    .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
+            }
+            let host = UIHostingController(rootView: root)
+            host.overrideUserInterfaceStyle = theme == .pearl ? .light : .dark
+            let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 393, height: 852)
+            window.rootViewController = host; window.makeKeyAndVisible()
+            for _ in 0..<6 { host.view.layoutIfNeeded(); try await Task.sleep(nanoseconds: 200_000_000) }
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            let file = "\(tag)-liste-61.25kg-\(theme.rawValue).png"
+            let attachment = XCTAttachment(image: image); attachment.name = file
+            attachment.lifetime = .keepAlways; add(attachment)
+            if let dir, let png = image.pngData() {
+                try png.write(to: URL(fileURLWithPath: dir).appendingPathComponent(file))
+            }
+            window.isHidden = true; window.rootViewController = nil
+        }
+    }
+
     /// 4.4a : écran Focus complet (chrome, chiffres proposés en pointillé, « Série terminée » en bas), 4 thèmes.
     func testRenderFocusScreenWithCompleteButton() async throws {
         let flagBefore = UserDefaults.standard.object(forKey: FocusModePreference.key)

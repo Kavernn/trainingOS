@@ -19,8 +19,11 @@ final class UnitSettings: ObservableObject {
     // toStorage() converts from user input → lbs for storage.
     func display(_ lbs: Double) -> Double { isKg ? lbs * 0.453592 : lbs }
     func toStorage(_ value: Double) -> Double { isKg ? value / 0.453592 : value }
-    func format(_ lbs: Double, decimals: Int = 1) -> String {
-        String(format: "%.\(decimals)f \(label)", display(lbs))
+    /// Charge → « 61.25 kg », « 60 kg », « 62.5 kg » : affiché = enregistré (même règle que inputStr).
+    /// `decimals` explicite = arrondi voulu par l'appelant (e1RM, volume, poids du corps) : inchangé.
+    func format(_ lbs: Double, decimals: Int? = nil) -> String {
+        guard let decimals else { return "\(Self.decimalString(display(lbs))) \(label)" }
+        return String(format: "%.\(decimals)f \(label)", display(lbs))
     }
     func inputStr(_ lbs: Double) -> String { Self.decimalString(display(lbs)) }
 
