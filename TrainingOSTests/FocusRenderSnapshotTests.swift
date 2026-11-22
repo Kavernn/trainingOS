@@ -139,6 +139,12 @@ final class FocusRenderSnapshotTests: XCTestCase {
                 historyDate: "2026-11-15", historyWeight: 85, historyReps: "10,9,8")) as? [String: Any])
             json["full_program"] = ["Pull B": ["T-Bar Row": "3x10-12"]]
             let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
+            if theme == .blood {                                         // état « saisi » (après un +) sur un thème
+                let editor = ExerciseViewModel(name: "T-Bar Row", scheme: "3x10-12", weightData: nil, sessionDate: date)
+                editor.initializeSets()
+                editor.sets[0].weight = "90"; editor.sets[0].reps = "11"
+                XCTAssertEqual(editor.saveDraft(), .accepted)
+            }
             let owner = SeanceViewModel(draftSessionType: "morning", followsActivePlanning: true)
             owner.seanceData = data
             owner.startSession()

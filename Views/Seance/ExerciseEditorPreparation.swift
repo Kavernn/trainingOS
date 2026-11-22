@@ -334,10 +334,16 @@ final class ExerciseStepperEditor: ObservableObject, ExerciseChildPreparing {
     @discardableResult
     func step(_ direction: Int, increment: Double, minimum: Double, placeholder: Double, isInteger: Bool) -> Bool {
         guard mounted, allowsOrdinaryMutation else { return false }
-        let raw = read()
-        let current = raw.isEmpty ? placeholder : Double(raw.replacingOccurrences(of: ",", with: ".")) ?? placeholder
-        write(Self.formatted(max(minimum, current + Double(direction) * increment), isInteger: isInteger))
+        write(Self.stepped(read(), direction: direction, increment: increment, minimum: minimum,
+                           placeholder: placeholder, isInteger: isInteger))
         return true
+    }
+
+    /// Règle unique du +/− (liste et Focus) : part de la saisie, sinon de la valeur proposée (placeholder).
+    static func stepped(_ raw: String, direction: Int, increment: Double, minimum: Double,
+                        placeholder: Double, isInteger: Bool) -> String {
+        let current = raw.isEmpty ? placeholder : Double(raw.replacingOccurrences(of: ",", with: ".")) ?? placeholder
+        return formatted(max(minimum, current + Double(direction) * increment), isInteger: isInteger)
     }
 
     func unmount() {

@@ -90,4 +90,19 @@ final class FocusEffortActionTests: XCTestCase {
         v.sets[1].weight = "80"; v.sets[1].reps = "7"
         XCTAssertNil(v.logBlockedReason())
     }
+
+    /// 4.4b : règle unique du +/− (liste et Focus). Une valeur proposée devient saisie au 1er appui.
+    func testSteppedRuleStartsFromProposedValue() {
+        typealias E = ExerciseStepperEditor
+        XCTAssertEqual(E.stepped("", direction: 1, increment: 5, minimum: 0, placeholder: 85, isInteger: false), "90")
+        XCTAssertEqual(E.stepped("", direction: -1, increment: 5, minimum: 0, placeholder: 85, isInteger: false), "80")
+        XCTAssertEqual(E.stepped("90", direction: 1, increment: 5, minimum: 0, placeholder: 85, isInteger: false), "95")
+        XCTAssertEqual(E.stepped("2.5", direction: -1, increment: 5, minimum: 0, placeholder: 0, isInteger: false), "0")
+        XCTAssertEqual(E.stepped("", direction: 1, increment: 2.5, minimum: 0, placeholder: 0, isInteger: false), "2.5")
+        // Reps : pas de 1, minimum 1, aucun maximum.
+        XCTAssertEqual(E.stepped("", direction: 1, increment: 1, minimum: 1, placeholder: 10, isInteger: true), "11")
+        XCTAssertEqual(E.stepped("1", direction: -1, increment: 1, minimum: 1, placeholder: 10, isInteger: true), "1")
+        XCTAssertEqual(E.stepped("", direction: -1, increment: 1, minimum: 1, placeholder: 0, isInteger: true), "1")
+        XCTAssertEqual(E.stepped("99", direction: 1, increment: 1, minimum: 1, placeholder: 10, isInteger: true), "100")
+    }
 }

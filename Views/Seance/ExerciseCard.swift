@@ -54,11 +54,54 @@ extension ExerciseCard {
         return evm.totalWeight(for: units.toStorage(v))
     }
 
-    /// Ce qui manque pour « Série terminée » (saisie possible en Liste jusqu'aux +/− de 4.4b).
+    /// Ce qui manque pour « Série terminée » (saisie sur place avec les +/−, 4.4b).
     fileprivate var focusMissing: String? {
-        if focusReps == nil { return "Reps à saisir — passe en Liste" }
-        if focusWeightInput == nil && evm.equipmentType != "bodyweight" { return "Charge à saisir — passe en Liste" }
+        if focusReps == nil { return "Saisis les reps avec plus ou moins" }
+        if focusWeightInput == nil && evm.equipmentType != "bodyweight" { return "Saisis la charge avec plus ou moins" }
         return nil
+    }
+
+    /// Lest facultatif au poids du corps : pas de +/− sur la charge (le total affiché n'aurait pas de sens).
+    fileprivate var focusWeightSteppable: Bool { evm.equipmentType != "bodyweight" }
+
+    /// +/− Focus (4.4b) : même règle que StepperInput (ExerciseStepperEditor.stepped) — pas weightIncrement,
+    /// saisie par côté pour barre/haltères/câbles ; part de la valeur proposée, qui devient saisie.
+    /// Minimum : charge 0 (saisie par côté → total = barre seule pour une barre), reps 1.
+    private func focusStep(reps: Bool, _ direction: Int) {
+        let i = focusSetIndex
+        guard evm.sets.indices.contains(i), allowAction() else { return }
+        if reps {
+            evm.sets[i].reps = ExerciseStepperEditor.stepped(evm.sets[i].reps, direction: direction, increment: 1,
+                minimum: 1, placeholder: Double(evm.proposedReps(for: i) ?? 0), isInteger: true)
+        } else {
+            let proposed = evm.proposedWeightInput(for: i).flatMap { Double($0.replacingOccurrences(of: ",", with: ".")) } ?? 0
+            evm.sets[i].weight = ExerciseStepperEditor.stepped(evm.sets[i].weight, direction: direction,
+                increment: weightIncrement, minimum: 0, placeholder: proposed, isInteger: false)
+        }
+        triggerImpact(style: .light)
+    }
+
+    /// Libellé du pas : « 5/côté » quand la saisie est par côté (règle E point 1).
+    private var focusWeightStepLabel: String {
+        "\(ExerciseStepperEditor.formatted(weightIncrement, isInteger: false))\(perSideSuffix ?? "")"
+    }
+
+    /// Bouton +/− Focus : cible ≥ 64 pt.
+    private func focusStepButton(plus: Bool, caption: String?, accessibility: String,
+                                 action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                Image(systemName: plus ? "plus" : "minus").font(.system(size: 26, weight: .bold))
+                if let caption { Text(caption).font(.appCaption.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7) }
+            }
+            .foregroundColor(.appTextPrimary)
+            .frame(width: 64, height: 64)
+            .background(Color.appSurfaceInset)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SpringButtonStyle(scale: 0.9))
+        .accessibilityLabel(accessibility)
     }
 
     @ViewBuilder fileprivate var focusEffortContent: some View {
@@ -67,35 +110,52 @@ extension ExerciseCard {
         let reps = focusReps
         VStack(spacing: 4) {
             Spacer(minLength: 16)
-            Group {
-                if let total {
-                    Text(units.inputStr(total)).appFocusStyle()
-                } else {
-                    Text(evm.equipmentType == "bodyweight" ? "PDC" : "—").appFocusStyle()
+            HStack(spacing: 8) {
+                if focusWeightSteppable {
+                    focusStepButton(plus: false, caption: focusWeightStepLabel,
+                                    accessibility: "Retirer \(focusWeightStepLabel) à la charge") { focusStep(reps: false, -1) }
+                }
+                Group {
+                    if let total {
+                        Text(units.inputStr(total)).appFocusStyle()
+                    } else {
+                        Text(evm.equipmentType == "bodyweight" ? "PDC" : "—").appFocusStyle()
+                    }
+                }
+                .foregroundColor(.appTextPrimary)
+                .modifier(FocusProposedOutline(active: total != nil && weightProposed))
+                .frame(maxWidth: .infinity)
+                if focusWeightSteppable {
+                    focusStepButton(plus: true, caption: focusWeightStepLabel,
+                                    accessibility: "Ajouter \(focusWeightStepLabel) à la charge") { focusStep(reps: false, 1) }
                 }
             }
-            .foregroundColor(.appTextPrimary)
-            .modifier(FocusProposedOutline(active: total != nil && weightProposed))
             Text(total.map(focusUnitLine) ?? (evm.equipmentType == "bodyweight" ? "Poids du corps" : "Charge à saisir"))
                 .font(.appHeadline).foregroundColor(Color.appTextSecondary)
             // Groupe compact et centré : × petit collé au nombre ; reps en 64 pt sous la charge (96 pt).
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("×")
-                    .font(.appFocusFamily(size: 36))
-                    .foregroundColor(Color.appTextSecondary)
-                Text(reps?.text ?? "—")
-                    .font(.appFocusFamily(size: 64))
-                    .foregroundColor(.appTextPrimary)
+            HStack(spacing: 8) {
+                focusStepButton(plus: false, caption: nil, accessibility: "Une répétition de moins") { focusStep(reps: true, -1) }
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("×")
+                        .font(.appFocusFamily(size: 36))
+                        .foregroundColor(Color.appTextSecondary)
+                    Text(reps?.text ?? "—")
+                        .font(.appFocusFamily(size: 64))
+                        .foregroundColor(.appTextPrimary)
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .modifier(FocusProposedOutline(active: reps?.proposed ?? false))
+                .frame(maxWidth: .infinity)
+                focusStepButton(plus: true, caption: nil, accessibility: "Une répétition de plus") { focusStep(reps: true, 1) }
             }
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-            .modifier(FocusProposedOutline(active: reps?.proposed ?? false))
             .padding(.top, 8)
             if let target = focusRepsTarget {
                 Text("cible \(target)")
                     .font(.appLabel).foregroundColor(Color.appTextSecondary)
             }
-            Spacer(minLength: 24)
+            // Écart ≥ 48 pt entre les +/− et « Série terminée » : pas d'appui accidentel.
+            Spacer(minLength: 48)
             setStateRefusalBanner
             setUndoButton
             focusCompleteButton
@@ -111,8 +171,8 @@ extension ExerciseCard {
     @ViewBuilder private var focusCompleteButton: some View {
         let missing = focusMissing
         Button(action: focusCompleteSet) {
-            Text(missing ?? "Série terminée")
-                .font(missing == nil ? .appTitle : .appBody.weight(.semibold))
+            Text("Série terminée")
+                .font(.appFocusFamily(size: 24))                   // option A : jamais la monospace du thème
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, minHeight: 88)
                 .foregroundColor(missing == nil ? Color.onAccent : Color.appTextSecondary)
@@ -121,7 +181,8 @@ extension ExerciseCard {
         }
         .buttonStyle(SpringButtonStyle(scale: 0.95))
         .disabled(missing != nil)
-        .accessibilityLabel(missing ?? "Série terminée, série \(focusSetIndex + 1) sur \(evm.sets.count)")
+        .accessibilityLabel("Série terminée, série \(focusSetIndex + 1) sur \(evm.sets.count)")
+        .accessibilityHint(missing ?? "")
     }
 
     private func focusCompleteSet() {
