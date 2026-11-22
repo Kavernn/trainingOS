@@ -113,7 +113,7 @@ def _eat_from_workouts(today: str, weight_kg: float) -> list[dict]:
         if not s or not s.get("completed"):
             continue
         dur = int(s.get("duration_min") or 0)
-        if not dur:
+        if dur <= 0:   # durée inconnue (null, 0, négative) : pas de calories inventées
             continue
         rpe, rpe_source = _lifting_rpe(s)
         met = _met_lifting(rpe)          # MET sur la valeur réelle (plus de troncature int)

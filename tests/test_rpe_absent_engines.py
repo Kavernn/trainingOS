@@ -40,6 +40,16 @@ class TestSessionLoad:
         assert acwr.session_load(None, None, None) is None
         assert acwr.session_load(None, 41, 0) is None
 
+    @pytest.mark.parametrize("dur", [None, 0, -3])
+    def test_unknown_duration_falls_back_to_calibrated_tonnage(self, dur):
+        # durée ≤ 0 = inconnue : repli tonnage calibré, jamais une charge 0 (RPE × 0)
+        assert acwr.session_load(8, dur, 12915, set_rpe_mean=7.5, k=0.0236) == pytest.approx(12915 * 0.0236)
+
+    def test_unknown_duration_excluded_from_k_calibration(self):
+        good = [{"date": AFTER, "rpe": 8, "duration_min": 50, "total_volume": 10000}] * acwr.K_MIN_SESSIONS
+        bad = [{"date": AFTER, "rpe": 8, "duration_min": d, "total_volume": 10000} for d in (0, -3, None) * 5]
+        assert acwr.tonnage_k(good + bad, AFTER) == pytest.approx(8 * 50 / 10000)
+
 
 class TestRealSetRPE:
     SETS = [[{"rpe": 7}, {"rpe": 8}], [{"reps": "5"}]]
@@ -128,6 +138,13 @@ class TestEnergy:
         assert entry["rpe"] is None and entry["rpe_source"] == "neutral"
         assert entry["met"] == energy._met_lifting(energy._NEUTRAL_LIFTING_RPE_UNKNOWN)
         assert entry["calories"] == round(entry["met"] * 80.0 * 60 / 60)
+
+    @pytest.mark.parametrize("dur", [None, 0, -3])
+    def test_unknown_duration_gives_no_lifting_calories(self, monkeypatch, dur):
+        monkeypatch.setattr(energy.db, "get_workout_session_by_type",
+                            lambda d, t: {"id": "x", "date": AFTER, "rpe": 7, "completed": True,
+                                          "duration_min": dur} if t == "morning" else None)
+        assert energy._eat_from_workouts(AFTER, 80.0) == []
 
     def test_real_rpe_sent_as_rounded_int(self, monkeypatch):
         monkeypatch.setattr(energy.db, "get_workout_session_by_type",
