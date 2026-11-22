@@ -2657,7 +2657,9 @@ struct WorkoutSeanceView: View {
         }
 
         await MainActor.run {
-            guard expandedExercises.isEmpty else { return }
+            // Arrive après plusieurs allers-retours réseau : ne jamais écraser un exercice
+            // déjà choisi entre-temps (main passée au partenaire de superset, carte ouverte).
+            guard expandedExercises.isEmpty, lastOpenedExercise == nil else { return }
             let loggedExercises = Set(vm.logResults.keys)
             if let first = exercises.first(where: { !loggedExercises.contains($0.0) })?.0 {
                 expandedExercises.insert(first)
