@@ -143,6 +143,8 @@ struct WorkoutSeanceView: View {
     /// Exercice réellement affiché en Focus. Modifié UNIQUEMENT via FocusSwitch.perform (porte unique) :
     /// flag, liste, édition, récap, démarrage, éligibilité, exercice courant passent tous par focusDesiredName.
     @State private var focusPresentedName: String?
+    /// 4.4c : exercice loggé en Focus, épinglé jusqu'à « Exercice suivant » (sortie manuelle).
+    @State private var focusTransitionName: String?
     @State private var showEnergyPreSheet = false
     @AppStorage("energy_pre_date") private var energyPreDate = ""
     @State private var energyConfirmed = false
@@ -698,7 +700,18 @@ struct WorkoutSeanceView: View {
     }
 
     /// Ce que Focus devrait afficher ; la vue n'affiche que focusPresentedName, synchronisé par la porte.
-    private var focusDesiredName: String? { focusEngaged ? focusTarget?.name : nil }
+    private var focusDesiredName: String? {
+        if focusRequested, let pinned = focusTransitionName, exercises.contains(where: { $0.0 == pinned }) { return pinned }
+        return focusEngaged ? focusTarget?.name : nil
+    }
+
+    /// Sortie de la Transition : exercice suivant non loggé, sinon la séance (liste, « Terminer la séance »).
+    private var focusContinue: FocusContinue {
+        let next = firstUnloggedName
+        return FocusContinue(label: next.map { "Suivant : \($0)" } ?? "Voir la séance") {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { focusTransitionName = nil }
+        }
+    }
     private var focusShown: Bool { focusPresentedName != nil }
 
     private func toggleEditMode() { FocusSwitch.perform { withAnimation { isEditMode.toggle() } } }
@@ -999,6 +1012,7 @@ struct WorkoutSeanceView: View {
             hint: inventoryHints[name],
             logResult: $vm.logResults[name],
             onLogged: {
+                if presentation == .focus { focusTransitionName = name }   // 4.4c : Transition, sortie manuelle
                 let loggedNames = Set(vm.logResults.keys)
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                     expandedExercises.remove(name)
@@ -1064,7 +1078,8 @@ struct WorkoutSeanceView: View {
                     }
                 }
             } : nil,
-            presentation: presentation
+            presentation: presentation,
+            focusContinue: presentation == .focus ? focusContinue : nil
         )
 
         // Row sous la carte selon la SOURCE réelle du poids affiché :

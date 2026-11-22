@@ -156,6 +156,10 @@ extension ExerciseCard {
             }
             // Écart ≥ 48 pt entre les +/− et « Série terminée » : pas d'appui accidentel.
             Spacer(minLength: 48)
+            if let error = evm.logError {
+                Text(error).font(.appCaption).foregroundColor(Color.appDanger)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             setStateRefusalBanner
             setUndoButton
             focusCompleteButton
@@ -185,7 +189,7 @@ extension ExerciseCard {
         .accessibilityHint(missing ?? "")
     }
 
-    private func focusCompleteSet() {
+    fileprivate func focusCompleteSet() {
         let i = focusSetIndex
         guard focusMissing == nil, allowAction(), let before = evm.fillDisplayedValues(at: i) else { return }
         let wasLogged = evm.isLogged || logResult != nil
@@ -196,6 +200,54 @@ extension ExerciseCard {
             evm.sets[i].weight = before.weight
             evm.sets[i].reps = before.reps
         }
+    }
+
+    /// 4.4c : exercice loggé (pas sauté) → Transition à la place de l'Effort.
+    fileprivate var focusShowsTransition: Bool { !evm.isSkipped && (evm.isLogged || logResult != nil) }
+
+    /// Séries enregistrées, charge TOTALE (« 90 × 11 ») — valeurs du brouillon loggé, rien d'inventé.
+    private var focusLoggedLines: [String] {
+        evm.sets.compactMap { s in
+            guard !s.reps.isEmpty else { return nil }
+            guard let v = Double(s.weight.replacingOccurrences(of: ",", with: ".")) else { return "PDC × \(s.reps)" }
+            return "\(units.inputStr(evm.totalWeight(for: units.toStorage(v)))) × \(s.reps)"
+        }
+    }
+
+    /// Transition minimale (4.4c ; complète en 4.6) : récap, undo du log (8 s), sortie MANUELLE.
+    @ViewBuilder fileprivate var focusTransitionContent: some View {
+        VStack(spacing: 12) {
+            Spacer(minLength: 16)
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundColor(Color.appSuccess)
+                .accessibilityHidden(true)
+            Text("\(name) enregistré")
+                .font(.appFocusFamily(size: 24)).foregroundColor(.appTextPrimary)   // option A
+                .multilineTextAlignment(.center)
+            Text(focusLoggedLines.joined(separator: " · "))
+                .font(.appFocusFamily(size: 22)).foregroundColor(Color.appTextSecondary)
+                .multilineTextAlignment(.center)
+            Spacer(minLength: 48)
+            if showUndo { logUndoButton }
+            if let focusContinue {
+                Button(action: focusContinue.action) {
+                    Text(focusContinue.label)
+                        .font(.appFocusFamily(size: 24))
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                        .padding(.horizontal, 16)
+                        .frame(maxWidth: .infinity, minHeight: 88)
+                        .foregroundColor(Color.onAccent)
+                        .background(Color.forge)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                .buttonStyle(SpringButtonStyle(scale: 0.95))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .accessibilityElement(children: .contain)
     }
 
     /// « lbs · 80/côté » sous le total (règle E point 1 : par côté toujours suffixé).
@@ -242,6 +294,8 @@ enum FocusSwitch {
     #if DEBUG
     /// Seam de test : même action que le bouton « Modifier la séance ».
     static let debugToggleEditMode = Notification.Name("trainingos.focusSwitch.debugToggleEditMode")
+    /// Seam de test : action principale de la carte Focus affichée (« Série terminée » ou sortie de Transition).
+    static let debugFocusPrimaryAction = Notification.Name("trainingos.focusSwitch.debugFocusPrimaryAction")
     #endif
 
     @MainActor static func perform(_ change: () -> Void) {
@@ -249,6 +303,12 @@ enum FocusSwitch {
         NotificationCenter.default.post(name: flushDrafts, object: nil)
         change()
     }
+}
+
+/// 4.4c : sortie manuelle de la Transition Focus (fournie par le parent : libellé + action).
+struct FocusContinue {
+    let label: String
+    let action: () -> Void
 }
 
 enum ExerciseCardPresentation: Equatable { case list, focus }
@@ -295,6 +355,7 @@ struct ExerciseCard: View {
     /// Étape 4 : même carte, même logique, même evm ; seul le rendu change (.focus = écran Effort/Repos).
     /// Le rendu Focus vivra dans une extension de CE fichier (accès aux membres private).
     var presentation: ExerciseCardPresentation = .list
+    var focusContinue: FocusContinue? = nil
 
     @StateObject private var evm: ExerciseViewModel
     @StateObject private var editorController: ExerciseEditorPreparationController
@@ -360,8 +421,10 @@ struct ExerciseCard: View {
          onSkippedChanged: ((Bool) -> Void)? = nil,
          onSetChange: ((Int, Int) -> Void)? = nil,
          occurrenceKey: String? = nil,
-         presentation: ExerciseCardPresentation = .list) {
+         presentation: ExerciseCardPresentation = .list,
+         focusContinue: FocusContinue? = nil) {
         self.presentation = presentation
+        self.focusContinue = focusContinue
         self.onSkippedChanged = onSkippedChanged
         self.onSetChange = onSetChange
         self.sourceRegistration = sourceRegistration
@@ -1627,6 +1690,12 @@ struct ExerciseCard: View {
         .onReceive(NotificationCenter.default.publisher(for: FocusSwitch.flushDrafts)) { _ in
             evm.flushPendingDraft()
         }
+        #if DEBUG
+        .onReceive(NotificationCenter.default.publisher(for: FocusSwitch.debugFocusPrimaryAction)) { _ in
+            guard presentation == .focus else { return }
+            if focusShowsTransition { focusContinue?.action() } else { focusCompleteSet() }
+        }
+        #endif
         // Pré-remplissage automatique supprimé (2026-07-13) : saisir est un
         // acte utilisateur, le placeholder gris est le hint, "Reprendre la
         // dernière séance" est la restitution explicite. Trois canaux, jamais
@@ -1879,7 +1948,9 @@ struct ExerciseCard: View {
 
     private struct FocusEffortSection: View {
         let card: ExerciseCard
-        var body: some View { card.focusEffortContent }
+        var body: some View {
+            if card.focusShowsTransition { card.focusTransitionContent } else { card.focusEffortContent }
+        }
     }
 
     private struct FormSection: View {
@@ -2489,35 +2560,40 @@ struct ExerciseCard: View {
         }
     }
 
+    /// Undo du log (8 s) : liste (logSection) et Transition Focus (4.4c).
+    private var logUndoButton: some View {
+        Button {
+            guard removeLog(undo: true) else { return }
+            // Le log ne lance plus de repos (Build G) : l'undo ne touche pas au repos en cours,
+            // qu'il soit manuel ou issu de l'avant-dernière série.
+            undoTask?.cancel(); undoTask = nil
+            withAnimation(.easeOut(duration: 0.25)) { showUndo = false }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.uturn.backward.circle.fill")
+                    .font(.appBody)
+                Text("Annuler le log")
+                    .font(.appBody).fontWeight(.semibold)
+                Spacer()
+                Text("\(undoCountdown)s")
+                    .font(.appCaption).fontWeight(.medium)
+                    .foregroundColor(Color.appOnSurface.opacity(0.45))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+            .background(Color.forge.opacity(0.14))
+            .foregroundColor(Color.forge)
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+    }
+
     @ViewBuilder private var logSection: some View {
         VStack(spacing: 8) {
             if showUndo {
-                Button {
-                    guard removeLog(undo: true) else { return }
-                    // Le log ne lance plus de repos (Build G) : l'undo ne touche pas au repos en cours,
-                    // qu'il soit manuel ou issu de l'avant-dernière série.
-                    undoTask?.cancel(); undoTask = nil
-                    withAnimation(.easeOut(duration: 0.25)) { showUndo = false }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.uturn.backward.circle.fill")
-                            .font(.appBody)
-                        Text("Annuler le log")
-                            .font(.appBody).fontWeight(.semibold)
-                        Spacer()
-                        Text("\(undoCountdown)s")
-                            .font(.appCaption).fontWeight(.medium)
-                            .foregroundColor(Color.appOnSurface.opacity(0.45))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                    .background(Color.forge.opacity(0.14))
-                    .foregroundColor(Color.forge)
-                    .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                logUndoButton
             } else if !isNonLoggable {
                 VStack(spacing: 4) {
                     holdToLogButton

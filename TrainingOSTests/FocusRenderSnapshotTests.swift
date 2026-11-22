@@ -138,8 +138,10 @@ final class FocusRenderSnapshotTests: XCTestCase {
                 today: "Pull B", todayDate: date, exerciseName: "T-Bar Row",
                 historyDate: "2026-11-15", historyWeight: 85, historyReps: "10,9,8")) as? [String: Any])
             json["full_program"] = ["Pull B": ["T-Bar Row": "3x10-12"]]
+            let transition = ProcessInfo.processInfo.environment["FOCUS_SNAPSHOT_TRANSITION"] == "1"
+            if transition { json["full_program"] = ["Pull B": ["T-Bar Row": "2x10-12", "Upright Row": "3x10"]] }
             let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
-            if theme == .blood {                                         // état « saisi » (après un +) sur un thème
+            if theme == .blood && !transition {                          // état « saisi » (après un +) sur un thème
                 let editor = ExerciseViewModel(name: "T-Bar Row", scheme: "3x10-12", weightData: nil, sessionDate: date)
                 editor.initializeSets()
                 editor.sets[0].weight = "90"; editor.sets[0].reps = "11"
@@ -160,10 +162,17 @@ final class FocusRenderSnapshotTests: XCTestCase {
             window.frame = CGRect(x: 0, y: 0, width: 393, height: 852)
             window.rootViewController = host; window.makeKeyAndVisible()
             for _ in 0..<5 { host.view.layoutIfNeeded(); try await Task.sleep(nanoseconds: 200_000_000) }
+            if transition {                                              // S1, S2 → doLog → Transition
+                for _ in 0..<2 {
+                    NotificationCenter.default.post(name: FocusSwitch.debugFocusPrimaryAction, object: nil)
+                    try await Task.sleep(nanoseconds: 900_000_000)
+                }
+                for _ in 0..<5 { host.view.layoutIfNeeded(); try await Task.sleep(nanoseconds: 200_000_000) }
+            }
             let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
-            let file = "\(tag)-ecran-\(theme.rawValue).png"
+            let file = "\(tag)-\(transition ? "transition" : "ecran")-\(theme.rawValue).png"
             let attachment = XCTAttachment(image: image); attachment.name = file
             attachment.lifetime = .keepAlways; add(attachment)
             if let dir, let png = image.pngData() {
