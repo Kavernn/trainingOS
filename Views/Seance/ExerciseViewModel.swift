@@ -151,6 +151,8 @@ struct ExerciseCardDraft: Codable {
 // avec les valeurs matin déjà "loggées" sans geste utilisateur).
 enum LocalPersistenceResult: Equatable {
     case accepted, rejectedContext, failed
+    /// 4.3 : écriture d'une instance retirée, ignorée. Ni erreur, ni bandeau, ni verrou Day Composer.
+    case skippedRetired
 }
 
 /// VM-local evidence only: private child editors and source readiness are not certified.
@@ -448,6 +450,11 @@ final class ExerciseViewModel: ObservableObject {
     /// liste ↔ Focus n'ouvre jamais deux evm sur le même exercice. Absent des builds Release.
     nonisolated(unsafe) static var debugLiveCount: [String: Int] = [:]
     deinit { Self.debugLiveCount[name, default: 1] -= 1 }
+    /// Seam de test (4.3) : accès aux instances vivantes, références faibles.
+    /// Références faibles en Swift pur (NSHashTable.add autorelease l'objet et retarde sa libération).
+    struct DebugWeakRef { weak var vm: ExerciseViewModel? }
+    nonisolated(unsafe) static var debugLiveRefs: [DebugWeakRef] = []
+    static var debugLive: [ExerciseViewModel] { debugLiveRefs.compactMap(\.vm) }
     #endif
 
     // Config (immutable after init)
@@ -521,6 +528,7 @@ final class ExerciseViewModel: ObservableObject {
     @Published private(set) var cleanupPending = false
 
     func recordPersistenceResult(_ result: LocalPersistenceResult) {
+        guard result != .skippedRetired else { return }
         localPersistenceIssue = result == .accepted ? nil : result
     }
 
@@ -566,6 +574,10 @@ final class ExerciseViewModel: ObservableObject {
 
         baselineEditor = canonical(currentDraft)
         installSetsDraftDebounce()
+        #if DEBUG
+        Self.debugLiveRefs.removeAll { $0.vm == nil }
+        Self.debugLiveRefs.append(DebugWeakRef(vm: self))
+        #endif
     }
 
     private func installSetsDraftDebounce() {
@@ -580,6 +592,38 @@ final class ExerciseViewModel: ObservableObject {
                 self.hasPendingSetsPersistence = false
                 self.saveDraft()
             }
+    }
+
+    /// 4.3 : carte démontée (bascule liste ↔ Focus, onglet, navigation). SwiftUI peut garder
+    /// l'ancienne instance 1 à 3 s : une fois retirée, elle n'écrit plus jamais le brouillon.
+    private(set) var isRetired = false
+
+    /// Écrit tout de suite une saisie dont l'écriture différée (0,5 s) est encore armée.
+    func flushPendingDraft() {
+        if hasPendingSetsPersistence { saveDraft() }
+    }
+
+    /// Flush, puis plus aucune écriture. Pas d'incrément de draftEpoch : les reçus Day Composer restent valides.
+    func retire() {
+        flushPendingDraft()
+        setsDraftDebounceCancellable?.cancel()
+        setsDraftDebounceCancellable = nil
+        hasPendingSetsPersistence = false
+        isRetired = true
+    }
+
+    /// Même instance réaffichée (retour d'onglet, pop de navigation).
+    func reactivate() {
+        guard isRetired else { return }
+        isRetired = false
+        installSetsDraftDebounce()
+    }
+
+    private func ignoredRetiredWrite(_ operation: String) -> LocalPersistenceResult {
+        #if DEBUG
+        print("[ExerciseViewModel] écriture ignorée (\(operation)) : instance retirée — \(name)")
+        #endif
+        return .skippedRetired
     }
 
     private func cancelSetsDraftDebounce() {
@@ -805,6 +849,7 @@ final class ExerciseViewModel: ObservableObject {
 
     @discardableResult
     func saveDraft() -> LocalPersistenceResult {
+        guard !isRetired else { return ignoredRetiredWrite("saveDraft") }
         let permission = writePermission()
         guard permission == .accepted else {
             recordPersistenceResult(permission)
@@ -825,6 +870,7 @@ final class ExerciseViewModel: ObservableObject {
 
     @discardableResult
     func clearDraft() -> LocalPersistenceResult {
+        guard !isRetired else { return ignoredRetiredWrite("clearDraft") }
         let permission = writePermission()
         guard permission == .accepted else {
             recordPersistenceResult(permission)

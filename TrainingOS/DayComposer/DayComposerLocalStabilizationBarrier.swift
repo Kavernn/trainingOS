@@ -372,7 +372,8 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
             holder.report(outcome)
             switch outcome {
             case .accepted: break
-            case .failed: throw DayComposerStabilizationError.commentFailed
+            // skippedRetired ne vient pas d'un commentaire ; jamais compté comme un succès.
+            case .failed, .skippedRetired: throw DayComposerStabilizationError.commentFailed
             case .rejectedContext: throw DayComposerStabilizationError.contextRejected
             }
             try validateContext()

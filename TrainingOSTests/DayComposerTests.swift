@@ -82,6 +82,37 @@ final class DayComposerTests: XCTestCase {
         }
     }
 
+    /// 4.3 : écriture tardive d'une carte retirée (libération différée) — ni verrou, ni bandeau.
+    @MainActor
+    func testRetiredCardLateWritesNeitherLockNorFlagCoordinator() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date))
+            let c = try coordinator(input)
+            let card = ExerciseViewModel(name: "A", scheme: "2x5", weightData: nil, sessionDate: date,
+                draftAuthorization: try c.authorization(for: .morning),
+                validateLocalPersistence: { c.validateLocalPersistence() })
+            card.initializeSets()
+            card.sets[0].weight = "80"; card.sets[0].reps = "5"
+            XCTAssertEqual(card.markSet(0, done: true), .accepted)
+            card.retire()
+            let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A")
+            let before = store.loadCard()
+            card.sessionNote = "note tardive"                           // didSet → saveDraft
+            card.sets[1].reps = "9"
+            XCTAssertEqual(card.saveDraft(), .skippedRetired)
+            XCTAssertEqual(card.markSet(1, done: true), .skippedRetired)
+            XCTAssertFalse(card.sets[1].done)                           // non persisté → non validé
+            XCTAssertEqual(card.clearDraft(), .skippedRetired)
+            if case .rejectedContext = card.flushPendingLocalPersistence() { XCTFail("flush retiré ≠ contexte rejeté") }
+            c.reportPersistenceRefusal(.skippedRetired)
+            XCTAssertNil(card.localPersistenceIssue)                    // aucun bandeau
+            XCTAssertFalse(c.isLocked)                                  // aucun verrou
+            XCTAssertNil(c.localPersistenceIssue)
+            XCTAssertEqual(store.loadCard()?.sets.map(\.reps), before?.sets.map(\.reps))
+            XCTAssertNotEqual(store.loadCard()?.sessionNote, "note tardive")
+        }
+    }
+
     /// Source unique du repos de B (Séance normale + Day Composer).
     func testSupersetSecondMemberRestUsesPairRestOrDefault() {
         XCTAssertEqual(SupersetRest.secondMemberRest(90), 90)

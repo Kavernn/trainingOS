@@ -19,6 +19,51 @@ enum ActiveExercisePresentation: Int {
 
 // MARK: - Exercise Card
 
+// MARK: - Focus Effort (étape 4.3 — LECTURE SEULE ; actions en 4.4)
+extension ExerciseCard {
+    /// Reps visées de la série courante : fourchette prescrite, sinon partie reps du schéma (« 3x5-8 » → « 5–8 »).
+    fileprivate var focusRepsTarget: String {
+        if let p = prescription { return p.repMin == p.repMax ? "\(p.repMin)" : "\(p.repMin)–\(p.repMax)" }
+        let parts = scheme.lowercased().split(separator: "x", maxSplits: 1)
+        return parts.count == 2 ? parts[1].replacingOccurrences(of: "-", with: "–") : scheme
+    }
+
+    /// Charge TOTALE de la série courante (saisie par côté convertie), sinon la recommandée.
+    fileprivate var focusTotalLbs: Double {
+        let i = min(evm.currentSetIndex, max(0, evm.sets.count - 1))
+        if evm.sets.indices.contains(i),
+           let input = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) {
+            return evm.totalWeight(for: units.toStorage(input))
+        }
+        return evm.currentWeight
+    }
+
+    @ViewBuilder fileprivate var focusEffortContent: some View {
+        let total = focusTotalLbs
+        VStack(spacing: 4) {
+            Text(total > 0 ? units.inputStr(total) : "—")
+                .appFocusStyle()
+                .foregroundColor(.appTextPrimary)
+            Text(total > 0 ? focusUnitLine(total) : "Charge à saisir")
+                .font(.appHeadline).foregroundColor(Color.appTextSecondary)
+            Text("× \(focusRepsTarget)")
+                .appFocusStyle()
+                .foregroundColor(.appTextPrimary)
+                .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(name), \(total > 0 ? units.format(total, decimals: 0) : "charge à saisir"), \(focusRepsTarget) répétitions")
+    }
+
+    /// « lbs · 80/côté » sous le total (règle E point 1 : par côté toujours suffixé).
+    private func focusUnitLine(_ totalLbs: Double) -> String {
+        let full = totalWithPerSide(totalLbs)                   // « 205 lbs · 80/côté »
+        return full.split(separator: " ", maxSplits: 1).dropFirst().joined()   // « lbs · 80/côté »
+    }
+}
+
 /// Undo d'une avancée de série intermédiaire (4.2). Pur : testable sans vue.
 struct SetAdvanceUndo: Equatable {
     let fromIndex: Int          // série qui vient d'être terminée (S2 → fromIndex 1)
@@ -32,6 +77,22 @@ struct SetAdvanceUndo: Equatable {
 }
 
 /// Mode d'affichage d'une carte d'exercice (étape 4). `.list` = rendu actuel, inchangé.
+/// 4.3 : bascule liste ↔ Focus sans écriture en attente. Clavier fermé, brouillons écrits,
+/// puis seulement la bascule : la nouvelle carte se charge toujours depuis un brouillon complet.
+enum FocusSwitch {
+    static let flushDrafts = Notification.Name("trainingos.focusSwitch.flushDrafts")
+    #if DEBUG
+    /// Seam de test : même action que le bouton « Modifier la séance ».
+    static let debugToggleEditMode = Notification.Name("trainingos.focusSwitch.debugToggleEditMode")
+    #endif
+
+    @MainActor static func perform(_ change: () -> Void) {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        NotificationCenter.default.post(name: flushDrafts, object: nil)
+        change()
+    }
+}
+
 enum ExerciseCardPresentation: Equatable { case list, focus }
 
 struct ExerciseCard: View {
@@ -920,7 +981,7 @@ struct ExerciseCard: View {
                 let from = evm.currentSetIndex
                 // 4.3 : done persisté AVANT d'avancer ; refus → l'avancée n'a pas lieu.
                 let write = evm.markSet(from, done: true)
-                guard write == .accepted else { setStateRefusal = write; return }
+                guard write == .accepted else { if write != .skippedRetired { setStateRefusal = write }; return }
                 setStateRefusal = nil
                 evm.currentSetIndex += 1
                 let started = startAutoRestIfEnabled()
@@ -958,7 +1019,7 @@ struct ExerciseCard: View {
                                    activeRun: RestTimerManager.shared.runID) else { return }
         // 4.3 : la série redevient « non faite » (persisté) ; refus → undo non appliqué.
         let write = evm.markSet(r.index, done: false)
-        guard write == .accepted else { setStateRefusal = write; return }
+        guard write == .accepted else { if write != .skippedRetired { setStateRefusal = write }; return }
         setStateRefusal = nil
         if r.stopsRest { RestTimerManager.shared.dismiss() }
         withAnimation { evm.currentSetIndex = r.index }
@@ -1321,7 +1382,9 @@ struct ExerciseCard: View {
     @ViewBuilder private var fullCard: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            if trackingType == "mobility" && requiresAcceptance {
+            if presentation == .focus {
+                FocusEffortSection(card: self)        // étape 4 : même carte, même evm, autre rendu
+            } else if trackingType == "mobility" && requiresAcceptance {
                 mobilityContent
             } else {
                 // Bandeau accessoire (bouton déplacement matin↔soir/bonus, étape 4).
@@ -1384,6 +1447,7 @@ struct ExerciseCard: View {
         }
         .animation(.easeInOut(duration: 0.25), value: alreadyLogged)
         .onAppear {
+            evm.reactivate()
             if let recoveredInitialState {
                 evm.initializeRecovery(recoveredInitialState)
             } else {
@@ -1404,6 +1468,10 @@ struct ExerciseCard: View {
             clearSetUndo()
             sourceRegistration?.disappear(editorController)
             if preparesEditors { editorController.detach() }
+            evm.retire()   // en dernier : la mise de côté Day Composer lit l'état d'avant
+        }
+        .onReceive(NotificationCenter.default.publisher(for: FocusSwitch.flushDrafts)) { _ in
+            evm.flushPendingDraft()
         }
         // Pré-remplissage automatique supprimé (2026-07-13) : saisir est un
         // acte utilisateur, le placeholder gris est le hint, "Reprendre la
@@ -1653,6 +1721,11 @@ struct ExerciseCard: View {
     private struct ExpandedSection: View {
         let card: ExerciseCard
         var body: some View { card.expandedContent }
+    }
+
+    private struct FocusEffortSection: View {
+        let card: ExerciseCard
+        var body: some View { card.focusEffortContent }
     }
 
     private struct FormSection: View {

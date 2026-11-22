@@ -413,7 +413,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
 
     /// Card cleanup failures also arrive here; generic disk failures remain retryable.
     func reportPersistenceRefusal(_ result: LocalPersistenceResult) {
-        guard result != .accepted else { return }
+        guard result != .accepted, result != .skippedRetired else { return }
         report(result)
     }
 

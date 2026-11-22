@@ -137,6 +137,12 @@ struct WorkoutSeanceView: View {
 
     // Energy pre-session
     @AppStorage("energy_pre_value") private var energyPre: Int = 3
+    // Étape 4.3 — écran Focus (flag désactivé par défaut ; la liste reste le repli complet).
+    @AppStorage(FocusModePreference.key) private var focusModeEnabled = FocusModePreference.defaultValue
+    @State private var focusShowsList = false
+    /// Exercice réellement affiché en Focus. Modifié UNIQUEMENT via FocusSwitch.perform (porte unique) :
+    /// flag, liste, édition, récap, démarrage, éligibilité, exercice courant passent tous par focusDesiredName.
+    @State private var focusPresentedName: String?
     @State private var showEnergyPreSheet = false
     @AppStorage("energy_pre_date") private var energyPreDate = ""
     @State private var energyConfirmed = false
@@ -671,6 +677,97 @@ struct WorkoutSeanceView: View {
         lastOpenedExercise ?? firstUnloggedName ?? data.today
     }
 
+    // MARK: - Focus (étape 4.3)
+
+    /// Focus demandé : flag actif, séance démarrée, hors récap/édition, liste non demandée.
+    private var focusRequested: Bool {
+        focusModeEnabled && vm.sessionStarted && !showSummary && !isEditMode && !focusShowsList
+    }
+
+    /// Exercice courant affiché en Focus (nom, schéma, suivant) — nil s'il n'y en a pas.
+    private var focusTarget: (name: String, scheme: String, next: String?)? {
+        let name = currentExerciseName
+        guard name != data.today, let idx = exercises.firstIndex(where: { $0.0 == name }) else { return nil }
+        return (name, exercises[idx].1, idx + 1 < exercises.count ? exercises[idx + 1].0 : nil)
+    }
+
+    /// Focus réellement affiché : une seule carte (l'exercice courant), uniquement s'il compte des reps.
+    private var focusEngaged: Bool {
+        guard focusRequested, let target = focusTarget else { return false }
+        return FocusEligibility.isEligible(trackingType: trackingType(for: target.name))
+    }
+
+    /// Ce que Focus devrait afficher ; la vue n'affiche que focusPresentedName, synchronisé par la porte.
+    private var focusDesiredName: String? { focusEngaged ? focusTarget?.name : nil }
+    private var focusShown: Bool { focusPresentedName != nil }
+
+    private func toggleEditMode() { FocusSwitch.perform { withAnimation { isEditMode.toggle() } } }
+    private func toggleSummary() { FocusSwitch.perform { withAnimation { showSummary.toggle() } } }
+
+    /// Focus demandé mais exercice non éligible (chronométré, cardio, mobilité) → liste + bandeau.
+    private var focusFallbackToList: Bool {
+        guard focusRequested, let target = focusTarget else { return false }
+        return !FocusEligibility.isEligible(trackingType: trackingType(for: target.name))
+    }
+
+    /// Chrome sur UNE ligne : « Pendlay Row · S2/4 » + « Liste ».
+    @ViewBuilder private var focusChrome: some View {
+        HStack(spacing: 12) {
+            let progress = activeSetProgress.setCount > 0
+                ? " · S\(min(activeSetProgress.setIndex + 1, activeSetProgress.setCount))/\(activeSetProgress.setCount)" : ""
+            Text((focusPresentedName ?? "") + progress)
+                .font(.appHeadline).foregroundColor(.appTextPrimary)
+                .lineLimit(1).minimumScaleFactor(0.7)
+            Spacer(minLength: 8)
+            Button {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { focusShowsList = true }
+            } label: {
+                Label("Liste", systemImage: "list.bullet")
+                    .font(.appLabel.weight(.semibold))
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(Color.forge)
+            .accessibilityLabel("Afficher la liste des exercices")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+    }
+
+    /// Une seule carte, en présentation .focus (même builder que la liste → même logique, mêmes callbacks).
+    @ViewBuilder private var focusExerciseSection: some View {
+        if let name = focusPresentedName, let idx = exercises.firstIndex(where: { $0.0 == name }) {
+            let target = (name: name, scheme: exercises[idx].1, next: idx + 1 < exercises.count ? exercises[idx + 1].0 : nil)
+            let member = sessionSupersets.values.first { $0.a == target.name || $0.b == target.name }
+            draggableCard(name: target.name, scheme: target.scheme, nextExerciseName: target.next,
+                          forceNoRest: member?.a == target.name,
+                          restOverride: member.flatMap { $0.b == target.name ? SupersetRest.secondMemberRest($0.rest) : nil },
+                          presentation: .focus)
+        }
+    }
+
+    /// Retour en Focus depuis la liste (la liste reste à un geste dans l'autre sens).
+    @ViewBuilder private var focusReturnBanner: some View {
+        if focusModeEnabled && focusShowsList && vm.sessionStarted && !showSummary && !isEditMode {
+            Button {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { focusShowsList = false }
+            } label: {
+                Label("Revenir au mode Focus", systemImage: "scope")
+                    .font(.appLabel.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(Color.forge)
+            .padding(.horizontal, 16)
+        } else if focusFallbackToList {
+            Text("Exercice chronométré — vue liste")
+                .font(.appCaption).foregroundColor(Color.appTextSecondary)
+                .frame(maxWidth: .infinity, minHeight: 32)
+                .padding(.horizontal, 16)
+        }
+    }
+
     private var showStickyHeader: Bool {
         !isEditMode && !showSummary && !exerciseRenderItems.isEmpty
             && currentExerciseName != data.today
@@ -845,7 +942,8 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder
     private func draggableCard(name: String, scheme: String, nextExerciseName: String? = nil,
-                               forceNoRest: Bool = false, restOverride: Int? = nil) -> some View {
+                               forceNoRest: Bool = false, restOverride: Int? = nil,
+                               presentation: ExerciseCardPresentation = .list) -> some View {
         let isDragging = draggingName == name
         let shift = shiftY(for: name)
         let originalName = swappedExercises[name]
@@ -968,7 +1066,8 @@ struct WorkoutSeanceView: View {
                         vm.startSession()
                     }
                 }
-            } : nil
+            } : nil,
+            presentation: presentation
         )
 
         // Row sous la carte selon la SOURCE réelle du poids affiché :
@@ -2005,8 +2104,8 @@ struct WorkoutSeanceView: View {
                 showSummary: showSummary,
                 isEditMode: isEditMode,
                 onSelectSession: { showSessionPicker = true },
-                onToggleSummary: { withAnimation { showSummary.toggle() } },
-                onToggleEditing: { withAnimation { isEditMode.toggle() } },
+                onToggleSummary: { toggleSummary() },
+                onToggleEditing: { toggleEditMode() },
                 onAbandon: { showAbandonAlert = true }
             )
 
@@ -2055,6 +2154,11 @@ struct WorkoutSeanceView: View {
         ScrollViewReader { proxy in
         let content = ScrollView {
             VStack(spacing: 16) {
+                if focusShown {
+                    // Étape 4.3 : une seule carte à la fois ; aucune autre section (chrome = 1 ligne en haut).
+                    focusExerciseSection
+                } else {
+                focusReturnBanner
                 sessionCommandSection
 
                 // Bandeaux pré-séance AU-DESSUS de la liste : ils servent avant le 1er
@@ -2129,7 +2233,7 @@ struct WorkoutSeanceView: View {
                 // Medium-tier : bordure forge sans fill (visible mais sobre, contraste
                 // volontaire avec le CTA d'envoi premium).
                 refusionButton
-
+                }
             }
             .padding(.bottom, 4)
             .background(
@@ -2338,6 +2442,18 @@ struct WorkoutSeanceView: View {
             if !updated.isEmpty { sessionSupersets = updated }
         }
         .toast($toast)
+        // Étape 4.3 : tab bar ET barre de navigation masquées en Focus (sonde iOS 26 : TabBarHidingProbeTests).
+        .toolbar(focusShown ? .hidden : .visible, for: .tabBar)
+        .toolbar(focusShown ? .hidden : .visible, for: .navigationBar)
+        .onAppear { FocusSwitch.perform { focusPresentedName = focusDesiredName } }
+        .onChange(of: focusDesiredName) { _, desired in
+            FocusSwitch.perform {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { focusPresentedName = desired }
+            }
+        }
+        #if DEBUG
+        .onReceive(NotificationCenter.default.publisher(for: FocusSwitch.debugToggleEditMode)) { _ in toggleEditMode() }
+        #endif
         .scrollDismissesKeyboard(.immediately)
         .safeAreaInset(edge: .top, spacing: 0) {
             if !vm.sessionStarted && !vm.isResuming {
@@ -2350,7 +2466,9 @@ struct WorkoutSeanceView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if !isEditMode && !showSummary && !exerciseRenderItems.isEmpty {
+            if focusShown {
+                focusChrome.background(.ultraThinMaterial)
+            } else if !isEditMode && !showSummary && !exerciseRenderItems.isEmpty {
                 VStack(spacing: 0) {
                     if showStickyHeader {
                         stickyHeader

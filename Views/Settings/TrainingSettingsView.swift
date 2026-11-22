@@ -7,8 +7,21 @@ enum AutoRestPreference {
     static let defaultValue = true
 }
 
+/// Écran Focus Effort/Repos (étape 4) : source unique de la clé et du défaut. Désactivé par défaut ;
+/// la liste reste le repli complet.
+enum FocusModePreference {
+    static let key = "focus_mode_enabled"
+    static let defaultValue = false
+}
+
+/// Focus ne s'applique qu'aux exercices à reps (v1) ; les autres restent en liste.
+enum FocusEligibility {
+    static func isEligible(trackingType: String) -> Bool { trackingType == "reps" }
+}
+
 struct TrainingSettingsView: View {
     @AppStorage(AutoRestPreference.key) private var autoStartTimer = AutoRestPreference.defaultValue
+    @AppStorage(FocusModePreference.key) private var focusMode = FocusModePreference.defaultValue
     @AppStorage("show_rir_column")       private var showRIRColumn  = false
     @AppStorage("increment_upper_kg")    private var upperKg: Double = 1.25
     @AppStorage("increment_lower_kg")    private var lowerKg: Double = 2.5
@@ -29,6 +42,12 @@ struct TrainingSettingsView: View {
                         settingsLabel(icon: "timer", color: Color.forge,
                                       title: "Repos automatique entre les séries",
                                       subtitle: "Lance le repos à la fin de chaque série, sauf la dernière de l'exercice")
+                    }
+                    .tint(Color.forge)
+                    Toggle(isOn: $focusMode) {
+                        settingsLabel(icon: "scope", color: Color.forge,
+                                      title: "Mode Focus (expérimental)",
+                                      subtitle: "Un exercice à la fois en grands chiffres pendant la séance")
                     }
                     .tint(Color.forge)
                     Toggle(isOn: $showRIRColumn) {
