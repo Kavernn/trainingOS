@@ -2706,3 +2706,51 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertTrue(try restoreCachedFixture(Data(wrongDate.utf8)).logResults.isEmpty)
     }
 }
+
+// MARK: - Une séance démarrée le reste : vider les logs (undo, remplacement) ne réinvente pas le départ
+
+extension SeanceViewModelTests {
+    private func startedOwnerWithOneLog(_ date: String) throws -> SeanceViewModel {
+        let data = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(
+            today: "Push", todayDate: date, exerciseName: "Bench Press"))
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        vm.seanceData = data
+        vm.startSession()
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 135, reps: "8,8,8")
+        return vm
+    }
+
+    private func assertTimingSurvivesEmptyLogs(_ empty: (SeanceViewModel) -> Void) throws {
+        let date = "timing-\(UUID().uuidString)"
+        let vm = try startedOwnerWithOneLog(date)
+        defer { _ = vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "morning") }
+        let start = try XCTUnwrap(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"))
+        func same(_ a: Date?, _ b: Date, _ msg: String = "", line: UInt = #line) {
+            XCTAssertEqual((a ?? .distantPast).timeIntervalSince1970, b.timeIntervalSince1970, accuracy: 0.001, msg, line: line)
+        }
+        same(vm.sessionStart, start)
+        vm.chrono.elapsedSeconds = 600                                   // 10 min écoulées
+
+        empty(vm)                                                         // le SEUL log disparaît
+        XCTAssertTrue(vm.logResults.isEmpty)
+        XCTAssertTrue(vm.sessionStarted, "une séance démarrée le reste")
+        same(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"), start, "heure de début conservée")
+        XCTAssertTrue(vm.chrono.hasTimingContext)
+        XCTAssertEqual(vm.chrono.elapsedSeconds, 600, "chrono non remis à zéro")
+
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 135, reps: "8,8,7")
+        same(vm.sessionStart, start, "le log suivant ne réinvente pas le départ")
+        same(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"), start)
+        XCTAssertEqual(vm.chrono.elapsedSeconds, 600)
+    }
+
+    /// Undo du seul log (ExerciseCard.removeLog → logResult = nil).
+    func testUndoOfOnlyLogKeepsSessionStartAndChrono() throws {
+        try assertTimingSurvivesEmptyLogs { $0.logResults["Bench Press"] = nil }
+    }
+
+    /// Remplacement du seul exercice loggé (WorkoutActiveView.performSwap → logResults.removeValue(forKey: original)).
+    func testSwapOfOnlyLoggedExerciseKeepsSessionStartAndChrono() throws {
+        try assertTimingSurvivesEmptyLogs { _ = $0.logResults.removeValue(forKey: "Bench Press") }
+    }
+}

@@ -182,6 +182,17 @@ enum SessionDraftStore {
         }
     }
 
+    /// Logs vidés en cours de séance (undo, remplacement du seul exercice loggé) : seule la clé des logs
+    /// part — heure de début et chrono restent (une séance démarrée le reste). Même marquage que clearLogs.
+    static func clearLogsKeepingTiming(date: String, sessionType: String) {
+        mutate(date: date, sessionType: sessionType) {
+            if UserDefaults.standard.object(forKey: key(date: date, sessionType: sessionType)) != nil {
+                markRecoveryMutation(date: date, sessionType: sessionType)
+            }
+            UserDefaults.standard.removeObject(forKey: key(date: date, sessionType: sessionType))
+        }
+    }
+
     private static func clearLogsStorage(date: String, sessionType: String) {
         if UserDefaults.standard.object(forKey: key(date: date, sessionType: sessionType)) != nil {
             markRecoveryMutation(date: date, sessionType: sessionType)

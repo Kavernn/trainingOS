@@ -2142,6 +2142,11 @@ class SeanceViewModel: ObservableObject {
         }
     }
 
+    /// Clôture explicite (séance confirmée terminée côté serveur) : seule remise à « non démarrée ».
+    func closeSessionTiming() {
+        sessionStarted = false
+    }
+
     func startSession() {
         guard !isDayComposerLocal else { return }
         guard !sessionStarted else { return }
@@ -2157,13 +2162,14 @@ class SeanceViewModel: ObservableObject {
         guard !restoringProtectedLogs else { return }
         guard let date = seanceData?.todayDate else { return }
         if logResults.isEmpty {
+            // Annuler le seul log (undo, remplacement) est une édition : une séance démarrée le reste,
+            // heure de début et chrono conservés (avant : clearLogs + sessionStarted = false → départ
+            // réinventé au log suivant). La clôture explicite passe par closeSessionTiming().
             if isDayComposerLocal {
-                // An explicit local undo is an edit, not permission to erase timing metadata.
                 SessionDraftStore.save(date: date, sessionType: draftSessionType, values: [], authorization: provenanceAuthorization)
             } else {
-                SessionDraftStore.clearLogs(date: date, sessionType: draftSessionType)
+                SessionDraftStore.clearLogsKeepingTiming(date: date, sessionType: draftSessionType)
             }
-            sessionStarted = false
             return
         }
         if !isDayComposerLocal && !sessionStarted {

@@ -94,7 +94,7 @@ final class FocusFlowTests: XCTestCase {
     private var restTimer: RestTimerManager { RestTimerManager.shared }
 
     /// Paire Bench (A) / Dips (B), repos 90 s ; les deux avec un historique (valeurs proposées).
-    private func mountPair(schemeA: String, schemeB: String, otherLogged: Bool = false) async throws -> SeanceViewModel {
+    private func mountPair(schemeA: String, schemeB: String) async throws -> SeanceViewModel {
         let restPrefBefore = UserDefaults.standard.object(forKey: AutoRestPreference.key) as? Bool
         UserDefaults.standard.set(true, forKey: AutoRestPreference.key)
         addTeardownBlock {
@@ -119,9 +119,6 @@ final class FocusFlowTests: XCTestCase {
         let owner = SeanceViewModel(draftSessionType: "morning", followsActivePlanning: true)
         owner.seanceData = data
         owner.startSession()
-        // Défaut préexistant (ExerciseViewModel.persistDraftIfNeeded) : annuler le SEUL log de la séance
-        // remet sessionStarted à false → Focus repasse en liste. Un autre exercice loggé isole le cas paire.
-        if otherLogged { owner.logResults["Fly"] = ExerciseLogResult(name: "Fly", weight: 30, reps: "12,12,12") }
         owner.currentPlanningLoader = { _, _ in ("stale", data) }
         try await mount(owner: owner, data: data)
         return owner
@@ -150,7 +147,8 @@ final class FocusFlowTests: XCTestCase {
         XCTAssertNotNil(active("Bench"))
         for round in 1...3 {
             try await step()                                          // A S\(round)
-            XCTAssertNotNil(active("Dips"), "A S\(round) → B")
+            let b = active("Bench")
+            XCTAssertNotNil(active("Dips"), "A S\(round) → B — DIAG live=\(liveNames()) started=\(owner.sessionStarted) benchIdx=\(b?.currentSetIndex ?? -1) benchDone=\(b?.sets.map(\.done) ?? []) err=\(b?.logError ?? "-") logs=\(owner.logResults.keys.sorted()) allLive=\(ExerciseViewModel.debugLive.filter { !$0.isRetired }.count)")
             XCTAssertNil(active("Bench"))
             if round < 3 {
                 XCTAssertEqual(card("Bench").loadCard()?.sets[round - 1].done, true)
@@ -202,9 +200,9 @@ final class FocusFlowTests: XCTestCase {
     }
 
     /// Undo croisé (log) + exception de repos : B finit avant A → log de B + repos de la paire ;
-    /// undo depuis A → B dé-loggé, séries restaurées, dernière série à refaire, repos arrêté.
+    /// undo depuis A → B dé-loggé (seul log de la séance : Focus reste affiché), séries restaurées, repos arrêté.
     func testSupersetCrossUndoOfLogAndPairRestException() async throws {
-        let owner = try await mountPair(schemeA: "2x8-10", schemeB: "1x8-10", otherLogged: true)
+        let owner = try await mountPair(schemeA: "2x8-10", schemeB: "1x8-10")
         try await step()                                              // A S1 → B
         try await step()                                              // B S1 = dernière → log + repos
         XCTAssertNotNil(owner.logResults["Dips"])

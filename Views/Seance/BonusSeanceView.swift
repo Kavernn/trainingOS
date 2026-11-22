@@ -139,9 +139,10 @@ class BonusSeanceViewModel: SeanceViewModel {
            let date = seanceData?.todayDate, !date.isEmpty,
            bonus.todayDate == date,
            SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus") {
-            // Emptying logs also resets sessionStarted and clears this scoped draft
-            // through the existing didSet. Do not invoke finish/restart side effects.
+            // Bonus confirmé terminé côté serveur : clôture explicite (vider les logs ne remet plus
+            // sessionStarted à false). Do not invoke finish/restart side effects.
             logResults.removeAll()
+            closeSessionTiming()
             isResuming = false
             _ = chrono.stop()
             chrono.elapsedSeconds = 0
