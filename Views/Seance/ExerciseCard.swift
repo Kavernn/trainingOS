@@ -228,8 +228,9 @@ extension ExerciseCard {
             Text(focusLoggedLines.joined(separator: " · "))
                 .font(.appFocusFamily(size: 22)).foregroundColor(Color.appTextSecondary)
                 .multilineTextAlignment(.center)
-            Spacer(minLength: 48)
+            // Undo sous le récap, ≥ 48 pt au-dessus de « Suivant » (geste le plus probable).
             if showUndo { logUndoButton }
+            Spacer(minLength: 48)
             if let focusContinue {
                 Button(action: focusContinue.action) {
                     Text(focusContinue.label)
@@ -626,9 +627,7 @@ struct ExerciseCard: View {
                 ? (Double(evm.perSetHint(for: i).replacingOccurrences(of: ",", with: ".")) ?? 0)
                 : (Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) ?? 0)
             let newVal = max(0, base + Double(direction) * weightIncrement)
-            evm.sets[i].weight = newVal.truncatingRemainder(dividingBy: 1) == 0
-                ? "\(Int(newVal))"
-                : String(format: "%.1f", newVal)
+            evm.sets[i].weight = UnitSettings.decimalString(newVal)
         }
         triggerImpact(style: .medium)
     }

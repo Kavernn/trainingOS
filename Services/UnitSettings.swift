@@ -22,11 +22,17 @@ final class UnitSettings: ObservableObject {
     func format(_ lbs: Double, decimals: Int = 1) -> String {
         String(format: "%.\(decimals)f \(label)", display(lbs))
     }
-    func inputStr(_ lbs: Double) -> String {
-        let v = display(lbs)
-        return v.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(v))"
-            : String(format: "%.1f", v)
+    func inputStr(_ lbs: Double) -> String { Self.decimalString(display(lbs)) }
+
+    /// Valeur saisie/enregistrée → texte : jusqu'à 2 décimales, sans zéro inutile
+    /// (61.25, 60, 62.5). Affiché = enregistré : pas d'arrondi à 1 décimale (61.25 ≠ 61.3).
+    /// L'arrondi à 2 décimales n'absorbe que le bruit de conversion kg↔lbs.
+    static func decimalString(_ value: Double) -> String {
+        let v = (value * 100).rounded() / 100
+        if v.truncatingRemainder(dividingBy: 1) == 0 { return "\(Int(v))" }
+        var s = String(format: "%.2f", v)
+        while s.hasSuffix("0") { s.removeLast() }
+        return s
     }
 
     /// Formatte un tonnage (lbs backend) en "82 050 lbs" / "37 220 kg".

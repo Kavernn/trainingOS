@@ -1072,7 +1072,7 @@ struct PostSessionEditSheet: View {
         default:                         perSide = stored
         }
         let display = UnitSettings.shared.display(perSide)
-        return display > 0 ? String(format: "%.1f", display) : ""
+        return display > 0 ? UnitSettings.decimalString(display) : ""
     }
 
     private func storedWeight(_ input: Double, eq: String) -> Double {

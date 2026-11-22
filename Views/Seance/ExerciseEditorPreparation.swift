@@ -305,8 +305,8 @@ final class ExerciseStepperEditor: ObservableObject, ExerciseChildPreparing {
     }
 
     static func formatted(_ value: Double, isInteger: Bool) -> String {
-        if isInteger || value.truncatingRemainder(dividingBy: 1) == 0 { return "\(Int(value))" }
-        return String(format: "%.1f", value)
+        if isInteger { return "\(Int(value))" }
+        return UnitSettings.decimalString(value)
     }
 
     static func normalized(_ raw: String, minimum: Double, isInteger: Bool) -> String {

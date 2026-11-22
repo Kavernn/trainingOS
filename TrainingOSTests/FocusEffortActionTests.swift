@@ -105,4 +105,16 @@ final class FocusEffortActionTests: XCTestCase {
         XCTAssertEqual(E.stepped("", direction: -1, increment: 1, minimum: 1, placeholder: 0, isInteger: true), "1")
         XCTAssertEqual(E.stepped("99", direction: 1, increment: 1, minimum: 1, placeholder: 10, isInteger: true), "100")
     }
+
+    /// Affiché = enregistré : jusqu'à 2 décimales, sans zéro inutile, saisie normalisée sans perte.
+    func testDecimalFormattingKeepsRecordedValue() {
+        let E = ExerciseStepperEditor.self
+        XCTAssertEqual(E.formatted(61.25, isInteger: false), "61.25")
+        XCTAssertEqual(E.formatted(60, isInteger: false), "60")
+        XCTAssertEqual(E.formatted(62.5, isInteger: false), "62.5")
+        XCTAssertEqual(E.normalized("61,25", minimum: 0, isInteger: false), "61.25")
+        XCTAssertEqual(E.stepped("60", direction: 1, increment: 1.25, minimum: 0, placeholder: 0, isInteger: false), "61.25")
+        // Aller-retour kg → lbs (stockage) → kg : le bruit de conversion ne s'affiche pas.
+        XCTAssertEqual(UnitSettings.decimalString((61.25 / 0.453592) * 0.453592), "61.25")
+    }
 }
