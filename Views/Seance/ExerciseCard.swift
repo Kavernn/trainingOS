@@ -46,10 +46,18 @@ extension ExerciseCard {
                 .foregroundColor(.appTextPrimary)
             Text(total > 0 ? focusUnitLine(total) : "Charge à saisir")
                 .font(.appHeadline).foregroundColor(Color.appTextSecondary)
-            Text("× \(focusRepsTarget)")
-                .appFocusStyle()
-                .foregroundColor(.appTextPrimary)
-                .padding(.top, 8)
+            // Groupe compact et centré : × petit collé au nombre ; reps en 64 pt sous la charge (96 pt).
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("×")
+                    .font(.appFocusFamily(size: 36))
+                    .foregroundColor(Color.appTextSecondary)
+                Text(focusRepsTarget)
+                    .font(.appFocusFamily(size: 64))
+                    .foregroundColor(.appTextPrimary)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)

@@ -12,11 +12,23 @@ extension Font {
     /// Token validé 2026-11-16 : design hero du thème ; poids = max(displayWeight, .semibold) ;
     /// condensé sur les thèmes en police système (heroFontDesign .default) ; chiffres à chasse fixe.
     /// À l'usage : `.appFocusStyle()` (1 ligne, minimumScaleFactor 0.6, taille fixe hors Dynamic Type).
-    static var appFocus: Font {
+    static var appFocus: Font { appFocusFamily(size: 96) }
+
+    /// Même famille que appFocus (design, graisse, largeur, chiffres à chasse fixe) à une autre taille :
+    /// tous les chiffres de l'écran Focus partagent une seule famille. Focus uniquement.
+    static func appFocusFamily(size: CGFloat) -> Font {
         let theme = AppTheme.shared
-        let base = Font.system(size: 96, weight: FontWeightOrder.atLeast(theme.displayWeight, .semibold),
-                               design: theme.heroFontDesign).monospacedDigit()
-        return theme.heroFontDesign == .default ? base.width(.condensed) : base
+        let design = focusDesign(for: theme.heroFontDesign)
+        let base = Font.system(size: size, weight: FontWeightOrder.atLeast(theme.displayWeight, .semibold),
+                               design: design).monospacedDigit()
+        return design == .default ? base.width(.condensed) : base
+    }
+
+    /// Focus (décision 2026-11-22, option A) : une police hero monospace devient la police système
+    /// condensée (même règle que Sin City) — pas de 0 barré. Les autres designs du thème sont gardés ;
+    /// hors Focus, le thème garde sa signature.
+    static func focusDesign(for heroDesign: Font.Design) -> Font.Design {
+        heroDesign == .monospaced ? .default : heroDesign
     }
 
     /// 42pt — métriques principales, design et poids lus depuis le thème actif

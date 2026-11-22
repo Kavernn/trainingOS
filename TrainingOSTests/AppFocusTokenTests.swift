@@ -14,6 +14,14 @@ final class AppFocusTokenTests: XCTestCase {
         XCTAssertEqual(FontWeightOrder.atLeast(.black, .semibold), .black)        // Sin City, Brutalist
     }
 
+    /// Option A : monospace → système (condensé en aval) ; arrondi et serif gardés.
+    func testFocusDesignReplacesMonospacedOnly() {
+        XCTAssertEqual(Font.focusDesign(for: .monospaced), .default)
+        XCTAssertEqual(Font.focusDesign(for: .default), .default)
+        XCTAssertEqual(Font.focusDesign(for: .rounded), .rounded)
+        XCTAssertEqual(Font.focusDesign(for: .serif), .serif)
+    }
+
     func testOrderIsStrictlyAscendingAndComplete() {
         XCTAssertEqual(FontWeightOrder.ascending.count, 9)
         XCTAssertEqual(Set(FontWeightOrder.ascending.map { "\($0)" }).count, 9)

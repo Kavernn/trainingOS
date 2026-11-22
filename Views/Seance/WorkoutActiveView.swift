@@ -760,11 +760,6 @@ struct WorkoutSeanceView: View {
             .buttonStyle(.plain)
             .foregroundColor(Color.forge)
             .padding(.horizontal, 16)
-        } else if focusFallbackToList {
-            Text("Exercice chronométré — vue liste")
-                .font(.appCaption).foregroundColor(Color.appTextSecondary)
-                .frame(maxWidth: .infinity, minHeight: 32)
-                .padding(.horizontal, 16)
         }
     }
 
@@ -2478,6 +2473,14 @@ struct WorkoutSeanceView: View {
                             }
                     }
                     exerciseNavigator
+                    // Zone fixe : reste visible quand la liste défile vers l'exercice courant.
+                    if focusFallbackToList {
+                        Text("Exercice chronométré — vue liste")
+                            .font(.appCaption).foregroundColor(Color.appTextSecondary)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, minHeight: 24)
+                            .padding(.horizontal, 16)
+                    }
                 }
                 .background(.ultraThinMaterial)
             }
