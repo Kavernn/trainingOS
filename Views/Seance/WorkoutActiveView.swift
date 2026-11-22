@@ -145,6 +145,11 @@ struct WorkoutSeanceView: View {
     @State private var focusPresentedName: String?
     /// 4.4c : exercice loggé en Focus, épinglé jusqu'à « Exercice suivant » (sortie manuelle).
     @State private var focusTransitionName: String?
+    /// 4.4d (C) : dernière action d'un membre de superset, affichée 8 s sur l'écran du partenaire.
+    @State private var focusPairUndo: FocusPairUndo?
+    @State private var focusPairUndoTask: Task<Void, Never>?
+    /// 4.4d : undo touché → retour sur ce membre, que sa carte applique au montage.
+    @State private var focusPendingUndo: FocusPairUndo?
     @State private var showEnergyPreSheet = false
     @AppStorage("energy_pre_date") private var energyPreDate = ""
     @State private var energyConfirmed = false
@@ -714,6 +719,47 @@ struct WorkoutSeanceView: View {
     }
     private var focusShown: Bool { focusPresentedName != nil }
 
+    // MARK: - Focus superset (étape 4.4d)
+
+    /// Partenaire de superset encore à faire (ni loggé, ni sauté), sinon nil.
+    private func pendingPartner(of name: String) -> String? {
+        guard let e = sessionSupersets.values.first(where: { $0.a == name || $0.b == name }) else { return nil }
+        let partner = e.a == name ? e.b : e.a
+        return vm.logResults[partner] == nil && !skippedExercises.contains(partner) ? partner : nil
+    }
+
+    /// Une seule fenêtre d'undo croisé (~8 s, comme l'undo de série) : la dernière action remplace la précédente.
+    private func armFocusPairUndo(_ undo: FocusPairUndo?) {
+        focusPairUndoTask?.cancel(); focusPairUndoTask = nil
+        focusPairUndo = undo
+        guard undo != nil else { return }
+        focusPairUndoTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.25)) { focusPairUndo = nil }
+        }
+    }
+
+    /// Série (ou log) d'un membre, partenaire à faire → main au partenaire PAR LA PORTE
+    /// (lastOpenedExercise → focusDesiredName → FocusSwitch.perform), undo affiché chez lui.
+    private func focusHandOff(from name: String, _ kind: FocusPairUndoKind) {
+        guard let partner = pendingPartner(of: name) else { armFocusPairUndo(nil); return }   // on reste : undo local
+        let label: String
+        switch kind {
+        case .set(let undo): label = "Annuler · \(name) S\(undo.fromIndex + 1)"
+        case .log: label = "Annuler le log · \(name)"
+        }
+        armFocusPairUndo(FocusPairUndo(exercise: name, kind: kind, label: label))
+        lastOpenedExercise = partner
+    }
+
+    /// Undo croisé touché : retour sur le membre (par la porte) ; sa carte applique l'undo au montage.
+    private func undoAcrossPair(_ undo: FocusPairUndo) {
+        armFocusPairUndo(nil)
+        focusPendingUndo = undo
+        lastOpenedExercise = undo.exercise
+    }
+
     private func toggleEditMode() { FocusSwitch.perform { withAnimation { isEditMode.toggle() } } }
     private func toggleSummary() { FocusSwitch.perform { withAnimation { showSummary.toggle() } } }
 
@@ -728,9 +774,25 @@ struct WorkoutSeanceView: View {
         HStack(spacing: 12) {
             let progress = activeSetProgress.setCount > 0
                 ? " · S\(min(activeSetProgress.setIndex + 1, activeSetProgress.setCount))/\(activeSetProgress.setCount)" : ""
-            Text((focusPresentedName ?? "") + progress)
+            if let name = focusPresentedName, let partner = pendingPartner(of: name) {
+                // 4.4d : « Bench S2/4 ⇄ Dips » — seul le partenaire est tronqué, jamais le compteur.
+                HStack(spacing: 6) {
+                    Text(name).lineLimit(1).minimumScaleFactor(0.7).layoutPriority(2)
+                    if activeSetProgress.setCount > 0 {
+                        Text("S\(min(activeSetProgress.setIndex + 1, activeSetProgress.setCount))/\(activeSetProgress.setCount)")
+                            .fixedSize().layoutPriority(3)
+                    }
+                    Text("⇄ \(partner)").lineLimit(1).truncationMode(.tail)
+                        .foregroundColor(Color.appTextSecondary)
+                }
                 .font(.appHeadline).foregroundColor(.appTextPrimary)
-                .lineLimit(1).minimumScaleFactor(0.7)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(name)\(progress), superset avec \(partner)")
+            } else {
+                Text((focusPresentedName ?? "") + progress)
+                    .font(.appHeadline).foregroundColor(.appTextPrimary)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+            }
             Spacer(minLength: 8)
             Button {
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { focusShowsList = true }
@@ -1012,7 +1074,11 @@ struct WorkoutSeanceView: View {
             hint: inventoryHints[name],
             logResult: $vm.logResults[name],
             onLogged: {
-                if presentation == .focus { focusTransitionName = name }   // 4.4c : Transition, sortie manuelle
+                // 4.4c : Transition, sortie manuelle — 4.4d : seulement à la fin réelle de la paire.
+                if presentation == .focus && pendingPartner(of: name) == nil {
+                    armFocusPairUndo(nil)
+                    focusTransitionName = name
+                }
                 let loggedNames = Set(vm.logResults.keys)
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                     expandedExercises.remove(name)
@@ -1079,7 +1145,15 @@ struct WorkoutSeanceView: View {
                 }
             } : nil,
             presentation: presentation,
-            focusContinue: presentation == .focus ? focusContinue : nil
+            focusContinue: presentation == .focus ? focusContinue : nil,
+            pairPartnerPending: presentation == .focus && pendingPartner(of: name) != nil,
+            onSetCompleted: presentation == .focus ? { kind in focusHandOff(from: name, kind) } : nil,
+            pairUndo: presentation == .focus ? focusPairUndo.flatMap { undo in
+                undo.exercise == name ? nil : FocusContinue(label: undo.label) { undoAcrossPair(undo) }
+            } : nil,
+            pendingPairUndo: presentation == .focus ? focusPendingUndo.flatMap { undo in
+                undo.exercise == name ? (kind: undo.kind, consumed: { focusPendingUndo = nil }) : nil
+            } : nil
         )
 
         // Row sous la carte selon la SOURCE réelle du poids affiché :

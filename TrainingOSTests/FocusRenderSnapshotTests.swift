@@ -115,6 +115,81 @@ final class FocusRenderSnapshotTests: XCTestCase {
         try await shot("3-bas")
     }
 
+    /// 4.4d : superset en Focus, 2 thèmes — B après A S1 (chrome « ⇄ », undo croisé), puis A après B S1
+    /// (repos de B affiché pendant que Focus revient sur A).
+    func testRenderSupersetPairAcrossTwoThemes() async throws {
+        let flagBefore = UserDefaults.standard.object(forKey: FocusModePreference.key)
+        let restBefore = UserDefaults.standard.object(forKey: AutoRestPreference.key)
+        let previous = AppTheme.shared.selectedTheme
+        var dates: [String] = []
+        defer {
+            RestTimerManager.shared.dismiss()
+            AppTheme.shared.applyTheme(previous)
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where dates.contains(where: key.contains) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+            if let flagBefore { UserDefaults.standard.set(flagBefore, forKey: FocusModePreference.key) }
+            else { UserDefaults.standard.removeObject(forKey: FocusModePreference.key) }
+            if let restBefore { UserDefaults.standard.set(restBefore, forKey: AutoRestPreference.key) }
+            else { UserDefaults.standard.removeObject(forKey: AutoRestPreference.key) }
+        }
+        UserDefaults.standard.set(true, forKey: FocusModePreference.key)
+        UserDefaults.standard.set(true, forKey: AutoRestPreference.key)
+        let dir = ProcessInfo.processInfo.environment["FOCUS_SNAPSHOT_DIR"]
+        let tag = ProcessInfo.processInfo.environment["FOCUS_SNAPSHOT_TAG"] ?? "shot"
+        for theme in [AppThemeOption.sinCity, .pearl] {
+            AppTheme.shared.applyTheme(theme)
+            RestTimerManager.shared.dismiss()
+            let date = "focus-shot-\(UUID().uuidString)"; dates.append(date)
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: Fixtures.seanceDataJSON(
+                today: "Push", todayDate: date, exerciseName: "Bench Press",
+                historyDate: "2026-11-15", historyWeight: 135, historyReps: "8,8,8")) as? [String: Any])
+            json["full_program"] = ["Push": ["Bench Press": "3x8-10", "Dips": "4x8-10"]]
+            json["exercise_order"] = ["Push": ["Bench Press", "Dips"]]
+            json["exercise_supersets"] = ["Push": ["Bench Press": ["A": "Bench Press", "B": "Dips", "rest": 90]]]
+            var weights = try XCTUnwrap(json["weights"] as? [String: Any])
+            weights["Dips"] = ["current_weight": 25, "last_reps": "10,10,10,10", "last_logged": "2026-11-15",
+                               "history": [["date": "2026-11-15", "weight": 25, "reps": "10,10,10,10"]]]
+            json["weights"] = weights
+            let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
+            let owner = SeanceViewModel(draftSessionType: "morning", followsActivePlanning: true)
+            owner.seanceData = data
+            owner.startSession()
+            owner.currentPlanningLoader = { _, _ in ("stale", data) }
+            let root = TabView {
+                NavigationStack { WorkoutSeanceView(data: data, vm: owner, isOverride: true) }
+                    .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
+            }
+            let host = UIHostingController(rootView: root)
+            host.overrideUserInterfaceStyle = theme == .pearl ? .light : .dark
+            let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 393, height: 852)
+            window.rootViewController = host; window.makeKeyAndVisible()
+            func settle() async throws { for _ in 0..<5 { host.view.layoutIfNeeded(); try await Task.sleep(nanoseconds: 200_000_000) } }
+            func shot(_ label: String) {
+                let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                    window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                }
+                let file = "\(tag)-paire-\(label)-\(theme.rawValue).png"
+                let attachment = XCTAttachment(image: image); attachment.name = file
+                attachment.lifetime = .keepAlways; add(attachment)
+                if let dir, let png = image.pngData() {
+                    try? png.write(to: URL(fileURLWithPath: dir).appendingPathComponent(file))
+                }
+            }
+            try await settle()
+            shot("1-A")
+            NotificationCenter.default.post(name: FocusSwitch.debugFocusPrimaryAction, object: nil)   // A S1 → B
+            try await Task.sleep(nanoseconds: 900_000_000); try await settle()
+            shot("2-B-undo-croise")
+            NotificationCenter.default.post(name: FocusSwitch.debugFocusPrimaryAction, object: nil)   // B S1 → A + repos
+            try await Task.sleep(nanoseconds: 900_000_000); try await settle()
+            shot("3-A-repos-de-B")
+            window.isHidden = true; window.rootViewController = nil
+        }
+    }
+
     /// 4.4a : écran Focus complet (chrome, chiffres proposés en pointillé, « Série terminée » en bas), 4 thèmes.
     func testRenderFocusScreenWithCompleteButton() async throws {
         let flagBefore = UserDefaults.standard.object(forKey: FocusModePreference.key)

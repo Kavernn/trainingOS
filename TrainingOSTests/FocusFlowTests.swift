@@ -88,4 +88,148 @@ final class FocusFlowTests: XCTestCase {
         XCTAssertNotNil(active("Shrug"), "sortie manuelle vers Shrug")
         XCTAssertNil(active(exercise))
     }
+
+    // MARK: - 4.4d : superset A ↔ B
+
+    private var restTimer: RestTimerManager { RestTimerManager.shared }
+
+    /// Paire Bench (A) / Dips (B), repos 90 s ; les deux avec un historique (valeurs proposées).
+    private func mountPair(schemeA: String, schemeB: String, otherLogged: Bool = false) async throws -> SeanceViewModel {
+        let restPrefBefore = UserDefaults.standard.object(forKey: AutoRestPreference.key) as? Bool
+        UserDefaults.standard.set(true, forKey: AutoRestPreference.key)
+        addTeardownBlock {
+            await MainActor.run {
+                RestTimerManager.shared.dismiss()
+                if let restPrefBefore { UserDefaults.standard.set(restPrefBefore, forKey: AutoRestPreference.key) }
+                else { UserDefaults.standard.removeObject(forKey: AutoRestPreference.key) }
+            }
+        }
+        restTimer.dismiss()
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: Fixtures.seanceDataJSON(
+            today: "Push", todayDate: date, exerciseName: "Bench",
+            historyDate: "2026-11-15", historyWeight: 135, historyReps: "8,8,8")) as? [String: Any])
+        json["full_program"] = ["Push": ["Bench": schemeA, "Dips": schemeB, "Fly": "3x12"]]
+        json["exercise_order"] = ["Push": ["Bench", "Dips", "Fly"]]
+        json["exercise_supersets"] = ["Push": ["Bench": ["A": "Bench", "B": "Dips", "rest": 90]]]
+        var weights = try XCTUnwrap(json["weights"] as? [String: Any])
+        weights["Dips"] = ["current_weight": 25, "last_reps": "10,10,10,10", "last_logged": "2026-11-15",
+                           "history": [["date": "2026-11-15", "weight": 25, "reps": "10,10,10,10"]]]
+        json["weights"] = weights
+        let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
+        let owner = SeanceViewModel(draftSessionType: "morning", followsActivePlanning: true)
+        owner.seanceData = data
+        owner.startSession()
+        // Défaut préexistant (ExerciseViewModel.persistDraftIfNeeded) : annuler le SEUL log de la séance
+        // remet sessionStarted à false → Focus repasse en liste. Un autre exercice loggé isole le cas paire.
+        if otherLogged { owner.logResults["Fly"] = ExerciseLogResult(name: "Fly", weight: 30, reps: "12,12,12") }
+        owner.currentPlanningLoader = { _, _ in ("stale", data) }
+        try await mount(owner: owner, data: data)
+        return owner
+    }
+
+    /// Action principale puis attente (anti-rebond 0,8 s + bascule par la porte).
+    private func step() async throws {
+        primaryAction()
+        try await Task.sleep(nanoseconds: 900_000_000)
+        try await settle()
+    }
+    private func pairUndo() async throws {
+        NotificationCenter.default.post(name: FocusSwitch.debugFocusPairUndo, object: nil)
+        try await settle(6)
+    }
+    private func liveNames() -> [String] {
+        ExerciseViewModel.debugLive.filter { $0.sessionDate == date && !$0.isRetired }.map(\.name).sorted()
+    }
+    private func card(_ name: String) -> ExerciseDraftPersistence {
+        ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: name)
+    }
+
+    /// Paire 3/4 de bout en bout : alternance, repos de B seulement, A fini → B seul, Transition à la fin.
+    func testSupersetThreeFourAlternatesThenTransitionAtPairEnd() async throws {
+        let owner = try await mountPair(schemeA: "3x8-10", schemeB: "4x8-10")
+        XCTAssertNotNil(active("Bench"))
+        for round in 1...3 {
+            try await step()                                          // A S\(round)
+            XCTAssertNotNil(active("Dips"), "A S\(round) → B")
+            XCTAssertNil(active("Bench"))
+            if round < 3 {
+                XCTAssertEqual(card("Bench").loadCard()?.sets[round - 1].done, true)
+            } else {
+                XCTAssertNotNil(owner.logResults["Bench"], "A S3 = dernière → A loggé")
+            }
+            XCTAssertEqual(active("Dips")?.currentSetIndex, round - 1)
+            if round == 1 { XCTAssertFalse(restTimer.isVisible, "A ne lance pas de repos") }
+            try await step()                                          // B S\(round)
+            XCTAssertTrue(restTimer.isVisible, "repos de B après B S\(round)")
+            if round < 3 {
+                XCTAssertNotNil(active("Bench"), "B S\(round) → A, repos de B toujours affiché")
+                XCTAssertEqual(active("Bench")?.currentSetIndex, round)
+            }
+        }
+        // A est fini : B S3 reste sur B (repos de B), puis B S4 = fin réelle de la paire.
+        XCTAssertNotNil(active("Dips"), "A fini → on reste sur B")
+        XCTAssertEqual(active("Dips")?.currentSetIndex, 3)
+        let runBeforeEnd = restTimer.runID
+        try await step()                                              // B S4 → doLog
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        try await settle()
+        XCTAssertNotNil(owner.logResults["Dips"])
+        XCTAssertEqual(owner.logResults["Dips"]?.reps.split(separator: ",").count, 4)
+        XCTAssertEqual(owner.logResults["Bench"]?.reps.split(separator: ",").count, 3)
+        XCTAssertEqual(restTimer.runID, runBeforeEnd, "fin réelle de la paire : pas de nouveau repos (Build G)")
+        XCTAssertNotNil(active("Dips"), "Transition épinglée sur le dernier membre")
+    }
+
+    /// Undo croisé (série) : A S1 → sur B, undo → retour sur A, S1 à refaire ; B S1 → sur A, undo → B, repos arrêté.
+    func testSupersetCrossUndoOfSet() async throws {
+        _ = try await mountPair(schemeA: "3x8-10", schemeB: "3x8-10")
+        try await step()                                              // A S1 → B
+        XCTAssertNotNil(active("Dips"))
+        try await pairUndo()
+        XCTAssertNotNil(active("Bench"), "undo croisé → retour sur A")
+        XCTAssertEqual(active("Bench")?.currentSetIndex, 0)
+        XCTAssertNil(try XCTUnwrap(card("Bench").loadCard()).sets[0].done, "S1 non faite (done encodé seulement si true)")
+
+        try await step()                                              // A S1 → B
+        try await step()                                              // B S1 → A, repos de B
+        XCTAssertNotNil(active("Bench"))
+        XCTAssertTrue(restTimer.isVisible)
+        try await pairUndo()
+        XCTAssertNotNil(active("Dips"), "undo croisé → retour sur B")
+        XCTAssertEqual(active("Dips")?.currentSetIndex, 0)
+        XCTAssertNil(try XCTUnwrap(card("Dips").loadCard()).sets[0].done, "S1 non faite (done encodé seulement si true)")
+        XCTAssertFalse(restTimer.isVisible, "le repos lancé par la série annulée s'arrête")
+    }
+
+    /// Undo croisé (log) + exception de repos : B finit avant A → log de B + repos de la paire ;
+    /// undo depuis A → B dé-loggé, séries restaurées, dernière série à refaire, repos arrêté.
+    func testSupersetCrossUndoOfLogAndPairRestException() async throws {
+        let owner = try await mountPair(schemeA: "2x8-10", schemeB: "1x8-10", otherLogged: true)
+        try await step()                                              // A S1 → B
+        try await step()                                              // B S1 = dernière → log + repos
+        XCTAssertNotNil(owner.logResults["Dips"])
+        XCTAssertTrue(restTimer.isVisible, "exception : log de B avant la fin de la paire → repos entre deux tours")
+        XCTAssertNotNil(active("Bench"), "pas de Transition : A a encore une série")
+        XCTAssertEqual(active("Bench")?.currentSetIndex, 1)
+
+        try await pairUndo()
+        XCTAssertNil(owner.logResults["Dips"], "undo croisé du log")
+        XCTAssertFalse(restTimer.isVisible, "repos du log arrêté")
+        XCTAssertEqual(liveNames(), ["Dips"], "Focus : une seule carte, B")
+        let dips = try XCTUnwrap(active("Dips"), "retour sur B")
+        XCTAssertEqual(dips.currentSetIndex, 0)
+        XCTAssertEqual(dips.sets.first?.reps, "10", "séries du log restaurées")
+        XCTAssertEqual(card("Dips").loadCard()?.sets.first?.reps, "10")
+
+        try await step()                                              // B S1 → log + repos → A
+        XCTAssertNotNil(owner.logResults["Dips"])
+        XCTAssertNotNil(active("Bench"))
+        let run = restTimer.runID
+        try await step()                                              // A S2 = fin réelle
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        try await settle()
+        XCTAssertNotNil(owner.logResults["Bench"])
+        XCTAssertEqual(restTimer.runID, run, "A n'a pas de repos")
+        XCTAssertNotNil(active("Bench"), "Transition à la fin de la paire")
+    }
 }

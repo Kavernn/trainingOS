@@ -162,6 +162,7 @@ extension ExerciseCard {
             }
             setStateRefusalBanner
             setUndoButton
+            pairUndoButton
             focusCompleteButton
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -287,6 +288,19 @@ struct SetAdvanceUndo: Equatable {
     }
 }
 
+/// 4.4d (C) : dernière action d'un membre de superset, annulable depuis l'écran du partenaire.
+/// Série : même undo que l'undo local. Log : séries capturées au log (le brouillon est effacé par le log)
+/// et repos de la paire lancé par ce log.
+enum FocusPairUndoKind {
+    case set(SetAdvanceUndo)
+    case log(sets: [SetInput], restRun: UUID?)
+}
+struct FocusPairUndo {
+    let exercise: String
+    let kind: FocusPairUndoKind
+    let label: String
+}
+
 /// Mode d'affichage d'une carte d'exercice (étape 4). `.list` = rendu actuel, inchangé.
 /// 4.3 : bascule liste ↔ Focus sans écriture en attente. Clavier fermé, brouillons écrits,
 /// puis seulement la bascule : la nouvelle carte se charge toujours depuis un brouillon complet.
@@ -297,6 +311,8 @@ enum FocusSwitch {
     static let debugToggleEditMode = Notification.Name("trainingos.focusSwitch.debugToggleEditMode")
     /// Seam de test : action principale de la carte Focus affichée (« Série terminée » ou sortie de Transition).
     static let debugFocusPrimaryAction = Notification.Name("trainingos.focusSwitch.debugFocusPrimaryAction")
+    /// Seam de test (4.4d) : même action que le bouton d'undo croisé de la carte Focus affichée.
+    static let debugFocusPairUndo = Notification.Name("trainingos.focusSwitch.debugFocusPairUndo")
     #endif
 
     @MainActor static func perform(_ change: () -> Void) {
@@ -357,6 +373,15 @@ struct ExerciseCard: View {
     /// Le rendu Focus vivra dans une extension de CE fichier (accès aux membres private).
     var presentation: ExerciseCardPresentation = .list
     var focusContinue: FocusContinue? = nil
+    /// 4.4d : le partenaire de superset reste à faire → chaque série passe la main (le parent garde l'undo),
+    /// et le log de cet exercice lance le repos de la paire (repos entre deux tours, exception à Build G).
+    var pairPartnerPending: Bool = false
+    /// 4.4d : série terminée (ou log) quand pairPartnerPending — le parent bascule sur le partenaire.
+    var onSetCompleted: ((FocusPairUndoKind) -> Void)? = nil
+    /// 4.4d : undo de la dernière action du partenaire (libellé + action du parent).
+    var pairUndo: FocusContinue? = nil
+    /// 4.4d : undo du partenaire à appliquer au montage (Focus revenu ici) ; consumed() une fois appliqué.
+    var pendingPairUndo: (kind: FocusPairUndoKind, consumed: () -> Void)? = nil
 
     @StateObject private var evm: ExerciseViewModel
     @StateObject private var editorController: ExerciseEditorPreparationController
@@ -423,9 +448,17 @@ struct ExerciseCard: View {
          onSetChange: ((Int, Int) -> Void)? = nil,
          occurrenceKey: String? = nil,
          presentation: ExerciseCardPresentation = .list,
-         focusContinue: FocusContinue? = nil) {
+         focusContinue: FocusContinue? = nil,
+         pairPartnerPending: Bool = false,
+         onSetCompleted: ((FocusPairUndoKind) -> Void)? = nil,
+         pairUndo: FocusContinue? = nil,
+         pendingPairUndo: (kind: FocusPairUndoKind, consumed: () -> Void)? = nil) {
         self.presentation = presentation
         self.focusContinue = focusContinue
+        self.pairPartnerPending = pairPartnerPending
+        self.onSetCompleted = onSetCompleted
+        self.pairUndo = pairUndo
+        self.pendingPairUndo = pendingPairUndo
         self.onSkippedChanged = onSkippedChanged
         self.onSetChange = onSetChange
         self.sourceRegistration = sourceRegistration
@@ -1201,11 +1234,22 @@ struct ExerciseCard: View {
                 setStateRefusal = nil
                 evm.currentSetIndex += 1
                 let started = startAutoRestIfEnabled()
-                armSetUndo(.init(fromIndex: from, restRun: started ? RestTimerManager.shared.runID : nil))
+                let undo = SetAdvanceUndo(fromIndex: from, restRun: started ? RestTimerManager.shared.runID : nil)
+                // 4.4d : paire en cours → l'undo suit l'écran (affiché chez le partenaire).
+                // Sans partenaire à faire, le parent efface seulement l'undo croisé périmé.
+                if !(pairPartnerPending && onSetCompleted != nil) { armSetUndo(undo) }
+                onSetCompleted?(.set(undo))
             } else {
                 clearSetUndo()   // dernière série : l'undo du log (doLog) prend le relais
+                let snapshot = evm.sets
                 evm.setBySetMode = false
+                let wasLogged = evm.isLogged || logResult != nil
                 doLog()
+                // 4.4d : log avant la fin réelle de la paire → repos de la paire (B ; A n'a pas de repos), puis main au partenaire.
+                if pairPartnerPending, let onSetCompleted, !wasLogged, evm.isLogged || logResult != nil {
+                    let started = startAutoRestIfEnabled()
+                    onSetCompleted(.log(sets: snapshot, restRun: started ? RestTimerManager.shared.runID : nil))
+                }
             }
         }
     }
@@ -1241,6 +1285,44 @@ struct ExerciseCard: View {
         withAnimation { evm.currentSetIndex = r.index }
         lastSetAdvanceAt = .distantPast
         triggerImpact(style: .light)
+    }
+
+    /// 4.4d (C) : undo du partenaire, appliqué par la carte remontée — mêmes chemins que les undos locaux.
+    /// Série : resolve + markSet + arrêt du repos de CETTE avancée. Log : removeLog(undo:), puis séries
+    /// capturées au log restaurées (le log a effacé le brouillon), dernière série à refaire, repos du log arrêté.
+    private func applyPendingPairUndo() {
+        guard let pending = pendingPairUndo else { return }
+        defer { pending.consumed() }
+        switch pending.kind {
+        case .set(let undo):
+            setUndo = undo
+            undoSetAdvance()
+        case .log(let sets, let restRun):
+            guard removeLog(undo: true) else { return }
+            if restRun != nil && restRun == RestTimerManager.shared.runID { RestTimerManager.shared.dismiss() }
+            evm.sets = sets
+            evm.setBySetMode = true
+            evm.currentSetIndex = max(0, sets.count - 1)
+            let write = evm.saveDraft()
+            if write != .accepted && write != .skippedRetired { setStateRefusal = write }
+            triggerImpact(style: .light)
+        }
+    }
+
+    /// 4.4d : undo de la dernière action du partenaire (même style que l'undo de série).
+    @ViewBuilder private var pairUndoButton: some View {
+        if let pairUndo {
+            Button(action: pairUndo.action) {
+                Label(pairUndo.label, systemImage: "arrow.uturn.backward")
+                    .font(.appLabel.weight(.semibold))
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .foregroundColor(Color.appTextSecondary)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .transition(.opacity)
+        }
     }
 
     /// Message actionnable : ce qui s'est passé et quoi faire (4.3).
@@ -1673,6 +1755,7 @@ struct ExerciseCard: View {
             if preparesEditors { editorController.attach(evm, requiresEnduranceInspection: isTimeBased) }
             sourceRegistration?.appear(editorController)
             onSetChange?(evm.currentSetIndex, evm.sets.count)
+            applyPendingPairUndo()
         }
         .onChange(of: evm.currentSetIndex) { _, idx in
             onSetChange?(idx, evm.sets.count)
@@ -1693,6 +1776,10 @@ struct ExerciseCard: View {
         .onReceive(NotificationCenter.default.publisher(for: FocusSwitch.debugFocusPrimaryAction)) { _ in
             guard presentation == .focus else { return }
             if focusShowsTransition { focusContinue?.action() } else { focusCompleteSet() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: FocusSwitch.debugFocusPairUndo)) { _ in
+            guard presentation == .focus else { return }
+            pairUndo?.action()
         }
         #endif
         // Pré-remplissage automatique supprimé (2026-07-13) : saisir est un
