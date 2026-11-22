@@ -1506,6 +1506,48 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "morning"))
     }
 
+    /// Défaut du 3 octobre : séance rouverte avec des logs serveur mais sans heure de début locale.
+    /// Démarrée, jamais d'heure inventée (ni chrono, ni startedAt persisté), durée de fin nil.
+    func testServerRestoredLogsWithoutStartNeverInventStart() throws {
+        let date = "unknown-start-\(UUID().uuidString)"
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        let reopened = SeanceViewModel(draftSessionType: "morning")
+        defer { vm.chrono.stop(); reopened.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "morning") }
+        let data = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(
+            todayDate: date, alreadyLogged: true, historyDate: date, historyWeight: 80, historyReps: "5,5,5"))
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: nil)
+        XCTAssertNotNil(vm.logResults["Bench Press"], "log restauré depuis l'historique serveur")
+        XCTAssertTrue(vm.sessionStarted)
+        XCTAssertFalse(vm.chrono.hasTimingContext, "aucun chrono démarré à « maintenant »")
+        XCTAssertNil(vm.chrono.knownElapsedMinutes)
+        XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"))
+
+        vm.startSession()   // déjà démarrée : n'invente pas de départ
+        vm.logResults["Fly"] = ExerciseLogResult(name: "Fly", weight: 20, reps: "12")
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
+        XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"), "sauvegarde bloquée tant que l'heure est inconnue")
+        XCTAssertNil(vm.chrono.stop(), "durée de fin inconnue → duration_min nil")
+
+        reopened.seanceData = data
+        reopened.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: nil)
+        XCTAssertNotNil(reopened.logResults["Fly"])
+        XCTAssertTrue(reopened.sessionStarted)
+        XCTAssertFalse(reopened.chrono.hasTimingContext)
+        XCTAssertNil(reopened.chrono.stop())
+    }
+
+    func testKnownStartStillMeasuresDuration() throws {
+        let date = "known-start-\(UUID().uuidString)"
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        defer { vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "morning") }
+        vm.seanceData = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(todayDate: date))
+        vm.startSession()
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 80, reps: "5")
+        XCTAssertNotNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"))
+        XCTAssertEqual(vm.chrono.stop(), 1, "départ connu : durée mesurée (minimum 1 min)")
+    }
+
     func testNormalMorningGateAndCompletionPolicyPreserveUnacknowledgedRecovery() async throws {
         let date = "morning-normal-\(UUID().uuidString)"
         let vm = FinishSaveStub(draftSessionType: "morning")
@@ -1986,7 +2028,8 @@ final class SeanceViewModelTests: XCTestCase {
         }
         XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
         XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Bonus terminé")
-        XCTAssertNotNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "bonus"))
+        // Brouillon sans heure de début : la restauration ne l'invente plus (défaut du 3 octobre).
+        XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "bonus"))
         XCTAssertFalse(vm.logResults.isEmpty)
         XCTAssertTrue(vm.isResuming)
         XCTAssertTrue(vm.sessionStarted)

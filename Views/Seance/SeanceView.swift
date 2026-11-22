@@ -1410,11 +1410,11 @@ struct ExtraSessionSheet: View {
                 FinishSessionSheet(
                     exercises: Array(extraVM.logResults.keys),
                     logResults: extraVM.logResults,
-                    elapsedMin: Double(extraVM.chrono.elapsedSeconds) / 60.0,
+                    elapsedMin: extraVM.chrono.knownElapsedMinutes,
                     rpe: $exitRpe,
                     comment: $extraVM.sessionComment,
                     onSubmit: { energy, chosenRPE in
-                        let dur = Double(extraVM.chrono.stop())
+                        let dur = extraVM.chrono.stop().map(Double.init)
                         Task { await extraVM.finish(rpe: chosenRPE, comment: extraVM.sessionComment, durationMin: dur, energyPre: energy, bonusSession: true) }
                     }
                 )
@@ -1612,12 +1612,12 @@ struct FinishRemainingSheet: View {
                 FinishSessionSheet(
                     exercises: remaining.map(\.0),
                     logResults: finishVM.logResults,
-                    elapsedMin: Double(finishVM.chrono.elapsedSeconds) / 60.0,
+                    elapsedMin: finishVM.chrono.knownElapsedMinutes,
                     rpe: $exitRpe, comment: $finishVM.sessionComment,
                     preEnergy: energyPreDate == data.todayDate ? energyPreValue : nil,
                     onSubmit: { energy, chosenRPE in
                         showFinishFromExit = false
-                        let dur = Double(finishVM.chrono.stop())
+                        let dur = finishVM.chrono.stop().map(Double.init)
                         Task { await finishVM.finish(rpe: chosenRPE, comment: finishVM.sessionComment, durationMin: dur, energyPre: energy, sessionName: data.today) }
                     }
                 )

@@ -167,7 +167,7 @@ struct WorkoutSummarySheet: View {
 struct FinishSessionSheet: View {
     let exercises: [String]
     let logResults: [String: ExerciseLogResult]
-    let elapsedMin: Double
+    let elapsedMin: Double?   // nil = heure de début inconnue
     /// RPE CONFIRMÉ (tuile touchée). nil = aucun choix : la proposition éventuelle est
     /// confirmée par le bouton de fin, sinon aucun RPE n'est envoyé (5b).
     @Binding var rpe: Double?
@@ -214,7 +214,7 @@ struct FinishSessionSheet: View {
                                 .frame(width: 28)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("DURÉE").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                                Text("\(Int(elapsedMin)) min")
+                                Text(elapsedMin.map { "\(Int($0)) min" } ?? "Inconnue")
                                     .font(.appTitle).fontWeight(.black)
                                     .foregroundColor(.forge)
                             }
@@ -500,10 +500,10 @@ struct SessionRecapSheet: View {
     }
 
     private var shareText: String {
-        let dur = Int(snapshot.durationMin)
+        let dur = snapshot.durationMin.map { "Durée \(Int($0)) min · " } ?? ""
         let vol = UnitSettings.shared.format(totalVolume)
         let rpe = snapshot.rpe.map { " · RPE \(RPEHelper.display($0))" } ?? ""
-        return "Séance complétée — \(snapshot.sessionName)\nDurée \(dur) min · Volume \(vol)\(rpe)"
+        return "Séance complétée — \(snapshot.sessionName)\n\(dur)Volume \(vol)\(rpe)"
     }
 
     var body: some View {
@@ -575,7 +575,7 @@ struct SessionRecapSheet: View {
         var metrics = [
             SessionReportMetric(
                 label: "DURÉE",
-                value: "\(Int(snapshot.durationMin)) min",
+                value: snapshot.durationMin.map { "\(Int($0)) min" } ?? "—",
                 emphasis: .primary
             )
         ]

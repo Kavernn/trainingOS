@@ -8,7 +8,7 @@ private let logger = Logger(subsystem: "TrainingOS", category: "workout_active")
 struct SessionRecapSnapshot {
     let sessionName: String
     let coachingContext: ProgressionContext
-    let durationMin: Double
+    let durationMin: Double?   // nil = heure de début inconnue
     let logResults: [String: ExerciseLogResult]
     let exercises: [String]
     let rpe: Double?   // nil = aucun RPE de séance envoyé (5b)
@@ -1696,17 +1696,17 @@ struct WorkoutSeanceView: View {
         FinishSessionSheet(
             exercises: trackedExercises.map(\.0),
             logResults: trackedResults,
-            elapsedMin: Double(vm.chrono.elapsedSeconds) / 60.0,
+            elapsedMin: vm.chrono.knownElapsedMinutes,
             rpe: $rpe,
             comment: commentBinding,
             preEnergy: energyPre,
             onSubmit: { _, chosenRPE in
                 rpe = chosenRPE   // exactement la valeur affichée sur le bouton de fin
-                let dur = Double(vm.chrono.stop())
+                let dur = vm.chrono.stop().map(Double.init)   // nil = heure de début inconnue
                 // Garde-fou chrono oublié : > 180 min → confirmation éditable
                 // avant d'envoyer. Backend rejette > 300 min (fail-loud), ici
                 // on attrape plus tôt pour laisser l'utilisateur corriger.
-                if dur > 180 {
+                if let dur, dur > 180 {
                     durationOriginalMin = Int(dur)
                     durationOverrideText = String(Int(dur))
                     showDurationConfirm = true
@@ -1738,7 +1738,7 @@ struct WorkoutSeanceView: View {
         }
     }
 
-    private func performFinishSubmit(durationMin dur: Double, rpe: Double?) {
+    private func performFinishSubmit(durationMin dur: Double?, rpe: Double?) {
         recapSnapshot = SessionRecapSnapshot(
             sessionName: data.today,
             coachingContext: progressionContext,

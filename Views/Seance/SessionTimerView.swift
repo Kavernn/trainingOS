@@ -4,6 +4,7 @@ struct SessionTimerView: View {
     @ObservedObject var chrono: WorkoutChronoViewModel
 
     private var formattedTime: String {
+        guard chrono.hasTimingContext else { return "—" }   // heure de début inconnue
         let mm = chrono.elapsedSeconds / 60
         let ss = chrono.elapsedSeconds % 60
         return String(format: "%d:%02d", mm, ss)
@@ -27,7 +28,7 @@ struct SessionTimerView: View {
                 .stroke(Color.forge.opacity(strokeOpacity), lineWidth: 1)
         )
         .animation(.easeInOut(duration: 0.2), value: chrono.isPaused)
-        .onTapGesture { chrono.togglePause() }
+        .onTapGesture { if chrono.hasTimingContext { chrono.togglePause() } }
         .transition(.opacity)
     }
 }

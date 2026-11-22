@@ -1472,11 +1472,15 @@ final class WorkoutChronoViewModel: ObservableObject {
         ExerciseCalculator.netDurationMinutes(seconds: Double(elapsedSeconds))
     }
 
-    func stop() -> Int {
+    /// nil = heure de début inconnue : aucune durée n'est inventée.
+    var knownElapsedMinutes: Double? { hasTimingContext ? Double(elapsedSeconds) / 60 : nil }
+
+    @discardableResult
+    func stop() -> Int? {
         timer?.invalidate()
         timer = nil
         isPaused = false
-        return netDurationMinutes
+        return hasTimingContext ? netDurationMinutes : nil
     }
 
     private func resumeTimer() {
@@ -1969,10 +1973,9 @@ class SeanceViewModel: ObservableObject {
         }
         logResults = restored
         if !sessionStarted && !restored.isEmpty {
-            sessionStart = Date()
+            // Logs sans heure de début (ex. restaurés depuis le serveur) : séance démarrée, mais
+            // l'heure de début n'est jamais inventée → pas de chrono, durée envoyée nil à la fin.
             sessionStarted = true
-            SessionDraftStore.saveStartedAt(date: data.todayDate, sessionType: draftSessionType, startedAt: sessionStart)
-            chrono.start(date: data.todayDate, sessionType: draftSessionType)
         }
         isResuming = !restored.isEmpty
         if serverSessionType == draftSessionType, serverCompleted == true,
@@ -2135,7 +2138,7 @@ class SeanceViewModel: ObservableObject {
         } else {
             applyCompletedSessionRecoveryPolicy()
             BehaviorTracker.shared.record(.sessionEnd)
-            if hasPerformedTrackedWork {
+            if hasPerformedTrackedWork && chrono.hasTimingContext {
                 await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
             }
             showSuccess = true
@@ -2180,7 +2183,7 @@ class SeanceViewModel: ObservableObject {
         }
         let values = persistedLogValues()
         SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values, authorization: provenanceAuthorization)
-        if !isDayComposerLocal {
+        if !isDayComposerLocal && chrono.hasTimingContext {   // heure de début inconnue : jamais persistée
             SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
         }
     }
