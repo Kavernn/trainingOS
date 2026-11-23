@@ -212,75 +212,131 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(HealthKitService.unionSeconds([], within: window.0, window.1), 0)
     }
 
-    // MARK: - Sommeil : une source par nuit + union interne (correctif 2026-11-23)
+    // MARK: - Sommeil : épisodes, Apple Watch prioritaire, union interne (correctif v2)
 
-    @MainActor
-    private func sample(_ value: HKCategoryValueSleepAnalysis, _ from: Double, _ to: Double,
-                        source: String, watch: Bool, base: Date) -> HealthKitService.SleepSampleInput {
-        .init(value: value.rawValue, start: base.addingTimeInterval(from * 3600),
-              end: base.addingTimeInterval(to * 3600), sourceID: source, isAppleWatch: watch)
+    private static let mtl: Calendar = {
+        var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(identifier: "America/Toronto")!; return c
+    }()
+
+    /// "2026-11-23 05:39" → Date (heure de Montréal).
+    private static func at(_ s: String) -> Date {
+        let f = DateFormatter(); f.calendar = mtl; f.timeZone = mtl.timeZone; f.dateFormat = "yyyy-MM-dd HH:mm"
+        return f.date(from: s)!
     }
 
-    /// Fenêtre 18 h → 12 h ; heures exprimées depuis 18 h la veille (6 = minuit).
+    private typealias S = HealthKitService.SleepSampleInput
+    private static let watchID = "com.apple.health.watch", otherID = "com.example.sleepapp"
+
+    private static func w(_ v: HKCategoryValueSleepAnalysis, _ from: String, _ to: String) -> S {
+        S(value: v.rawValue, start: at(from), end: at(to), sourceID: watchID, isAppleWatch: true)
+    }
+    private static func app(_ v: HKCategoryValueSleepAnalysis, _ from: String, _ to: String, id: String = otherID) -> S {
+        S(value: v.rawValue, start: at(from), end: at(to), sourceID: id, isAppleWatch: false)
+    }
+
     @MainActor
-    func testSleepRetainsAppleWatchOnlyWhenAnotherAppOverlaps() throws {
-        let base = Date(timeIntervalSince1970: 2_000_000)
-        let w = "com.apple.health.watch", other = "com.example.sleepapp"
+    private func main(_ samples: [S], day: String) -> SleepWindow? {
+        HealthKitService.mainSleepEpisode(samples, wakeDay: Self.at("\(day) 12:00"), calendar: Self.mtl)
+    }
+
+    @MainActor
+    private func assertNight(_ n: SleepWindow?, hours: Double, bed: String, wake: String,
+                             file: StaticString = #filePath, line: UInt = #line) {
+        guard let n else { return XCTFail("aucun épisode", file: file, line: line) }
+        XCTAssertEqual(n.hours, hours, accuracy: 0.01, file: file, line: line)
+        XCTAssertEqual(n.bedtime, Self.at(bed), file: file, line: line)
+        XCTAssertEqual(n.wakeTime, Self.at(wake), file: file, line: line)
+    }
+
+    /// Nuit du 22-23 nov (reconstituée d'après l'audit : montre 7,08 h, 22:10 → 05:39) + app tierce.
+    @MainActor
+    func testSleepNight23NovWatchOnly() {
         let samples = [
-            // Montre : endormi 01:35 → 02:19, ÉVEILLÉ 02:19 → 03:42, endormi 03:42 → 08:59
-            sample(.asleepCore, 7.583, 8.317, source: w, watch: true, base: base),
-            sample(.awake,      8.317, 9.7,   source: w, watch: true, base: base),
-            sample(.asleepDeep, 9.7,   11.0,  source: w, watch: true, base: base),
-            sample(.asleepREM,  11.0,  14.983, source: w, watch: true, base: base),
-            // Autre app : « endormi » d'un bloc pendant toute la nuit, y compris le réveil
-            sample(.asleepUnspecified, 7.5, 15.0, source: other, watch: false, base: base),
+            Self.w(.asleepCore, "2026-11-22 22:10", "2026-11-22 23:40"),
+            Self.w(.awake,      "2026-11-22 23:40", "2026-11-22 23:52"),
+            Self.w(.asleepDeep, "2026-11-22 23:52", "2026-11-23 02:30"),
+            Self.w(.awake,      "2026-11-23 02:30", "2026-11-23 02:42"),
+            Self.w(.asleepREM,  "2026-11-23 02:42", "2026-11-23 05:39"),
+            Self.app(.asleepUnspecified, "2026-11-22 21:50", "2026-11-23 06:00"),
         ]
-        let night = try XCTUnwrap(HealthKitService.nightSleep(samples, within: base, base.addingTimeInterval(18 * 3600)))
-        // Montre seule : 0,733 + 1,3 + 3,983 = 6,017 h ; jamais la somme (≈ 13,5) ni l'union (7,5).
-        XCTAssertEqual(night.hours, 6.017, accuracy: 0.01)
-        XCTAssertEqual(night.bedtime, base.addingTimeInterval(7.583 * 3600))
-        XCTAssertEqual(night.wakeTime, base.addingTimeInterval(14.983 * 3600))
+        assertNight(main(samples, day: "2026-11-23"), hours: 7.08, bed: "2026-11-22 22:10", wake: "2026-11-23 05:39")
     }
 
+    /// Nuit du 20-21 nov (reconstituée : montre 7,51 h, 01:51 → 10:54, réveil 02:19 → 03:42
+    /// pendant que l'app tierce voit « endormi » — l'union le compterait à tort).
     @MainActor
-    func testSleepUnionInsideTheRetainedSource() throws {
-        let base = Date(timeIntervalSince1970: 3_000_000)
-        let w = "com.apple.health.watch"
-        // Phases + « endormi sans phase » qui les recouvre, même source : 7 h, pas 14.
+    func testSleepNight21NovWatchOnlyKeepsWatchAwakePeriod() {
         let samples = [
-            sample(.asleepCore, 6, 9,  source: w, watch: true, base: base),
-            sample(.asleepDeep, 9, 11, source: w, watch: true, base: base),
-            sample(.asleepREM, 11, 13, source: w, watch: true, base: base),
-            sample(.asleepUnspecified, 6, 13, source: w, watch: true, base: base),
-            sample(.inBed, 5, 14, source: w, watch: true, base: base),   // « au lit » ignoré
+            Self.w(.asleepCore, "2026-11-21 01:51", "2026-11-21 02:19"),
+            Self.w(.awake,      "2026-11-21 02:19", "2026-11-21 03:42"),
+            Self.w(.asleepDeep, "2026-11-21 03:42", "2026-11-21 06:00"),
+            Self.w(.asleepREM,  "2026-11-21 06:09", "2026-11-21 10:54"),
+            Self.app(.asleepUnspecified, "2026-11-21 01:30", "2026-11-21 10:54"),
         ]
-        let night = try XCTUnwrap(HealthKitService.nightSleep(samples, within: base, base.addingTimeInterval(18 * 3600)))
-        XCTAssertEqual(night.hours, 7, accuracy: 0.001)
+        assertNight(main(samples, day: "2026-11-21"), hours: 7.51, bed: "2026-11-21 01:51", wake: "2026-11-21 10:54")
     }
 
     @MainActor
-    func testSleepWithoutWatchPicksLongestSourceNeverAddsThem() throws {
-        let base = Date(timeIntervalSince1970: 4_000_000)
+    func testSleepLateNightWakingAfterNoonIsNotTruncated() {
+        let samples = [Self.w(.asleepCore, "2026-11-08 04:00", "2026-11-08 13:00")]
+        assertNight(main(samples, day: "2026-11-08"), hours: 9, bed: "2026-11-08 04:00", wake: "2026-11-08 13:00")
+    }
+
+    @MainActor
+    func testSleepTravelBedtimeBefore18hIsNotTruncated() {
+        // Décalage horaire : couché à 16:00 la veille, levé à 00:30.
+        let samples = [Self.w(.asleepCore, "2026-09-13 16:00", "2026-09-14 00:30")]
+        assertNight(main(samples, day: "2026-09-14"), hours: 8.5, bed: "2026-09-13 16:00", wake: "2026-09-14 00:30")
+    }
+
+    @MainActor
+    func testSleepAfternoonNapIsSeparateWhenGapExceeds3h() {
         let samples = [
-            sample(.asleepUnspecified, 6, 12, source: "app.a", watch: false, base: base),     // 6 h
-            sample(.asleepUnspecified, 6.5, 13.5, source: "app.b", watch: false, base: base), // 7 h
+            Self.w(.asleepCore, "2026-10-01 23:00", "2026-10-02 07:00"),
+            Self.w(.asleepCore, "2026-10-02 14:00", "2026-10-02 15:00"),   // sieste, écart 7 h
         ]
-        let night = try XCTUnwrap(HealthKitService.nightSleep(samples, within: base, base.addingTimeInterval(18 * 3600)))
-        XCTAssertEqual(night.hours, 7, accuracy: 0.001)
+        assertNight(main(samples, day: "2026-10-02"), hours: 8, bed: "2026-10-01 23:00", wake: "2026-10-02 07:00")
+        XCTAssertEqual(HealthKitService.sleepEpisodes(samples).count, 2)
     }
 
     @MainActor
-    func testSleepWindowBoundsAndEmptyNight() {
-        let base = Date(timeIntervalSince1970: 5_000_000)
-        let end = base.addingTimeInterval(18 * 3600)
-        let w = "com.apple.health.watch"
-        // Débordements avant 18 h et après 12 h coupés ; « au lit » seul = pas de nuit.
-        let night = HealthKitService.nightSleep([sample(.asleepCore, -2, 1, source: w, watch: true, base: base),
-                                                 sample(.asleepCore, 17, 20, source: w, watch: true, base: base)],
-                                                within: base, end)
-        XCTAssertEqual(night?.hours ?? -1, 2, accuracy: 0.001)
-        XCTAssertNil(HealthKitService.nightSleep([sample(.inBed, 6, 13, source: w, watch: true, base: base)], within: base, end))
-        XCTAssertNil(HealthKitService.nightSleep([], within: base, end))
+    func testSleepGapUnder3hStaysInTheSameEpisode() {
+        let samples = [
+            Self.w(.asleepCore, "2026-10-01 23:00", "2026-10-02 02:00"),
+            Self.w(.asleepCore, "2026-10-02 03:30", "2026-10-02 07:00"),   // réveil 1 h 30
+        ]
+        assertNight(main(samples, day: "2026-10-02"), hours: 6.5, bed: "2026-10-01 23:00", wake: "2026-10-02 07:00")
+    }
+
+    @MainActor
+    func testSleepUnionInsideTheRetainedSource() {
+        // Phases + « endormi sans phase » qui les recouvre + doublon, même source : 7 h, pas 14.
+        let samples = [
+            Self.w(.asleepCore, "2026-10-17 00:00", "2026-10-17 03:00"),
+            Self.w(.asleepDeep, "2026-10-17 03:00", "2026-10-17 05:00"),
+            Self.w(.asleepREM,  "2026-10-17 05:00", "2026-10-17 07:00"),
+            Self.w(.asleepUnspecified, "2026-10-17 00:00", "2026-10-17 07:00"),
+            Self.w(.asleepREM,  "2026-10-17 05:00", "2026-10-17 07:00"),
+            Self.w(.inBed,      "2026-10-16 23:30", "2026-10-17 07:30"),
+        ]
+        assertNight(main(samples, day: "2026-10-17"), hours: 7, bed: "2026-10-17 00:00", wake: "2026-10-17 07:00")
+    }
+
+    @MainActor
+    func testSleepWithoutWatchPicksLongestSourceNeverAddsThem() {
+        let samples = [
+            Self.app(.asleepUnspecified, "2026-10-10 00:00", "2026-10-10 06:00", id: "app.a"),
+            Self.app(.asleepUnspecified, "2026-10-10 00:30", "2026-10-10 07:30", id: "app.b"),
+        ]
+        assertNight(main(samples, day: "2026-10-10"), hours: 7, bed: "2026-10-10 00:30", wake: "2026-10-10 07:30")
+    }
+
+    @MainActor
+    func testSleepEpisodeEndingPreviousDayIsNotCountedAndEmptyIsNil() {
+        let previousNap = [Self.w(.asleepCore, "2026-10-09 13:00", "2026-10-09 14:00")]
+        XCTAssertNil(main(previousNap, day: "2026-10-10"))
+        XCTAssertNil(main([Self.w(.inBed, "2026-10-10 00:00", "2026-10-10 07:00")], day: "2026-10-10"))
+        XCTAssertNil(main([], day: "2026-10-10"))
     }
 
     // MARK: - Photo de profil (build 6c)

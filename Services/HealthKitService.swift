@@ -143,39 +143,45 @@ class HealthKitService: ObservableObject {
         return (fmt.string(from: date), steps, rhr)
     }
 
-    // MARK: - Sleep (une seule règle, une seule fenêtre — correctif 2026-11-23)
+    // MARK: - Sleep (épisodes — correctif 2026-11-23, v2)
     //
-    // Fenêtre unique : nuit précédant `date`, 18 h la veille → 12 h. Une source par nuit
-    // (Apple Watch si présente, sinon la source au plus long sommeil), union des intervalles
-    // « endormi » de cette source. Avant : somme de tous les échantillons, toutes sources,
-    // limite 100, fenêtre « 18 dernières heures » pour la synchro du jour → 12,75 h stockées
-    // pour ~7 h le 23 nov (Apple Watch + Pillow additionnées).
+    // Le sommeil d'un jour J = l'épisode principal (le plus long) qui se TERMINE le jour J.
+    // Épisode = échantillons « endormi » d'une même source séparés par moins de
+    // sleepEpisodeMaxGap ; durée = union des intervalles (réveils exclus, doublons et
+    // chevauchements comptés une fois). Source : Apple Watch si présente sur la plage, sinon
+    // la source au plus long sommeil — jamais d'addition entre sources.
+    // Plage de lecture large (veille 12 h → J 18 h) pour ne jamais couper un épisode.
+    // Historique : somme toutes sources + limite 100 (12,75 h le 23 nov) ; puis fenêtre fixe
+    // 18 h → 12 h (f88d4e78) qui tronquait les levers après midi et les couchers avant 18 h.
 
-    /// Durée de la nuit précédant aujourd'hui (même règle et même fenêtre que fetchSleep).
+    /// Écart maximal entre deux échantillons « endormi » d'un même épisode.
+    static let sleepEpisodeMaxGap: TimeInterval = 3 * 3600
+
+    /// Sommeil du jour (épisode principal terminé aujourd'hui).
     func fetchLastNightSleep() async -> Double? {
         await fetchNightSleep(for: Date())?.hours
     }
 
-    /// Sleep hours for the night that precedes `date` (18:00 day-1 → 12:00 day).
+    /// Sleep hours of the main episode ending on `date`.
     func fetchSleep(for date: Date) async -> Double? {
         await fetchNightSleep(for: date)?.hours
     }
 
-    /// Bedtime + wakeTime + hours for the night preceding `date` (same window and rule).
+    /// Bedtime + wakeTime + hours of the main episode ending on `date` (same rule).
     func fetchSleepWindow(for date: Date) async -> SleepWindow? {
         await fetchNightSleep(for: date)
     }
 
-    private func nightWindow(for date: Date) -> (start: Date, end: Date) {
-        (cal.safeDateByAdding(.hour, value: -6, to: cal.startOfDay(for: date)),
-         cal.safeDateByAdding(.hour, value: 12, to: cal.startOfDay(for: date)))
+    private func sleepReadRange(for date: Date) -> (start: Date, end: Date) {
+        (cal.safeDateByAdding(.hour, value: -12, to: cal.startOfDay(for: date)),
+         cal.safeDateByAdding(.hour, value: 18, to: cal.startOfDay(for: date)))
     }
 
     private func fetchNightSleep(for date: Date) async -> SleepWindow? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
-        let window = nightWindow(for: date)
-        let samples = await sleepSamples(type: type, start: window.start, end: window.end)
-        return Self.nightSleep(samples.map(Self.input), within: window.start, window.end)
+        let range = sleepReadRange(for: date)
+        let samples = await sleepSamples(type: type, start: range.start, end: range.end)
+        return Self.mainSleepEpisode(samples.map(Self.input), wakeDay: date, calendar: cal)
     }
 
     private func sleepSamples(type: HKCategoryType, start: Date, end: Date) async -> [HKCategorySample] {
@@ -210,31 +216,51 @@ class HealthKitService: ObservableObject {
         HKCategoryValueSleepAnalysis.asleepDeep.rawValue, HKCategoryValueSleepAnalysis.asleepREM.rawValue,
     ]
 
-    /// Règle générique, sans nom d'app en dur : Apple Watch si elle a des échantillons
-    /// « endormi » cette nuit, sinon la source au plus long sommeil (union), départage par
-    /// identifiant. Union des intervalles DANS la source retenue ; coucher / lever = bornes de
-    /// ces mêmes intervalles. Raison : deux sources ne s'additionnent pas, et l'union de deux
-    /// sources compterait comme sommeil un réveil vu par la montre (21 nov, 02:19 → 03:42).
-    static func nightSleep(_ samples: [SleepSampleInput], within start: Date, _ end: Date) -> SleepWindow? {
-        let asleep = samples.filter { asleepValues.contains($0.value) && $0.start < end && $0.end > start }
-        guard !asleep.isEmpty else { return nil }
-        func seconds(_ s: [SleepSampleInput]) -> TimeInterval {
-            unionSeconds(s.map { ($0.start, $0.end) }, within: start, end)
-        }
+    /// Source retenue : Apple Watch si elle a des échantillons « endormi », sinon la source au
+    /// plus long sommeil (union), départage par identifiant. Règle générique, sans nom d'app.
+    static func retainedSource(_ asleep: [SleepSampleInput]) -> [SleepSampleInput] {
         let watch = asleep.filter(\.isAppleWatch)
-        let chosen: [SleepSampleInput]
-        if !watch.isEmpty {
-            chosen = watch
-        } else {
-            chosen = Dictionary(grouping: asleep, by: \.sourceID)
-                .map { (id: $0.key, samples: $0.value, seconds: seconds($0.value)) }
-                .max { ($0.seconds, $1.id) < ($1.seconds, $0.id) }?.samples ?? []
+        if !watch.isEmpty { return watch }
+        func seconds(_ s: [SleepSampleInput]) -> TimeInterval {
+            guard let lo = s.map(\.start).min(), let hi = s.map(\.end).max() else { return 0 }
+            return unionSeconds(s.map { ($0.start, $0.end) }, within: lo, hi)
         }
-        let total = seconds(chosen)
-        guard total > 0 else { return nil }
-        let bedtime  = max(chosen.map(\.start).min()!, start)
-        let wakeTime = min(chosen.map(\.end).max()!, end)
-        return SleepWindow(bedtime: bedtime, wakeTime: wakeTime, hours: total / 3600.0)
+        return Dictionary(grouping: asleep, by: \.sourceID)
+            .map { (id: $0.key, samples: $0.value, seconds: seconds($0.value)) }
+            .max { ($0.seconds, $1.id) < ($1.seconds, $0.id) }?.samples ?? []
+    }
+
+    /// Épisodes de sommeil de la source retenue : échantillons « endormi » triés, regroupés
+    /// tant que l'écart avec la fin de l'épisode courant est < maxGap. Aucune troncature.
+    static func sleepEpisodes(_ samples: [SleepSampleInput],
+                              maxGap: TimeInterval = sleepEpisodeMaxGap) -> [SleepWindow] {
+        let asleep = retainedSource(samples.filter { asleepValues.contains($0.value) && $0.end > $0.start })
+            .sorted { $0.start < $1.start }
+        var groups: [[SleepSampleInput]] = []
+        var groupEnd = Date.distantPast
+        for sample in asleep {
+            if !groups.isEmpty, sample.start.timeIntervalSince(groupEnd) < maxGap {
+                groups[groups.count - 1].append(sample)
+                groupEnd = max(groupEnd, sample.end)
+            } else {
+                groups.append([sample])
+                groupEnd = sample.end
+            }
+        }
+        return groups.compactMap { g in
+            guard let bed = g.map(\.start).min(), let wake = g.map(\.end).max() else { return nil }
+            let hours = unionSeconds(g.map { ($0.start, $0.end) }, within: bed, wake) / 3600.0
+            return hours > 0 ? SleepWindow(bedtime: bed, wakeTime: wake, hours: hours) : nil
+        }
+    }
+
+    /// Sommeil du jour `wakeDay` : l'épisode le plus long qui se termine ce jour-là
+    /// (une sieste séparée de plus de maxGap n'est ni fusionnée ni additionnée).
+    static func mainSleepEpisode(_ samples: [SleepSampleInput], wakeDay: Date, calendar: Calendar,
+                                 maxGap: TimeInterval = sleepEpisodeMaxGap) -> SleepWindow? {
+        sleepEpisodes(samples, maxGap: maxGap)
+            .filter { calendar.isDate($0.wakeTime, inSameDayAs: wakeDay) }
+            .max { $0.hours < $1.hours }
     }
 
     /// Durée réellement couverte par des intervalles (union, chevauchements comptés une fois),
@@ -260,8 +286,8 @@ class HealthKitService: ObservableObject {
 
     #if DEBUG
     /// Diagnostic LECTURE SEULE, DEBUG ET flag explicite : argument de lancement
-    /// `-sleepAudit YES` (schéma Xcode → Run → Arguments). Une fois par lancement : par nuit
-    /// (18 h → 12 h), ancienne somme vs union vs valeur retenue par la règle ; échantillons bruts
+    /// `-sleepAudit YES` (schéma Xcode → Run → Arguments). Une fois par lancement : par jour
+    /// (plage veille 12 h → J 18 h), somme brute vs union vs épisode principal retenu ; échantillons bruts
     /// des 3 dernières nuits. Console : catégorie sleep-audit.
     private static var didAuditSleep = false
     func debugAuditSleep(days: Int = 100) async {
@@ -286,10 +312,10 @@ class HealthKitService: ObservableObject {
         let today = cal.startOfDay(for: Date())
         for back in 0..<days {
             let day   = cal.safeDateByAdding(.day, value: -back, to: today)
-            let start = cal.safeDateByAdding(.hour, value: -6, to: day)
-            let end   = cal.safeDateByAdding(.hour, value: 12, to: day)
+            let range = sleepReadRange(for: day)
+            let (start, end) = (range.start, range.end)
             let samples = await sleepSamples(type: type, start: start, end: end)
-            let night = Self.nightSleep(samples.map(Self.input), within: start, end)
+            let night = Self.mainSleepEpisode(samples.map(Self.input), wakeDay: day, calendar: cal)
             let retained = night?.hours
             let hhmm: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
             let bedWake = night.map { "\(hhmm.string(from: $0.bedtime))→\(hhmm.string(from: $0.wakeTime))" } ?? "nil"
