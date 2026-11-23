@@ -236,7 +236,7 @@ final class APIModelsTests: XCTestCase {
 
     @MainActor
     private func main(_ samples: [S], day: String) -> SleepWindow? {
-        HealthKitService.mainSleepEpisode(samples, wakeDay: Self.at("\(day) 12:00"), calendar: Self.mtl)
+        HealthKitService.daySleep(samples, day: Self.at("\(day) 12:00"), calendar: Self.mtl)
     }
 
     @MainActor
@@ -287,6 +287,45 @@ final class APIModelsTests: XCTestCase {
         // Décalage horaire : couché à 16:00 la veille, levé à 00:30.
         let samples = [Self.w(.asleepCore, "2026-09-13 16:00", "2026-09-14 00:30")]
         assertNight(main(samples, day: "2026-09-14"), hours: 8.5, bed: "2026-09-13 16:00", wake: "2026-09-14 00:30")
+    }
+
+    /// 11 nov (reconstitué d'après l'audit) : fragment 22:54 → 23:24, réveil > 3 h, nuit
+    /// 02:35 → 06:35 (3,75 h dormies). Somme des épisodes nocturnes : 4,25 h, coucher 22:54.
+    @MainActor
+    func testSleepNight11NovEveningFragmentIsAdded() {
+        let samples = [
+            Self.w(.asleepCore, "2026-11-10 22:54", "2026-11-10 23:24"),
+            Self.w(.asleepCore, "2026-11-11 02:35", "2026-11-11 04:00"),
+            Self.w(.awake,      "2026-11-11 04:00", "2026-11-11 04:15"),
+            Self.w(.asleepREM,  "2026-11-11 04:15", "2026-11-11 06:35"),
+        ]
+        assertNight(main(samples, day: "2026-11-11"), hours: 4.25, bed: "2026-11-10 22:54", wake: "2026-11-11 06:35")
+        XCTAssertEqual(HealthKitService.sleepEpisodes(samples).count, 2)
+    }
+
+    /// 9 nov (reconstitué) : fin de la nuit tardive du 8 (→ 13:46) dans la plage lue mais rattachée
+    /// au 8 ; fragment 23:02 → 23:20 le 8 au soir + nuit 02:51 → 10:44 (7,22 h). Le 9 = 7,52 h.
+    @MainActor
+    func testSleepNight9NovKeepsFragmentAndExcludesPreviousLateMorning() {
+        let samples = [
+            Self.w(.asleepCore, "2026-11-08 02:41", "2026-11-08 13:46"),   // nuit du 8 (non comptée le 9)
+            Self.w(.asleepCore, "2026-11-08 23:02", "2026-11-08 23:20"),   // fragment
+            Self.w(.asleepCore, "2026-11-09 02:51", "2026-11-09 06:00"),
+            Self.w(.awake,      "2026-11-09 06:00", "2026-11-09 06:40"),
+            Self.w(.asleepREM,  "2026-11-09 06:40", "2026-11-09 10:44"),
+        ]
+        assertNight(main(samples, day: "2026-11-09"), hours: 7.52, bed: "2026-11-08 23:02", wake: "2026-11-09 10:44")
+        assertNight(main(samples, day: "2026-11-08"), hours: 11.083, bed: "2026-11-08 02:41", wake: "2026-11-08 13:46")
+    }
+
+    /// Synchro pendant le sommeil puis plus tard : la règle est sans état, la relecture plus tard
+    /// donne la nuit complète (le blocage éventuel est côté stockage, pas côté lecture).
+    @MainActor
+    func testSleepLaterReadGivesTheFullNight() {
+        let full = [Self.w(.asleepCore, "2026-11-08 02:41", "2026-11-08 13:46")]
+        let at1205 = [Self.w(.asleepCore, "2026-11-08 02:41", "2026-11-08 12:05")]   // vu à 12:05
+        assertNight(main(at1205, day: "2026-11-08"), hours: 9.4, bed: "2026-11-08 02:41", wake: "2026-11-08 12:05")
+        assertNight(main(full, day: "2026-11-08"), hours: 11.083, bed: "2026-11-08 02:41", wake: "2026-11-08 13:46")
     }
 
     @MainActor
