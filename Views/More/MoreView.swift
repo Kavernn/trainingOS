@@ -97,36 +97,8 @@ struct MoreView: View {
         }
     }
 
-    @ViewBuilder
     private var profileAvatar: some View {
-        let p = api.dashboard?.profile
-        if let urlStr = p?.photoUrl, let url = URL(string: urlStr) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let img):
-                    img.resizable().scaledToFill().clipShape(Circle())
-                default:
-                    profileInitialsCircle
-                }
-            }
-        } else if let b64 = p?.photoB64,
-                  let data = Data(base64Encoded: b64.components(separatedBy: ",").last ?? ""),
-                  let ui = UIImage(data: data) {
-            Image(uiImage: ui).resizable().scaledToFill().clipShape(Circle())
-        } else {
-            profileInitialsCircle
-        }
-    }
-
-    private var profileInitialsCircle: some View {
-        ZStack {
-            Circle()
-                .fill(LinearGradient(colors: [Color.statusPurple.opacity(0.35), Color.forge.opacity(0.25)],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-            Text(api.dashboard?.profile.name?.prefix(1).uppercased() ?? "?")
-                .font(.system(size: 22, weight: .black))
-                .foregroundColor(.white)
-        }
+        ProfileAvatarView(profile: api.dashboard?.profile, size: 52)
     }
 
     private func glassRowBG(_ color: Color) -> some View {

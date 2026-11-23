@@ -947,16 +947,21 @@ struct ProfileView: View {
 
     private func uploadPhoto(_ image: UIImage) async {
         isUploadingPhoto = true
-        let resized = image.resized(to: CGSize(width: 600, height: 600))
-        guard let jpegData = resized.jpegData(compressionQuality: 0.7) else {
-            isUploadingPhoto = false; return
-        }
-        let b64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
-        guard b64.count < 500_000 else {
+        // Réduction automatique (512 px, JPEG 0,8) : n'importe quelle photo passe.
+        guard let jpegData = image.avatarJPEG(), let resized = UIImage(data: jpegData) else {
             isUploadingPhoto = false
-            photoError = "Image trop lourde (\(jpegData.count / 1024)KB). Choisis une photo plus petite."
+            photoError = "Photo illisible — choisis-en une autre."
             return
         }
+        // Garde de sécurité seulement (512 px ≈ 30-150 Ko). 500 Ko bruts ≈ 683 000 car.
+        // en base64, sous la limite serveur de 800 000 (routes/profile.py).
+        let limitBytes = 500 * 1024
+        guard jpegData.count <= limitBytes else {
+            isUploadingPhoto = false
+            photoError = "Photo trop lourde après compression (\(jpegData.count / 1024) Ko, limite \(limitBytes / 1024) Ko)."
+            return
+        }
+        let b64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
         do {
             guard let url = URL(string: "\(APIConfig.base)/api/update_profile_photo") else {
                 photoError = "URL invalide"; isUploadingPhoto = false; return
@@ -965,7 +970,21 @@ struct ProfileView: View {
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try JSONSerialization.data(withJSONObject: ["photo_b64": b64])
-            let (_, _) = try await URLSession.authed.data(for: req)
+            let (data, response) = try await URLSession.authed.data(for: req)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            guard (200...299).contains(status), json?["success"] as? Bool == true,
+                  let urlString = json?["photo_url"] as? String, let photoURL = URL(string: urlString) else {
+                // Échec visible : la photo affichée reste l'ancienne.
+                switch json?["error"] as? String {
+                case "storage_unavailable": photoError = "Stockage photo indisponible — réessaie."
+                case "profile_save_failed": photoError = "Photo non enregistrée dans le profil — réessaie."
+                default:                    photoError = "Envoi de la photo impossible (HTTP \(status))."
+                }
+                isUploadingPhoto = false
+                return
+            }
+            ProfileAvatarCache.store(resized, for: photoURL)
             profileImage = resized
             await api.fetchDashboard()
         } catch {
@@ -976,6 +995,26 @@ struct ProfileView: View {
 }
 
 // MARK: - Shared Profile Avatar
+
+/// Photo de profil téléchargée et décodée une seule fois par URL (chaque photo a
+/// une URL unique côté Storage : une nouvelle photo = une nouvelle clé).
+@MainActor
+enum ProfileAvatarCache {
+    private static let images = NSCache<NSURL, UIImage>()
+
+    static func cached(_ url: URL) -> UIImage? { images.object(forKey: url as NSURL) }
+
+    static func store(_ image: UIImage, for url: URL) { images.setObject(image, forKey: url as NSURL) }
+
+    static func load(_ url: URL) async -> UIImage? {
+        if let hit = cached(url) { return hit }
+        guard let (data, response) = try? await URLSession.shared.data(from: url),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let image = UIImage(data: data) else { return nil }
+        store(image, for: url)
+        return image
+    }
+}
 
 struct ProfileAvatarView: View {
     let profile: UserProfile?
@@ -1001,29 +1040,24 @@ struct ProfileAvatarView: View {
             .accessibilityHidden(true)
     }
 
+    // Le cache est la seule source de l'image ; ces états ne servent qu'à re-rendre.
+    @State private var loadedURL: URL? = nil
+    @State private var loadFailedURL: URL? = nil
+
+    private var photoURL: URL? { profile?.photoUrl.flatMap(URL.init(string:)) }
+
     @ViewBuilder
     private var avatarContent: some View {
-        if let overrideImage {
-            Image(uiImage: overrideImage)
-                .resizable()
-                .scaledToFill()
-        } else if let urlString = profile?.photoUrl, let url = URL(string: urlString) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                case .failure:
-                    fallback
-                default:
-                    loadingPlaceholder
-                }
-            }
-        } else if let encoded = profile?.photoB64,
-                  let data = Data(base64Encoded: encoded.components(separatedBy: ",").last ?? ""),
-                  let image = UIImage(data: data) {
+        if let image = overrideImage ?? photoURL.flatMap(ProfileAvatarCache.cached) {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
+        } else if let url = photoURL, loadFailedURL != url {
+            loadingPlaceholder
+                .task(id: url) {
+                    if await ProfileAvatarCache.load(url) != nil { loadedURL = url }
+                    else { loadFailedURL = url }
+                }
         } else {
             fallback
         }
@@ -1249,11 +1283,20 @@ struct ShareSheet: UIViewControllerRepresentable {
 // MARK: - UIImage resize helper
 
 extension UIImage {
-    func resized(to maxSize: CGSize) -> UIImage {
-        let ratio = min(maxSize.width / size.width, maxSize.height / size.height, 1)
-        let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
-        let renderer = UIGraphicsImageRenderer(size: newSize)
-        return renderer.image { _ in draw(in: CGRect(origin: .zero, size: newSize)) }
+    /// JPEG d'avatar : côté le plus long ≤ maxPixelSide **pixels**, orientation EXIF appliquée.
+    /// format.scale = 1 obligatoire : le défaut (échelle écran, 3×) produisait 1800 px pour « 600 ».
+    func avatarJPEG(maxPixelSide: CGFloat = 512, quality: CGFloat = 0.8) -> Data? {
+        // size est déjà orienté (EXIF) ; draw(in:) applique l'orientation → pixels droits.
+        let pixelSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let ratio = min(maxPixelSide / max(pixelSize.width, pixelSize.height), 1)
+        let target = CGSize(width: (pixelSize.width * ratio).rounded(), height: (pixelSize.height * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let image = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: target))
+        }
+        return image.jpegData(compressionQuality: quality)
     }
 }
 

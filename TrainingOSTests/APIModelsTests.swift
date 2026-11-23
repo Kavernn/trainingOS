@@ -4,6 +4,7 @@
 //
 
 import XCTest
+import UIKit
 @testable import TrainingOS
 
 final class APIModelsTests: XCTestCase {
@@ -116,6 +117,75 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNil(decoded.muscleSpecific)
         XCTAssertTrue(decoded.secondaryMuscles.isEmpty)
         XCTAssertTrue(decoded.legacyMuscles.isEmpty)
+    }
+
+    // MARK: - Photo de profil (build 6c)
+
+    func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {
+        let json = Data(#"{"name":"Vince","photo_url":"https://x.co/profile-photos/user_1/a.jpg","photo_b64":"data:image/jpeg;base64,/9j/AAAA"}"#.utf8)
+        let profile = try JSONDecoder().decode(UserProfile.self, from: json)
+        XCTAssertEqual(profile.photoUrl, "https://x.co/profile-photos/user_1/a.jpg")
+        let withoutPhoto = try JSONDecoder().decode(UserProfile.self, from: Data(#"{"name":"Vince","photo_b64":null}"#.utf8))
+        XCTAssertNil(withoutPhoto.photoUrl)
+    }
+
+    @MainActor
+    func testProfileAvatarCacheServesStoredImageWithoutNetwork() async {
+        // Hôte .invalid : un accès réseau échouerait → load() rendrait nil.
+        let url = URL(string: "https://avatar.invalid/user_1/\(UUID().uuidString).jpg")!
+        XCTAssertNil(ProfileAvatarCache.cached(url))
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { _ in }
+        ProfileAvatarCache.store(image, for: url)
+        XCTAssertTrue(ProfileAvatarCache.cached(url) === image)
+        let loaded = await ProfileAvatarCache.load(url)
+        XCTAssertTrue(loaded === image)
+    }
+
+    func testAvatarJPEGShrinks4000x3000ToAtMost512PixelsUnder150KB() throws {
+        let data = try XCTUnwrap(Self.photoLike(width: 4000, height: 3000).avatarJPEG())
+        let decoded = try XCTUnwrap(UIImage(data: data)?.cgImage)
+        XCTAssertEqual(decoded.width, 512)
+        XCTAssertEqual(decoded.height, 384)
+        XCTAssertLessThan(data.count, 150 * 1024)
+        // Format envoyé : sous la limite serveur de 800 000 caractères (routes/profile.py).
+        XCTAssertLessThan(("data:image/jpeg;base64," + data.base64EncodedString()).count, 800_000)
+    }
+
+    func testAvatarJPEGAppliesEXIFOrientation() throws {
+        let landscape = try XCTUnwrap(Self.photoLike(width: 4000, height: 3000).cgImage)
+        let portrait = UIImage(cgImage: landscape, scale: 1, orientation: .right)  // photo prise en portrait
+        let decoded = try XCTUnwrap(UIImage(data: XCTUnwrap(portrait.avatarJPEG()))?.cgImage)
+        XCTAssertEqual(decoded.width, 384)
+        XCTAssertEqual(decoded.height, 512)
+    }
+
+    func testAvatarJPEGNeverUpscalesSmallImages() throws {
+        let decoded = try XCTUnwrap(UIImage(data: XCTUnwrap(Self.photoLike(width: 200, height: 100).avatarJPEG()))?.cgImage)
+        XCTAssertEqual(decoded.width, 200)
+        XCTAssertEqual(decoded.height, 100)
+    }
+
+    /// Image en pixels (scale 1) avec dégradés + motifs, plus réaliste qu'un aplat.
+    private static func photoLike(width: Int, height: Int) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { ctx in
+            let colors = [UIColor.systemOrange.cgColor, UIColor.systemIndigo.cgColor] as CFArray
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: nil)!
+            ctx.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: width, y: height), options: [])
+            for i in stride(from: 0, to: width, by: 97) {
+                UIColor(white: CGFloat(i % 7) / 7, alpha: 0.5).setFill()
+                ctx.fill(CGRect(x: i, y: (i * 13) % height, width: 60, height: 60))
+            }
+        }
+    }
+
+    @MainActor
+    func testProfileAvatarCacheLoadFailureReturnsNil() async {
+        let url = URL(string: "https://avatar.invalid/user_1/\(UUID().uuidString).jpg")!
+        let loaded = await ProfileAvatarCache.load(url)
+        XCTAssertNil(loaded)
+        XCTAssertNil(ProfileAvatarCache.cached(url))
     }
 
     // MARK: - SeanceData
