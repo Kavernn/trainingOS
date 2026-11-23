@@ -1,0 +1,25 @@
+-- Migration 109 — recovery_logs.manual_fields (source par champ réellement saisi)
+--
+-- POURQUOI : tout check-in (écran du matin ou fiche récupération) marque la ligne
+-- entière source = 'manual'. merge_recovery_wearable (db_body.py:309) ne réécrit alors
+-- plus AUCUN des 10 champs HealthKit déjà remplis (sommeil, coucher/lever, HRV, FC repos,
+-- FC matin/post-séance/soir, pas, énergie active). Une synchro faite pendant le sommeil
+-- reste définitive (levers stockés ≈ 12 h les 8 nov, 2 oct, 26 sept) et le HRV / la FC
+-- repos du jour ne bougent plus après le check-in.
+--
+-- NOUVELLE RÈGLE (validée par Vince le 2026-11-23) : manual_fields = liste des champs
+-- HealthKit explicitement déclarés saisis par l'app (ou par sleep/log pour le sommeil).
+-- La synchro réécrit tout champ HealthKit absent de cette liste ; pas et énergie active
+-- toujours réécrits. NULL = aucun champ manuel (lignes existantes comprises).
+--
+-- Pas de dollar-quoting, pas d'index (règles migrations TrainingOS).
+-- RLS : table existante, policies inchangées.
+--
+-- EXÉCUTÉE PAR VINCE dans l'éditeur SQL Supabase le 2026-11-23. Script ci-dessous =
+-- texte exact exécuté. Vérification :
+--   SELECT column_name, data_type, udt_name FROM information_schema.columns
+--   WHERE table_name = 'recovery_logs' AND column_name = 'manual_fields';
+--   → manual_fields | ARRAY | _text
+-- Non inscrite dans schema_migrations.
+
+ALTER TABLE public.recovery_logs ADD COLUMN IF NOT EXISTS manual_fields TEXT[];
