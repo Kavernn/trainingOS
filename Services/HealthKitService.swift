@@ -143,88 +143,98 @@ class HealthKitService: ObservableObject {
         return (fmt.string(from: date), steps, rhr)
     }
 
-    // MARK: - Sleep (last night)
+    // MARK: - Sleep (une seule règle, une seule fenêtre — correctif 2026-11-23)
+    //
+    // Fenêtre unique : nuit précédant `date`, 18 h la veille → 12 h. Une source par nuit
+    // (Apple Watch si présente, sinon la source au plus long sommeil), union des intervalles
+    // « endormi » de cette source. Avant : somme de tous les échantillons, toutes sources,
+    // limite 100, fenêtre « 18 dernières heures » pour la synchro du jour → 12,75 h stockées
+    // pour ~7 h le 23 nov (Apple Watch + Pillow additionnées).
+
+    /// Durée de la nuit précédant aujourd'hui (même règle et même fenêtre que fetchSleep).
     func fetchLastNightSleep() async -> Double? {
-        return await fetchLastNightSleepWindow()?.hours
+        await fetchNightSleep(for: Date())?.hours
     }
 
     /// Sleep hours for the night that precedes `date` (18:00 day-1 → 12:00 day).
     func fetchSleep(for date: Date) async -> Double? {
-        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
-
-        let start = cal.safeDateByAdding(.hour, value: -6, to: cal.startOfDay(for: date))
-        let end   = cal.safeDateByAdding(.hour, value: 12, to: cal.startOfDay(for: date))
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
-        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-        return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 100, sortDescriptors: [sort]) { _, samples, _ in
-                guard let samples = samples as? [HKCategorySample] else { cont.resume(returning: nil); return }
-                let asleep = samples.filter {
-                    $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepCore.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
-                }
-                guard !asleep.isEmpty else { cont.resume(returning: nil); return }
-                let total = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
-                cont.resume(returning: total > 0 ? total / 3600.0 : nil)
-            }
-            store.execute(q)
-        }
+        await fetchNightSleep(for: date)?.hours
     }
 
-    /// Returns the bedtime, wake time, and total sleep duration from HealthKit for the last 18h window.
-    func fetchLastNightSleepWindow() async -> SleepWindow? {
-        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
-        let now   = Date()
-        let start = cal.safeDateByAdding(.hour, value: -18, to: now)
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: now)
-        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-        return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 100, sortDescriptors: [sort]) { _, samples, _ in
-                guard let samples = samples as? [HKCategorySample] else { cont.resume(returning: nil); return }
-                let asleep = samples.filter {
-                    $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepCore.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
-                }
-                guard !asleep.isEmpty else { cont.resume(returning: nil); return }
-                let totalSec = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
-                guard totalSec > 0 else { cont.resume(returning: nil); return }
-                let bedtime  = asleep.min(by: { $0.startDate < $1.startDate })!.startDate
-                let wakeTime = asleep.max(by: { $0.endDate   < $1.endDate   })!.endDate
-                cont.resume(returning: SleepWindow(bedtime: bedtime, wakeTime: wakeTime, hours: totalSec / 3600.0))
-            }
-            store.execute(q)
-        }
-    }
-
-    /// Bedtime + wakeTime for the night preceding `date` (same window as fetchSleep).
+    /// Bedtime + wakeTime + hours for the night preceding `date` (same window and rule).
     func fetchSleepWindow(for date: Date) async -> SleepWindow? {
+        await fetchNightSleep(for: date)
+    }
+
+    private func nightWindow(for date: Date) -> (start: Date, end: Date) {
+        (cal.safeDateByAdding(.hour, value: -6, to: cal.startOfDay(for: date)),
+         cal.safeDateByAdding(.hour, value: 12, to: cal.startOfDay(for: date)))
+    }
+
+    private func fetchNightSleep(for date: Date) async -> SleepWindow? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
-        let start = cal.safeDateByAdding(.hour, value: -6, to: cal.startOfDay(for: date))
-        let end   = cal.safeDateByAdding(.hour, value: 12, to: cal.startOfDay(for: date))
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
-        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let window = nightWindow(for: date)
+        let samples = await sleepSamples(type: type, start: window.start, end: window.end)
+        return Self.nightSleep(samples.map(Self.input), within: window.start, window.end)
+    }
+
+    private func sleepSamples(type: HKCategoryType, start: Date, end: Date) async -> [HKCategorySample] {
+        let pred = HKQuery.predicateForSamples(withStart: start, end: end)
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 100, sortDescriptors: [sort]) { _, samples, _ in
-                guard let samples = samples as? [HKCategorySample] else { cont.resume(returning: nil); return }
-                let asleep = samples.filter {
-                    $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepCore.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
-                    $0.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
-                }
-                guard !asleep.isEmpty else { cont.resume(returning: nil); return }
-                let totalSec = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
-                guard totalSec > 0 else { cont.resume(returning: nil); return }
-                let bedtime  = asleep.min(by: { $0.startDate < $1.startDate })!.startDate
-                let wakeTime = asleep.max(by: { $0.endDate   < $1.endDate   })!.endDate
-                cont.resume(returning: SleepWindow(bedtime: bedtime, wakeTime: wakeTime, hours: totalSec / 3600.0))
+            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: HKObjectQueryNoLimit,
+                                  sortDescriptors: [sort]) { _, samples, _ in
+                cont.resume(returning: (samples as? [HKCategorySample]) ?? [])
             }
             store.execute(q)
         }
+    }
+
+    /// Échantillon de sommeil réduit à ce dont la règle a besoin (testable sans HealthKit).
+    struct SleepSampleInput {
+        let value: Int
+        let start: Date
+        let end: Date
+        let sourceID: String
+        let isAppleWatch: Bool
+    }
+
+    static func input(_ s: HKCategorySample) -> SleepSampleInput {
+        SleepSampleInput(value: s.value, start: s.startDate, end: s.endDate,
+                         sourceID: s.sourceRevision.source.bundleIdentifier,
+                         isAppleWatch: s.sourceRevision.productType?.hasPrefix("Watch") == true)
+    }
+
+    static let asleepValues: Set<Int> = [
+        HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue, HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+        HKCategoryValueSleepAnalysis.asleepDeep.rawValue, HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+    ]
+
+    /// Règle générique, sans nom d'app en dur : Apple Watch si elle a des échantillons
+    /// « endormi » cette nuit, sinon la source au plus long sommeil (union), départage par
+    /// identifiant. Union des intervalles DANS la source retenue ; coucher / lever = bornes de
+    /// ces mêmes intervalles. Raison : deux sources ne s'additionnent pas, et l'union de deux
+    /// sources compterait comme sommeil un réveil vu par la montre (21 nov, 02:19 → 03:42).
+    static func nightSleep(_ samples: [SleepSampleInput], within start: Date, _ end: Date) -> SleepWindow? {
+        let asleep = samples.filter { asleepValues.contains($0.value) && $0.start < end && $0.end > start }
+        guard !asleep.isEmpty else { return nil }
+        func seconds(_ s: [SleepSampleInput]) -> TimeInterval {
+            unionSeconds(s.map { ($0.start, $0.end) }, within: start, end)
+        }
+        let watch = asleep.filter(\.isAppleWatch)
+        let chosen: [SleepSampleInput]
+        if !watch.isEmpty {
+            chosen = watch
+        } else {
+            chosen = Dictionary(grouping: asleep, by: \.sourceID)
+                .map { (id: $0.key, samples: $0.value, seconds: seconds($0.value)) }
+                .max { ($0.seconds, $1.id) < ($1.seconds, $0.id) }?.samples ?? []
+        }
+        let total = seconds(chosen)
+        guard total > 0 else { return nil }
+        let bedtime  = max(chosen.map(\.start).min()!, start)
+        let wakeTime = min(chosen.map(\.end).max()!, end)
+        return SleepWindow(bedtime: bedtime, wakeTime: wakeTime, hours: total / 3600.0)
     }
 
     /// Durée réellement couverte par des intervalles (union, chevauchements comptés une fois),
@@ -249,19 +259,17 @@ class HealthKitService: ObservableObject {
     }
 
     #if DEBUG
-    /// Diagnostic LECTURE SEULE (DEBUG, une fois par lancement) : par nuit (18 h → 12 h),
-    /// somme actuelle des échantillons « endormi » vs union des intervalles ; échantillons
-    /// bruts (type, début, fin, source) pour les 3 dernières nuits. Console : catégorie sleep-audit.
+    /// Diagnostic LECTURE SEULE, DEBUG ET flag explicite : argument de lancement
+    /// `-sleepAudit YES` (schéma Xcode → Run → Arguments). Une fois par lancement : par nuit
+    /// (18 h → 12 h), ancienne somme vs union vs valeur retenue par la règle ; échantillons bruts
+    /// des 3 dernières nuits. Console : catégorie sleep-audit.
     private static var didAuditSleep = false
     func debugAuditSleep(days: Int = 100) async {
-        guard !Self.didAuditSleep,
+        guard UserDefaults.standard.bool(forKey: "sleepAudit"), !Self.didAuditSleep,
               let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return }
         Self.didAuditSleep = true
         let log = Logger(subsystem: "TrainingOS", category: "sleep-audit")
-        let asleepValues: Set<Int> = [
-            HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue, HKCategoryValueSleepAnalysis.asleepCore.rawValue,
-            HKCategoryValueSleepAnalysis.asleepDeep.rawValue, HKCategoryValueSleepAnalysis.asleepREM.rawValue,
-        ]
+        let asleepValues = Self.asleepValues
         func name(_ v: Int) -> String {
             switch v {
             case HKCategoryValueSleepAnalysis.inBed.rawValue:             return "inBed"
@@ -280,15 +288,11 @@ class HealthKitService: ObservableObject {
             let day   = cal.safeDateByAdding(.day, value: -back, to: today)
             let start = cal.safeDateByAdding(.hour, value: -6, to: day)
             let end   = cal.safeDateByAdding(.hour, value: 12, to: day)
-            let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
-            let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-            let samples: [HKCategorySample] = await withCheckedContinuation { cont in
-                let q = HKSampleQuery(sampleType: type, predicate: pred, limit: HKObjectQueryNoLimit,
-                                      sortDescriptors: [sort]) { _, s, _ in
-                    cont.resume(returning: (s as? [HKCategorySample]) ?? [])
-                }
-                store.execute(q)
-            }
+            let samples = await sleepSamples(type: type, start: start, end: end)
+            let night = Self.nightSleep(samples.map(Self.input), within: start, end)
+            let retained = night?.hours
+            let hhmm: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
+            let bedWake = night.map { "\(hhmm.string(from: $0.bedtime))→\(hhmm.string(from: $0.wakeTime))" } ?? "nil"
             let asleep = samples.filter { asleepValues.contains($0.value) }
             guard !asleep.isEmpty else { continue }
             let sum   = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) } / 3600
@@ -298,7 +302,7 @@ class HealthKitService: ObservableObject {
             // Doublons exacts (même type, même début, même fin) : signe d'une resynchronisation.
             let keys = asleep.map { "\($0.value)|\($0.startDate.timeIntervalSince1970)|\($0.endDate.timeIntervalSince1970)" }
             let duplicates = keys.count - Set(keys).count
-            log.notice("AUDIT \(iso.string(from: day), privacy: .public) n=\(asleep.count) doublons=\(duplicates) unspecified=\(unspecified) somme=\(String(format: "%.2f", sum), privacy: .public)h union=\(String(format: "%.2f", union), privacy: .public)h limit100=\(samples.count > 100) sources=\(sources, privacy: .public)")
+            log.notice("AUDIT \(iso.string(from: day), privacy: .public) n=\(asleep.count) doublons=\(duplicates) unspecified=\(unspecified) somme=\(String(format: "%.2f", sum), privacy: .public)h union=\(String(format: "%.2f", union), privacy: .public)h retenu=\(retained.map { String(format: "%.2f", $0) } ?? "nil", privacy: .public)h coucher_lever=\(bedWake, privacy: .public) limit100=\(samples.count > 100) sources=\(sources, privacy: .public)")
             if back < 3 {
                 for s in samples {
                     log.notice("  \(iso.string(from: day), privacy: .public) \(name(s.value), privacy: .public) \(hm.string(from: s.startDate), privacy: .public)→\(hm.string(from: s.endDate), privacy: .public) \(s.sourceRevision.source.name, privacy: .public) [\(s.sourceRevision.source.bundleIdentifier, privacy: .public)] uuid=\(s.uuid.uuidString, privacy: .public)")
@@ -726,7 +730,6 @@ class HealthKitService: ObservableObject {
         return (fmt.string(from: date), nil, nil)
     }
     func fetchLastNightSleep() async -> Double? { nil }
-    func fetchLastNightSleepWindow() async -> SleepWindow? { nil }
     func fetchLastNightSleepStages() async -> SleepStages? { nil }
     func fetchLatestRestingHR() async -> Double? { nil }
     func fetchLatestHRV() async -> Double? { nil }

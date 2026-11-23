@@ -5,6 +5,7 @@
 
 import XCTest
 import UIKit
+import HealthKit
 @testable import TrainingOS
 
 final class APIModelsTests: XCTestCase {
@@ -209,6 +210,77 @@ final class APIModelsTests: XCTestCase {
         // Trou réel (réveil) conservé ; débordement hors fenêtre coupé.
         XCTAssertEqual(HealthKitService.unionSeconds([(at(-2), at(1)), (at(3), at(4))], within: window.0, window.1) / 3600, 2, accuracy: 0.001)
         XCTAssertEqual(HealthKitService.unionSeconds([], within: window.0, window.1), 0)
+    }
+
+    // MARK: - Sommeil : une source par nuit + union interne (correctif 2026-11-23)
+
+    @MainActor
+    private func sample(_ value: HKCategoryValueSleepAnalysis, _ from: Double, _ to: Double,
+                        source: String, watch: Bool, base: Date) -> HealthKitService.SleepSampleInput {
+        .init(value: value.rawValue, start: base.addingTimeInterval(from * 3600),
+              end: base.addingTimeInterval(to * 3600), sourceID: source, isAppleWatch: watch)
+    }
+
+    /// Fenêtre 18 h → 12 h ; heures exprimées depuis 18 h la veille (6 = minuit).
+    @MainActor
+    func testSleepRetainsAppleWatchOnlyWhenAnotherAppOverlaps() throws {
+        let base = Date(timeIntervalSince1970: 2_000_000)
+        let w = "com.apple.health.watch", other = "com.example.sleepapp"
+        let samples = [
+            // Montre : endormi 01:35 → 02:19, ÉVEILLÉ 02:19 → 03:42, endormi 03:42 → 08:59
+            sample(.asleepCore, 7.583, 8.317, source: w, watch: true, base: base),
+            sample(.awake,      8.317, 9.7,   source: w, watch: true, base: base),
+            sample(.asleepDeep, 9.7,   11.0,  source: w, watch: true, base: base),
+            sample(.asleepREM,  11.0,  14.983, source: w, watch: true, base: base),
+            // Autre app : « endormi » d'un bloc pendant toute la nuit, y compris le réveil
+            sample(.asleepUnspecified, 7.5, 15.0, source: other, watch: false, base: base),
+        ]
+        let night = try XCTUnwrap(HealthKitService.nightSleep(samples, within: base, base.addingTimeInterval(18 * 3600)))
+        // Montre seule : 0,733 + 1,3 + 3,983 = 6,017 h ; jamais la somme (≈ 13,5) ni l'union (7,5).
+        XCTAssertEqual(night.hours, 6.017, accuracy: 0.01)
+        XCTAssertEqual(night.bedtime, base.addingTimeInterval(7.583 * 3600))
+        XCTAssertEqual(night.wakeTime, base.addingTimeInterval(14.983 * 3600))
+    }
+
+    @MainActor
+    func testSleepUnionInsideTheRetainedSource() throws {
+        let base = Date(timeIntervalSince1970: 3_000_000)
+        let w = "com.apple.health.watch"
+        // Phases + « endormi sans phase » qui les recouvre, même source : 7 h, pas 14.
+        let samples = [
+            sample(.asleepCore, 6, 9,  source: w, watch: true, base: base),
+            sample(.asleepDeep, 9, 11, source: w, watch: true, base: base),
+            sample(.asleepREM, 11, 13, source: w, watch: true, base: base),
+            sample(.asleepUnspecified, 6, 13, source: w, watch: true, base: base),
+            sample(.inBed, 5, 14, source: w, watch: true, base: base),   // « au lit » ignoré
+        ]
+        let night = try XCTUnwrap(HealthKitService.nightSleep(samples, within: base, base.addingTimeInterval(18 * 3600)))
+        XCTAssertEqual(night.hours, 7, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testSleepWithoutWatchPicksLongestSourceNeverAddsThem() throws {
+        let base = Date(timeIntervalSince1970: 4_000_000)
+        let samples = [
+            sample(.asleepUnspecified, 6, 12, source: "app.a", watch: false, base: base),     // 6 h
+            sample(.asleepUnspecified, 6.5, 13.5, source: "app.b", watch: false, base: base), // 7 h
+        ]
+        let night = try XCTUnwrap(HealthKitService.nightSleep(samples, within: base, base.addingTimeInterval(18 * 3600)))
+        XCTAssertEqual(night.hours, 7, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testSleepWindowBoundsAndEmptyNight() {
+        let base = Date(timeIntervalSince1970: 5_000_000)
+        let end = base.addingTimeInterval(18 * 3600)
+        let w = "com.apple.health.watch"
+        // Débordements avant 18 h et après 12 h coupés ; « au lit » seul = pas de nuit.
+        let night = HealthKitService.nightSleep([sample(.asleepCore, -2, 1, source: w, watch: true, base: base),
+                                                 sample(.asleepCore, 17, 20, source: w, watch: true, base: base)],
+                                                within: base, end)
+        XCTAssertEqual(night?.hours ?? -1, 2, accuracy: 0.001)
+        XCTAssertNil(HealthKitService.nightSleep([sample(.inBed, 6, 13, source: w, watch: true, base: base)], within: base, end))
+        XCTAssertNil(HealthKitService.nightSleep([], within: base, end))
     }
 
     // MARK: - Photo de profil (build 6c)
