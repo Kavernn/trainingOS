@@ -227,6 +227,87 @@ class HealthKitService: ObservableObject {
         }
     }
 
+    /// Durée réellement couverte par des intervalles (union, chevauchements comptés une fois),
+    /// limitée à la fenêtre [start, end]. Base du correctif sommeil (diagnostic 2026-11-23).
+    static func unionSeconds(_ intervals: [(start: Date, end: Date)], within start: Date, _ end: Date) -> TimeInterval {
+        let clamped = intervals
+            .map { (max($0.start, start), min($0.end, end)) }
+            .filter { $0.0 < $0.1 }
+            .sorted { $0.0 < $1.0 }
+        var total: TimeInterval = 0
+        var current: (Date, Date)?
+        for interval in clamped {
+            if let c = current, interval.0 <= c.1 {
+                current = (c.0, max(c.1, interval.1))
+            } else {
+                if let c = current { total += c.1.timeIntervalSince(c.0) }
+                current = interval
+            }
+        }
+        if let c = current { total += c.1.timeIntervalSince(c.0) }
+        return total
+    }
+
+    #if DEBUG
+    /// Diagnostic LECTURE SEULE (DEBUG, une fois par lancement) : par nuit (18 h → 12 h),
+    /// somme actuelle des échantillons « endormi » vs union des intervalles ; échantillons
+    /// bruts (type, début, fin, source) pour les 3 dernières nuits. Console : catégorie sleep-audit.
+    private static var didAuditSleep = false
+    func debugAuditSleep(days: Int = 100) async {
+        guard !Self.didAuditSleep,
+              let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return }
+        Self.didAuditSleep = true
+        let log = Logger(subsystem: "TrainingOS", category: "sleep-audit")
+        let asleepValues: Set<Int> = [
+            HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue, HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+            HKCategoryValueSleepAnalysis.asleepDeep.rawValue, HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+        ]
+        func name(_ v: Int) -> String {
+            switch v {
+            case HKCategoryValueSleepAnalysis.inBed.rawValue:             return "inBed"
+            case HKCategoryValueSleepAnalysis.awake.rawValue:             return "awake"
+            case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue: return "asleepUnspecified"
+            case HKCategoryValueSleepAnalysis.asleepCore.rawValue:        return "core"
+            case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:        return "deep"
+            case HKCategoryValueSleepAnalysis.asleepREM.rawValue:         return "rem"
+            default:                                                      return "value\(v)"
+            }
+        }
+        let iso = DateFormatter.isoDate
+        let hm: DateFormatter = { let f = DateFormatter(); f.dateFormat = "dd HH:mm:ss"; return f }()
+        let today = cal.startOfDay(for: Date())
+        for back in 0..<days {
+            let day   = cal.safeDateByAdding(.day, value: -back, to: today)
+            let start = cal.safeDateByAdding(.hour, value: -6, to: day)
+            let end   = cal.safeDateByAdding(.hour, value: 12, to: day)
+            let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
+            let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+            let samples: [HKCategorySample] = await withCheckedContinuation { cont in
+                let q = HKSampleQuery(sampleType: type, predicate: pred, limit: HKObjectQueryNoLimit,
+                                      sortDescriptors: [sort]) { _, s, _ in
+                    cont.resume(returning: (s as? [HKCategorySample]) ?? [])
+                }
+                store.execute(q)
+            }
+            let asleep = samples.filter { asleepValues.contains($0.value) }
+            guard !asleep.isEmpty else { continue }
+            let sum   = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) } / 3600
+            let union = Self.unionSeconds(asleep.map { ($0.startDate, $0.endDate) }, within: start, end) / 3600
+            let unspecified = asleep.filter { $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue }.count
+            let sources = Set(asleep.map { $0.sourceRevision.source.bundleIdentifier }).sorted().joined(separator: ",")
+            // Doublons exacts (même type, même début, même fin) : signe d'une resynchronisation.
+            let keys = asleep.map { "\($0.value)|\($0.startDate.timeIntervalSince1970)|\($0.endDate.timeIntervalSince1970)" }
+            let duplicates = keys.count - Set(keys).count
+            log.notice("AUDIT \(iso.string(from: day), privacy: .public) n=\(asleep.count) doublons=\(duplicates) unspecified=\(unspecified) somme=\(String(format: "%.2f", sum), privacy: .public)h union=\(String(format: "%.2f", union), privacy: .public)h limit100=\(samples.count > 100) sources=\(sources, privacy: .public)")
+            if back < 3 {
+                for s in samples {
+                    log.notice("  \(iso.string(from: day), privacy: .public) \(name(s.value), privacy: .public) \(hm.string(from: s.startDate), privacy: .public)→\(hm.string(from: s.endDate), privacy: .public) \(s.sourceRevision.source.name, privacy: .public) [\(s.sourceRevision.source.bundleIdentifier, privacy: .public)] uuid=\(s.uuid.uuidString, privacy: .public)")
+                }
+            }
+        }
+    }
+    #endif
+
     // MARK: - Recovery Snapshot (single source for LogRecoverySheet + HealthDashboard sync)
     func fetchRecoverySnapshot(for date: Date) async -> RecoveryHKSnapshot {
         // sequential — async let LIFO crash on iOS 26 beta

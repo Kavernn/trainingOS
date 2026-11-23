@@ -145,9 +145,10 @@ struct MoodStressTrendView: View {
         let m = recentData.compactMap(\.moodScore).map(Double.init)
         return m.isEmpty ? 0 : m.reduce(0,+)/Double(m.count)
     }
-    private var avgStress: Double {
-        let s = recentData.compactMap(\.lifeStressScore)
-        return s.isEmpty ? 0 : s.reduce(0,+)/Double(s.count)
+    /// nil sans aucune donnée d'équilibre de vie : affiché « — », jamais 0.
+    static func averageBalance(_ points: [MoodTrendPoint]) -> Double? {
+        let s = points.compactMap(\.lifeStressScore)
+        return s.isEmpty ? nil : s.reduce(0,+)/Double(s.count)
     }
 
     var body: some View {
@@ -201,7 +202,7 @@ struct MoodStressTrendView: View {
                         Text("Équilibre de vie").font(.appMicro.weight(.semibold)).foregroundColor(Color.forge)
                         Text("(100 = optimal)").font(.appMicro).foregroundColor(.gray.opacity(0.6))
                         Spacer()
-                        Text(String(format: "Moy. %.0f / 100", avgStress))
+                        Text(Self.averageBalance(recentData).map { String(format: "Moy. %.0f / 100", $0) } ?? "Moy. —")
                             .font(.appMicro).foregroundColor(Color.forge.opacity(0.7))
                     }
                     GeometryReader { geo in

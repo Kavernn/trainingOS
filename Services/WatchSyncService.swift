@@ -90,6 +90,10 @@ class WatchSyncService: ObservableObject {
         }
         defer { watchdog.cancel() }
 
+        #if DEBUG
+        await hk.debugAuditSleep()   // diagnostic sommeil lecture seule, une fois par lancement
+        #endif
+
         // Sync today
         let snapshot = await hk.fetchTodayHealthSnapshot()
         let hasData  = snapshot.steps != nil || snapshot.sleepHours != nil

@@ -182,6 +182,35 @@ final class APIModelsTests: XCTestCase {
         XCTAssertFalse(DashboardView.showsGreatDayBadge(recommendation: "go", fatigueLevel: 0, sessionLoggedToday: false))
     }
 
+    // MARK: - Stats : moyenne d'équilibre de vie sans données
+
+    @MainActor
+    func testBalanceAverageIsNilWithoutDataNeverZero() throws {
+        func points(_ json: String) throws -> [MoodTrendPoint] {
+            try JSONDecoder().decode([MoodTrendPoint].self, from: Data(json.utf8))
+        }
+        XCTAssertNil(MoodStressTrendView.averageBalance([]))
+        XCTAssertNil(MoodStressTrendView.averageBalance(try points(#"[{"date":"2026-11-20","mood_score":6,"life_stress_score":null}]"#)))
+        XCTAssertEqual(MoodStressTrendView.averageBalance(try points(#"[{"date":"2026-11-20","mood_score":null,"life_stress_score":60},{"date":"2026-11-21","mood_score":null,"life_stress_score":80}]"#)), 70)
+    }
+
+    // MARK: - Sommeil : union des intervalles (diagnostic 2026-11-23)
+
+    @MainActor
+    func testSleepUnionCountsOverlapsOnceAndClampsToWindow() {
+        let t0 = Date(timeIntervalSince1970: 1_000_000)
+        func at(_ h: Double) -> Date { t0.addingTimeInterval(h * 3600) }
+        let window = (at(0), at(18))
+        // Phases core/deep/rem (7 h) + « endormi sans phase » qui les recouvre (7 h) : 7 h, pas 14.
+        let night: [(start: Date, end: Date)] = [(at(6), at(9)), (at(9), at(11)), (at(11), at(13)), (at(6), at(13))]
+        XCTAssertEqual(HealthKitService.unionSeconds(night, within: window.0, window.1) / 3600, 7, accuracy: 0.001)
+        // Doublon exact : compté une fois.
+        XCTAssertEqual(HealthKitService.unionSeconds([(at(1), at(2)), (at(1), at(2))], within: window.0, window.1) / 3600, 1, accuracy: 0.001)
+        // Trou réel (réveil) conservé ; débordement hors fenêtre coupé.
+        XCTAssertEqual(HealthKitService.unionSeconds([(at(-2), at(1)), (at(3), at(4))], within: window.0, window.1) / 3600, 2, accuracy: 0.001)
+        XCTAssertEqual(HealthKitService.unionSeconds([], within: window.0, window.1), 0)
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {
