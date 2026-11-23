@@ -21,12 +21,6 @@ struct RecoveryHKSnapshot {
     let sleepWindow:   SleepWindow?
 }
 
-struct SleepStages {
-    let deepHours: Double
-    let remHours:  Double
-    let coreHours: Double
-    var totalHours: Double { deepHours + remHours + coreHours }
-}
 
 struct RunningFormMetrics {
     let strideLengthM: Double?
@@ -641,33 +635,6 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    // MARK: - Sleep Stages
-    func fetchLastNightSleepStages() async -> SleepStages? {
-        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
-        let now   = Date()
-        let start = cal.safeDateByAdding(.hour, value: -18, to: now)
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: now)
-        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-        return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 200, sortDescriptors: [sort]) { _, samples, _ in
-                guard let samples = samples as? [HKCategorySample] else { cont.resume(returning: nil); return }
-                var deep = 0.0, rem = 0.0, core = 0.0
-                for s in samples {
-                    let dur = s.endDate.timeIntervalSince(s.startDate) / 3600.0
-                    switch s.value {
-                    case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: deep += dur
-                    case HKCategoryValueSleepAnalysis.asleepREM.rawValue:  rem  += dur
-                    case HKCategoryValueSleepAnalysis.asleepCore.rawValue: core += dur
-                    default: break
-                    }
-                }
-                guard deep + rem + core > 0 else { cont.resume(returning: nil); return }
-                cont.resume(returning: SleepStages(deepHours: deep, remHours: rem, coreHours: core))
-            }
-            store.execute(q)
-        }
-    }
-
     // MARK: - Write Cardio Workout to HealthKit
     func saveCardioWorkout(type: String, startDate: Date, endDate: Date, distanceKm: Double?) async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
@@ -756,7 +723,6 @@ class HealthKitService: ObservableObject {
         return (fmt.string(from: date), nil, nil)
     }
     func fetchLastNightSleep() async -> Double? { nil }
-    func fetchLastNightSleepStages() async -> SleepStages? { nil }
     func fetchLatestRestingHR() async -> Double? { nil }
     func fetchLatestHRV() async -> Double? { nil }
     func fetchRestingHR(for date: Date) async -> Double? { nil }
