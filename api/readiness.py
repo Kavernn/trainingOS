@@ -100,7 +100,9 @@ def _score_hrv(rec_logs: list | None = None) -> tuple[float | None, dict]:
         score = analysis.get("hrv_score")
         if score is None:
             return None, {"data_insufficient": True}
-        return round(float(score), 1), {
+        # Module plafonné à 100 comme les autres (docstring : 100 = HRV ≥ baseline).
+        # hrv_score brut (ratio × 100, ex. 142) conservé dans les détails / hrv_status.
+        return min(100.0, round(float(score), 1)), {
             "hrv_score": round(float(score), 1),
             "zone":      analysis.get("hrv_zone"),
             "today_hrv": analysis.get("today_rmssd"),

@@ -148,3 +148,41 @@ class ReadinessCacheInvalidationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HRVModuleCapTests(unittest.TestCase):
+    """Build 2c — module HRV plafonné à 100 avant le score global."""
+
+    def setUp(self):
+        r.invalidate_cache()
+
+    def tearDown(self):
+        r.invalidate_cache()
+
+    def _hrv_module(self, ratio_score):
+        analysis = {"baseline_available": True, "hrv_score": ratio_score, "hrv_zone": "green",
+                    "today_rmssd": 71.0, "hrv_7d_avg": 50.0}
+        with patch("hrv_engine.compute_hrv_analysis", return_value=analysis), \
+             patch("user_profile.load_user_profile", return_value={}), \
+             patch.object(r, "_today_mtl", return_value="2026-11-22"):
+            return r._score_hrv([])
+
+    def test_ratio_142_gives_module_100_and_keeps_raw_detail(self):
+        score, det = self._hrv_module(142.0)
+        self.assertEqual(score, 100.0)
+        self.assertEqual(det["hrv_score"], 142.0)  # brut conservé (hrv_status, détail)
+
+    def test_ratio_below_100_unchanged(self):
+        self.assertEqual(self._hrv_module(87.5)[0], 87.5)
+
+    def test_global_score_computed_on_capped_module(self):
+        with ExitStack() as s:
+            _patches(s, hrv=self._hrv_module(142.0), sq=(100.0, {}))
+            capped = r.compute()
+        r.invalidate_cache()
+        with ExitStack() as s:
+            _patches(s, hrv=(100.0, {}), sq=(100.0, {}))
+            at_100 = r.compute()
+        self.assertEqual(capped["score"], at_100["score"])
+        self.assertEqual(capped["modules"]["hrv"]["score"], 100)
+        self.assertLessEqual(capped["score"], 100)
