@@ -245,7 +245,7 @@ def get_recovery_logs(limit: int = 100) -> List[dict]:
         return []
 
 
-def upsert_recovery_log(data: dict) -> bool:
+def _upsert_recovery_log_raw(data: dict) -> bool:
     """Insert or update a recovery log by date. data must include 'date'."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
@@ -314,7 +314,37 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     return upsert_recovery_log(merged)
 
 
+def _invalidate_readiness_cache() -> None:
+    """recovery_logs alimente la readiness : toute écriture réussie invalide son cache.
+
+    Point unique pour tous les écrivains (log_recovery, healthkit_sync, sleep/log,
+    sleep/delete, wearable sync, delete_recovery) — sinon un résultat calculé sans
+    données reste servi jusqu'à 30 min après leur arrivée.
+    """
+    try:
+        import readiness  # import local : readiness importe db
+        readiness.invalidate_cache()
+    except Exception as e:
+        db_core.logger.warning("readiness cache invalidation failed: %s", e)
+
+
+def upsert_recovery_log(data: dict) -> bool:
+    """Insert or update a recovery log by date, then invalidate the readiness cache."""
+    ok = _upsert_recovery_log_raw(data)
+    if ok:
+        _invalidate_readiness_cache()
+    return ok
+
+
 def delete_recovery_log(date: str) -> bool:
+    """Delete a recovery log by date, then invalidate the readiness cache."""
+    ok = _delete_recovery_log_raw(date)
+    if ok:
+        _invalidate_readiness_cache()
+    return ok
+
+
+def _delete_recovery_log_raw(date: str) -> bool:
     """Delete a recovery log entry by date. Returns True on success."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False

@@ -788,6 +788,8 @@ def _active_energy_modifier(rec_logs: list | None = None) -> tuple[float, bool]:
 _CACHE: dict = {}
 _CACHE_TTL = 30 * 60
 
+_INSUFFICIENT_WHY = "Pas de HRV, FC repos, sommeil ni ressenti aujourd'hui — fais ton check-in."
+
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
@@ -811,6 +813,17 @@ def compute() -> dict:
         n_score,    n_det                = _score_nutrition()
         p_score,    p_det                = _score_pattern()
 
+        # Anti-fantôme : nutrition sans cible, sans repas ou en erreur = module ABSENT,
+        # jamais 50 / 65 inventés. _score_nutrition() garde son contrat : elle est
+        # appelée telle quelle par /api/nutrition/quality.
+        if n_det.get("target_missing") or n_det.get("no_data") or n_det.get("error"):
+            n_score = None
+
+        # Signaux du jour (HRV, FC repos, qualité/durée de sommeil, ressenti). Sans aucun,
+        # pas de score : charge, récup musculaire, nutrition et pattern ne suffisent pas.
+        core_signals = sum(v is not None for v in (hrv_score, rhr_score, sq_score, sd_score, sub_score))
+        insufficient = core_signals == 0
+
         _raw = [
             ("hrv",            hrv_score,  _WEIGHTS["hrv"]),
             ("rhr",            rhr_score,  _WEIGHTS["rhr"]),
@@ -824,14 +837,19 @@ def compute() -> dict:
         ]
         _avail   = [(s, w) for _, s, w in _raw if s is not None]
         _total_w = sum(w for _, w in _avail)
-        composite = (sum(s * w for s, w in _avail) / _total_w) if _total_w > 0 else 65.0
 
-        ae_mult, ae_applied = _active_energy_modifier(rec_logs)
-        score    = round(max(0.0, min(100.0, composite * ae_mult)))
-        baseline = _get_personal_baseline()
-        verdict, is_relative, downgrade_reason = _verdict(
-            float(score), baseline, hrv_score=hrv_score, rhr_score=rhr_score
-        )
+        if insufficient:
+            score = verdict = baseline = downgrade_reason = None
+            is_relative, ae_applied = False, False
+        else:
+            # Au moins un signal du jour → _total_w > 0 (plus de repli 65).
+            composite = sum(s * w for s, w in _avail) / _total_w
+            ae_mult, ae_applied = _active_energy_modifier(rec_logs)
+            score    = round(max(0.0, min(100.0, composite * ae_mult)))
+            baseline = _get_personal_baseline()
+            verdict, is_relative, downgrade_reason = _verdict(
+                float(score), baseline, hrv_score=hrv_score, rhr_score=rhr_score
+            )
 
         def _mod_score(s: float | None) -> int | None:
             return round(s) if s is not None else None
@@ -860,7 +878,10 @@ def compute() -> dict:
             "pattern":        p_det,
         }
 
-        why, adjustment, prog_mod = _build_messaging(verdict, modules, all_details, breakdown)
+        if insufficient:
+            why, adjustment, prog_mod = _INSUFFICIENT_WHY, None, None
+        else:
+            why, adjustment, prog_mod = _build_messaging(verdict, modules, all_details, breakdown)
 
         today_session = None
         try:
@@ -882,7 +903,7 @@ def compute() -> dict:
         data = {
             "score":                 score,
             "verdict":               verdict,
-            "verdict_method":        "relative" if is_relative else "absolute_cold_start",
+            "verdict_method":        None if insufficient else ("relative" if is_relative else "absolute_cold_start"),
             "baseline":              baseline if is_relative else None,
             "downgrade_reason":      downgrade_reason,
             "hrv_status":            hrv_status,
@@ -893,8 +914,17 @@ def compute() -> dict:
             "muscle_recovery":       breakdown,
             "today_session":         today_session,
             "active_energy_penalty": ae_applied,
+            "core_signals":          core_signals,   # signaux du jour utilisés, sur 5
+            "insufficient_data":     insufficient,
+            "reason":                "no_core_signal" if insufficient else None,
             "computed_at":           datetime.now(timezone.utc).isoformat(),
         }
+
+        if insufficient:
+            # Ni écriture dans readiness_daily (aucun point historique calculé à
+            # l'aveugle), ni cache : la prochaine lecture recalcule, quelle que soit
+            # l'instance qui a reçu les nouvelles données.
+            return data
 
         # Écriture PROSPECTIVE STRICTE (score du jour, jamais rétroactive).
         # target_date = _today_mtl() par design : compute() lit et calcule sur
