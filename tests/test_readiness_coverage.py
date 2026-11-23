@@ -186,3 +186,24 @@ class HRVModuleCapTests(unittest.TestCase):
         self.assertEqual(capped["score"], at_100["score"])
         self.assertEqual(capped["modules"]["hrv"]["score"], 100)
         self.assertLessEqual(capped["score"], 100)
+
+
+class HRVDetailTextTests(unittest.TestCase):
+    """Fiche readiness : écart HRV en %, plus jamais « 142/100 »."""
+
+    def test_above_average(self):
+        self.assertEqual(r._hrv_detail({"hrv_score": 142.0, "zone": "green"}), "HRV +42 % vs ta moyenne 7 j — zone verte")
+
+    def test_below_average(self):
+        self.assertEqual(r._hrv_detail({"hrv_score": 62.5, "zone": "red"}), "HRV -38 % vs ta moyenne 7 j — zone rouge")
+
+    def test_equal_and_no_zone(self):
+        self.assertEqual(r._hrv_detail({"hrv_score": 100.2}), "HRV égal à ta moyenne 7 j")
+
+    def test_never_slash_100(self):
+        for s in (30.0, 99.0, 142.0, 180.0):
+            self.assertNotIn("/100", r._hrv_detail({"hrv_score": s, "zone": "green"}))
+
+    def test_missing_data_texts_unchanged(self):
+        self.assertEqual(r._hrv_detail({"data_insufficient": True}), "Baseline HRV insuffisante (< 3 jours)")
+        self.assertEqual(r._hrv_detail({}), "Données HRV indisponibles")

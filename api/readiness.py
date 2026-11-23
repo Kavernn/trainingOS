@@ -960,11 +960,14 @@ def invalidate_cache() -> None:
 def _hrv_detail(d: dict) -> str:
     if d.get("data_insufficient"):
         return "Baseline HRV insuffisante (< 3 jours)"
-    score = d.get("hrv_score")
-    zone  = d.get("zone", "")
-    if score is not None:
-        return f"HRV {int(score)}/100 — {zone}" if zone else f"HRV score {int(score)}/100"
-    return "Données HRV indisponibles"
+    score = d.get("hrv_score")  # ratio brut HRV du jour / moyenne 7 j × 100 (non plafonné)
+    if score is None:
+        return "Données HRV indisponibles"
+    # Écart réel à la moyenne, jamais « 142/100 » (le module, lui, est plafonné à 100).
+    pct  = round(score - 100)
+    zone = {"green": "zone verte", "orange": "zone orange", "red": "zone rouge"}.get(d.get("zone") or "")
+    text = f"HRV {pct:+d} % vs ta moyenne 7 j" if pct else "HRV égal à ta moyenne 7 j"
+    return f"{text} — {zone}" if zone else text
 
 
 def _acwr_detail(d: dict) -> str:
