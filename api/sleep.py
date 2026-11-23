@@ -119,7 +119,7 @@ def save_sleep_entry(
     }
 
     # Source de vérité : recovery_logs — sleep_records est archivée, ne plus alimenter.
-    # source="manual" empêche l'écrasement par HealthKit.
+    # manual_fields (ci-dessous) empêche l'écrasement du sommeil saisi par HealthKit.
     # sleep_quality converti 1-5 → 1-10 pour cohérence avec recovery_logs.
     existing_rec = next((r for r in db.get_recovery_logs(limit=7) if r.get("date") == today), {})
     existing_rec["date"]          = today
@@ -128,6 +128,9 @@ def save_sleep_entry(
     existing_rec["bedtime"]       = bedtime
     existing_rec["wake_time"]     = wake_time
     existing_rec["source"]        = "manual"
+    # Saisie explicite coucher / lever : protégée de la synchro HealthKit (migration 109).
+    from db_body import with_manual_fields
+    existing_rec["manual_fields"] = with_manual_fields(existing_rec, ["sleep_hours", "bedtime", "wake_time"])
     ok = db.upsert_recovery_log(existing_rec)
     if not ok:
         import logging as _logging

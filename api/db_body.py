@@ -280,18 +280,34 @@ def _upsert_recovery_log_raw(data: dict) -> bool:
         return False
 
 
+# Champs alimentés par HealthKit (synchro /api/wearable/sync). Source par CHAMP (migration
+# 109) : manual_fields liste ceux réellement saisis par l'utilisateur ; la synchro réécrit
+# tous les autres. Les champs subjectifs (qualité de sommeil, courbatures, fatigue, énergie,
+# notes) ne sont jamais écrits par HealthKit.
+HK_RECOVERY_FIELDS = ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy",
+                      "hr_morning", "hr_post_workout", "hr_evening",
+                      "bedtime", "wake_time")
+# Cumulatifs : croissent toute la journée → toujours réécrits par la synchro, même s'ils
+# figurent par erreur dans manual_fields.
+HK_CUMULATIVE_FIELDS = frozenset({"steps", "active_energy"})
+
+
+def with_manual_fields(row: dict, declared) -> list:
+    """manual_fields de `row` + champs HealthKit déclarés saisis (ignorés s'ils ne sont pas
+    des champs HealthKit). Aucune déclaration → liste inchangée (jamais « tout manuel »)."""
+    current = set(row.get("manual_fields") or [])
+    if isinstance(declared, (list, tuple, set)):
+        current |= {f for f in declared if f in HK_RECOVERY_FIELDS}
+    return sorted(current)
+
+
 def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     """Merge HealthKit/Apple Watch data into recovery_logs for target_date.
 
-    Only fills in fields that are not already set (manual entries take priority).
-    Never overwrites: sleep_quality, soreness, notes.
+    Réécrit chaque champ HealthKit reçu, sauf ceux de manual_fields (saisis à la main).
+    Pas et énergie active : toujours réécrits. Le `source` de ligne n'intervient plus
+    (avant : une ligne « manual » — tout check-in — figeait les 10 champs).
     """
-    WEARABLE_KEYS = ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy",
-                     "hr_morning", "hr_post_workout", "hr_evening",
-                     "bedtime", "wake_time")
-    # Cumulative metrics grow throughout the day — always update from HealthKit
-    # unless the entry was manually entered by the user.
-    CUMULATIVE_KEYS = {"steps", "active_energy"}
 
     existing_list = get_recovery_logs(limit=365)
     existing      = next((e for e in existing_list if e.get("date") == target_date), {})
@@ -302,13 +318,11 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     if not existing:
         merged["source"] = "healthkit"
 
-    is_manual = existing.get("source") == "manual"
-    for key in WEARABLE_KEYS:
+    manual = set(existing.get("manual_fields") or [])
+    for key in HK_RECOVERY_FIELDS:
         if key not in wearable:
             continue
-        # Manual entries are preserved as-is — user overrides HealthKit.
-        # For all other sources (healthkit, new entry): always take fresh data.
-        if merged.get(key) is None or not is_manual:
+        if key in HK_CUMULATIVE_FIELDS or key not in manual:
             merged[key] = wearable[key]
 
     return upsert_recovery_log(merged)

@@ -95,7 +95,11 @@ def api_log_recovery():
     if data.get("notes"):
         merged["notes"] = data["notes"]
 
-    # Toute écriture via cet endpoint = saisie utilisateur → manual > healthkit.
+    # Source par champ (migration 109) : seuls les champs HealthKit que l'app DÉCLARE saisis
+    # (manual_fields) sont protégés de la synchro. Requête sans déclaration (ancienne app,
+    # check-in du matin) → aucun champ protégé : la synchro garde la main.
+    from db_body import with_manual_fields
+    merged["manual_fields"] = with_manual_fields(existing, data.get("manual_fields"))
     merged["source"] = "manual"
 
     ok = _db.upsert_recovery_log(merged)
