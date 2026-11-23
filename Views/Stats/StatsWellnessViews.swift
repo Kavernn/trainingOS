@@ -198,7 +198,7 @@ struct MoodStressTrendView: View {
             if n >= 2 {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("Score bien-être").font(.appMicro.weight(.semibold)).foregroundColor(Color.forge)
+                        Text("Équilibre de vie").font(.appMicro.weight(.semibold)).foregroundColor(Color.forge)
                         Text("(100 = optimal)").font(.appMicro).foregroundColor(.gray.opacity(0.6))
                         Spacer()
                         Text(String(format: "Moy. %.0f / 100", avgStress))

@@ -64,7 +64,9 @@ struct DashboardView: View {
                     dash: dash,
                     plan: plan,
                     plannedDate: DateFormatter.isoDate.date(from: dash.todayDate) ?? Date(),
-                    showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
+                    showGreatDayBadge: Self.showsGreatDayBadge(recommendation: vm.morningBrief?.recommendation,
+                                                               fatigueLevel: vm.deload?.fatigueLevel,
+                                                               sessionLoggedToday: dash.sessions[todayStr] != nil),
                     onOpenSession: onOpenSession,
                     readiness: vm.readinessData,
                     effortCap: DashboardVerdictArbiter.cap(signal: vm.criticalSignal(dash: dash))
@@ -555,6 +557,12 @@ struct DashboardView: View {
         .fullScreenCover(item: $budgetCelebrationData) { data in
             BudgetCelebrationView(data: data) { budgetCelebrationData = nil }
         }
+    }
+
+    /// « Parfait » : recommandation `go` réelle ET deload réellement chargé à 0.
+    /// Un deload pas encore chargé ne compte plus comme « aucune fatigue » (build 2a).
+    static func showsGreatDayBadge(recommendation: String?, fatigueLevel: Int?, sessionLoggedToday: Bool) -> Bool {
+        recommendation == "go" && fatigueLevel == 0 && sessionLoggedToday
     }
 
     private func checkAndShowMorningReveal() {

@@ -128,54 +128,6 @@ struct InfoSheetView: View {
 // MARK: - Info content definitions
 
 extension InfoEntry {
-    // LSS / Morning Brief
-    static let lssEntries: [InfoEntry] = [
-        InfoEntry(
-            term: "LSS — Life Stress Score",
-            definition: "Score composite de 0 à 100 qui mesure ta charge de stress globale. Il combine l'entraînement, le sommeil, la HRV et la FC de repos. Plus il est élevé, plus ton corps est sous pression."
-        ),
-        InfoEntry(
-            term: "Go  (LSS < 40)",
-            definition: "Conditions optimales. Ton corps est frais et récupéré. Tu peux t'entraîner à pleine intensité."
-        ),
-        InfoEntry(
-            term: "Prudence  (40–60)",
-            definition: "Légère accumulation de fatigue. Entraîne-toi, mais écoute ton corps. Réduis si tu te sens à plat en cours de séance."
-        ),
-        InfoEntry(
-            term: "Réduire  (60–75)",
-            definition: "Fatigue significative. Baisse le volume et l'intensité de 15–25 %. Priorise le sommeil et la nutrition."
-        ),
-        InfoEntry(
-            term: "Reporter  (LSS > 75)",
-            definition: "Ton système nerveux et musculaire est saturé. Une séance lourde aujourd'hui ferait plus de mal que de bien. Préfère un repos actif ou une récupération légère."
-        ),
-        InfoEntry(
-            term: "HRV Drop",
-            definition: "La variabilité de la fréquence cardiaque a chuté par rapport à ta moyenne personnelle — signal fiable d'un système nerveux peu récupéré."
-        ),
-        InfoEntry(
-            term: "Surcharge d'entraînement",
-            definition: "Volume ou fréquence trop élevés sur les derniers jours. Le corps n'a pas eu assez de temps pour récupérer entre les séances."
-        ),
-    ]
-
-    // LSS Prediction
-    static let predictionEntries: [InfoEntry] = [
-        InfoEntry(
-            term: "LSS prédit",
-            definition: "Estimation du Life Stress Score pour chaque jour des 7 prochains jours, basée sur ton programme planifié et ta tendance de récupération récente."
-        ),
-        InfoEntry(
-            term: "Meilleure journée (★)",
-            definition: "Le jour où ton LSS projeté est le plus bas = la fenêtre optimale pour une séance intense, un test de force ou un effort maximal."
-        ),
-        InfoEntry(
-            term: "Base LSS",
-            definition: "Ton niveau de stress de référence sans séance planifiée — calculé à partir de ta récupération moyenne récente (sommeil, HRV, FC repos)."
-        ),
-    ]
-
     // Déload / Fatigue
     static let deloadEntries: [InfoEntry] = [
         InfoEntry(

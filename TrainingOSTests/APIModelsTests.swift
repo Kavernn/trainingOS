@@ -156,6 +156,32 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNotEqual(unknown.verdictEmoji, "🔴")
     }
 
+    // MARK: - Brief du matin & badge « Parfait » (build 2a)
+
+    @MainActor
+    func testMorningRevealIsNeutralWithoutRealRecommendation() {
+        for missing in [nil, "unknown", "bizarre", ""] as [String?] {
+            let r = MorningRevealView.reveal(for: missing)
+            XCTAssertEqual(r.title, "Données insuffisantes", "\(String(describing: missing))")
+            XCTAssertNotEqual(r.icon, "moon.zzz.fill")
+        }
+        XCTAssertEqual(MorningRevealView.reveal(for: "defer").title, "Journée de repos")
+        XCTAssertEqual(MorningRevealView.reveal(for: "go").title, "Journée optimale")
+        XCTAssertEqual(MorningRevealView.reveal(for: "go_caution").title, "Forme correcte")
+        XCTAssertEqual(MorningRevealView.reveal(for: "reduce").title, "Intensité réduite")
+    }
+
+    @MainActor
+    func testGreatDayBadgeNeedsRealGoAndLoadedDeloadAtZero() {
+        XCTAssertTrue(DashboardView.showsGreatDayBadge(recommendation: "go", fatigueLevel: 0, sessionLoggedToday: true))
+        // Deload pas chargé : plus compté comme « aucune fatigue ».
+        XCTAssertFalse(DashboardView.showsGreatDayBadge(recommendation: "go", fatigueLevel: nil, sessionLoggedToday: true))
+        XCTAssertFalse(DashboardView.showsGreatDayBadge(recommendation: "go", fatigueLevel: 1, sessionLoggedToday: true))
+        XCTAssertFalse(DashboardView.showsGreatDayBadge(recommendation: "unknown", fatigueLevel: 0, sessionLoggedToday: true))
+        XCTAssertFalse(DashboardView.showsGreatDayBadge(recommendation: nil, fatigueLevel: 0, sessionLoggedToday: true))
+        XCTAssertFalse(DashboardView.showsGreatDayBadge(recommendation: "go", fatigueLevel: 0, sessionLoggedToday: false))
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

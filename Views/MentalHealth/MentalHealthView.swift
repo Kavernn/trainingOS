@@ -170,7 +170,7 @@ private struct SignalDuJourHeader: View {
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("ÉQUILIBRE")
+                Text("ÉQUILIBRE DE VIE")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
                     .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     .tracking(2)

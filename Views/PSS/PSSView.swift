@@ -1119,7 +1119,7 @@ struct LSSCompactCard: View {
                         Text("Stress \(scoreLabel)")
                             .font(.appLabel.weight(.semibold))
                             .foregroundColor(scoreColor)
-                        Text("Score de stress LSS · automatique")
+                        Text("Équilibre de vie · automatique")
                             .font(.appCaption).foregroundColor(.gray)
                     }
                 }

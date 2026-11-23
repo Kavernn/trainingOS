@@ -982,7 +982,7 @@ struct LifeStressCard: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("LIFE STRESS SCORE")
+                    Text("ÉQUILIBRE DE VIE")
                         .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                     Text(stressLabel)
                         .font(.appBody.weight(.bold)).foregroundColor(color)
@@ -1163,7 +1163,7 @@ struct DayStatusHeaderView: View {
                         let lssColor: Color = lss.score >= 80 ? .statusGreen : lss.score >= 60 ? .statusYellow : lss.score >= 40 ? .statusOrange : .statusRed
                         let lssLabel: String = lss.score >= 80 ? "Récup. optimale" : lss.score >= 60 ? "Bonne forme" : lss.score >= 40 ? "Fatigue modérée" : "Surmenage"
                         HStack(spacing: 4) {
-                            Text("Life Stress")
+                            Text("Équilibre de vie")
                                 .font(.appCaption).foregroundColor(.gray)
                             Text(String(format: "%.0f", lss.score))
                                 .font(.appCaption.weight(.bold)).foregroundColor(lssColor)

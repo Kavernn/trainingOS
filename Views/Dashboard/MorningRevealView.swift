@@ -43,30 +43,19 @@ struct MorningRevealView: View {
 
     private var todayStr: String { AppState.shared.todayStr }
 
-    private var accentColor: Color {
-        switch morningBrief?.recommendation {
-        case "go":         return .statusGreen
-        case "go_caution": return .appWarning
-        case "reduce":     return .statusOrange
-        default:           return .statusRed
-        }
-    }
+    private var accentColor: Color { Self.reveal(for: morningBrief?.recommendation).color }
+    private var icon: String { Self.reveal(for: morningBrief?.recommendation).icon }
+    private var title: String { Self.reveal(for: morningBrief?.recommendation).title }
 
-    private var icon: String {
-        switch morningBrief?.recommendation {
-        case "go":         return "bolt.fill"
-        case "go_caution": return "tortoise.fill"
-        case "reduce":     return "arrow.down.circle.fill"
-        default:           return "moon.zzz.fill"
-        }
-    }
-
-    private var title: String {
-        switch morningBrief?.recommendation {
-        case "go":         return "Journée optimale"
-        case "go_caution": return "Forme correcte"
-        case "reduce":     return "Intensité réduite"
-        default:           return "Journée de repos"
+    /// « Journée de repos » seulement pour `defer`. Absent / inconnu (ex. « unknown »
+    /// quand le LSS manque) → neutre : jamais un faux conseil de repos (build 2a).
+    static func reveal(for recommendation: String?) -> (title: String, icon: String, color: Color) {
+        switch recommendation {
+        case "go":         return ("Journée optimale", "bolt.fill", .statusGreen)
+        case "go_caution": return ("Forme correcte", "tortoise.fill", .appWarning)
+        case "reduce":     return ("Intensité réduite", "arrow.down.circle.fill", .statusOrange)
+        case "defer":      return ("Journée de repos", "moon.zzz.fill", .statusRed)
+        default:           return ("Données insuffisantes", "questionmark.circle", .appTextMuted)
         }
     }
 
