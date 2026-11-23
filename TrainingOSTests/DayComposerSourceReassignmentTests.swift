@@ -378,4 +378,76 @@ final class DayComposerSourceReassignmentTests: XCTestCase {
         }
     }
 
+
+    // MARK: isComposed — règle unique « journée réorganisée » (étape 1)
+
+    private func withStore(_ body: (DayComposerStore, DayComposerSnapshot) throws -> Void) throws {
+        let suite = "composed-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        try body(DayComposerStore(defaults: defaults), try snapshot())
+    }
+
+    func testCompositionAbsentStateIsOriginal() throws {
+        try withStore { store, base in
+            XCTAssertEqual(try store.composition(base), .original)
+            XCTAssertFalse(base.isComposed(base.initialUnits, setAside: []))
+        }
+    }
+
+    func testCompositionSavedIdenticalOrderIsOriginal() throws {
+        try withStore { store, base in
+            try store.save(base.initialUnits, for: base) // hasSavedOrder vrai, contenu inchangé
+            XCTAssertTrue(store.hasSavedOrder(date: base.date, program: base.activeProgramID))
+            XCTAssertEqual(try store.composition(base), .original)
+        }
+    }
+
+    func testCompositionReorderIsComposed() throws {
+        try withStore { store, base in
+            try store.save(DayComposerSnapshot.moving(base.initialUnits, from: [0], to: 2), for: base)
+            XCTAssertEqual(try store.composition(base), .composed)
+        }
+    }
+
+    func testCompositionSourceMoveIsComposedAndMovingBackIsNot() throws {
+        try withStore { store, base in
+            let id = base.evening.units[0].id
+            let moved = try DayComposerSnapshot.transferring(base.initialUnits, id: id, locked: false)
+            try store.save(moved, for: base)
+            XCTAssertEqual(try store.composition(base), .composed)
+            let back = try DayComposerSnapshot.transferring(moved, id: id, locked: false)
+            XCTAssertFalse(base.isComposed(back, setAside: []))
+        }
+    }
+
+    func testCompositionSetAsideAloneIsComposed() throws {
+        try withStore { store, base in
+            try store.saveSetAside([base.morning.units[1].id], date: base.date, program: base.activeProgramID,
+                                   fingerprint: try base.fingerprint, orderedIDs: base.initialIDs)
+            XCTAssertEqual(try store.composition(base), .composed)
+        }
+    }
+
+    func testCompositionResetIsOriginal() throws {
+        try withStore { store, base in
+            try store.save(DayComposerSnapshot.moving(base.initialUnits, from: [0], to: 2), for: base)
+            try store.saveSetAside([base.morning.units[1].id], date: base.date, program: base.activeProgramID,
+                                   fingerprint: try base.fingerprint, orderedIDs: base.initialIDs)
+            try store.reset(base)
+            XCTAssertTrue(store.hasSavedOrder(date: base.date, program: base.activeProgramID))
+            XCTAssertEqual(try store.composition(base), .original)
+        }
+    }
+
+    func testCompositionChangedPlanIsIncompatibleNeverOriginal() throws {
+        try withStore { store, base in
+            try store.save(DayComposerSnapshot.moving(base.initialUnits, from: [0], to: 2), for: base)
+            let changed = try DayComposerSnapshot(date: base.date, activeProgramID: base.activeProgramID,
+                morning: DayComposerPlan(source: .morning, session: "AM", schemes: ["Commun": "1x8", "A": "3x8"],
+                                         order: ["Commun", "A"], exerciseIDs: ["Commun": "00000000-0000-0000-0000-000000000001"]),
+                evening: base.evening, morningCompleted: false, eveningCompleted: false)
+            XCTAssertEqual(try store.composition(changed), .incompatible)
+        }
+    }
 }

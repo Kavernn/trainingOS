@@ -178,6 +178,13 @@ struct DayComposerSnapshot {
             && (hasSavedOrder || !morningCompleted || !eveningCompleted)
     }
 
+    /// Règle unique « journée réorganisée » : ordre ≠ ordre initial, OU un exercice dans un
+    /// autre créneau que le sien, OU ≥ 1 mise de côté. Fonction pure (aucune lecture).
+    func isComposed(_ units: [DayComposerUnit], setAside: Set<DayComposerItemID>) -> Bool {
+        let items = units.flatMap(\.items)
+        return items.map(\.id) != initialIDs || items.contains { $0.assignedSource != $0.originSource } || !setAside.isEmpty
+    }
+
     func completed(_ source: DayComposerSource) -> Bool {
         source == .morning ? morningCompleted : eveningCompleted
     }

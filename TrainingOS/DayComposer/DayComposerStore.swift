@@ -54,6 +54,22 @@ struct DayComposerStore {
         return .restored(assigned)
     }
 
+    /// Composition de la journée (contenu, jamais la présence d'une clé : `save` et `reset`
+    /// écrivent toujours des affectations, cf. `hasSavedOrder`). Plan changé → `.incompatible`,
+    /// état explicite que l'appelant doit traiter, jamais lu comme « originale ».
+    enum Composition: Equatable { case original, composed, incompatible }
+
+    func composition(_ snapshot: DayComposerSnapshot) throws -> Composition {
+        switch try load(snapshot) {
+        case .initial: return .original
+        case .incompatible: return .incompatible
+        case .restored(let units):
+            let setAside = try loadSetAside(date: snapshot.date, program: snapshot.activeProgramID,
+                                            fingerprint: try snapshot.fingerprint)
+            return snapshot.isComposed(units, setAside: setAside) ? .composed : .original
+        }
+    }
+
     /// Réordonner ou déplacer conserve les mises de côté. Un état présent mais incompatible
     /// échoue fort (contextChanged) : seul `reset` le remplace.
     func save(_ units: [DayComposerUnit], for snapshot: DayComposerSnapshot) throws {
