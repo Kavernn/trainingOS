@@ -1511,8 +1511,8 @@ struct WorkoutSeanceView: View {
 
     private var contextSummaryText: String {
         var parts: [String] = ["⚡\(energyPre)"]
-        if let r = readiness {
-            parts.append("readiness \(r.score)")
+        if let score = readiness?.score {
+            parts.append("readiness \(score)")
         }
         return parts.joined(separator: " · ")
     }
@@ -1567,11 +1567,12 @@ struct WorkoutSeanceView: View {
         VStack(spacing: 8) {
             // Readiness chip — label + color dérivés du verdict (API unifiée).
             // Échec de fetch → "—" discret au lieu de disparition silencieuse.
-            if let r = readiness {
-                ReadinessChip(score: Double(r.score),
-                              label: readinessLabel(for: r.verdict),
-                              color: readinessColor(for: r.verdict))
-            } else if readinessFetchFailed {
+            // Score ou verdict absent (données insuffisantes) → même « — » discret qu'un échec.
+            if let r = readiness, let score = r.score, let verdict = r.verdict {
+                ReadinessChip(score: Double(score),
+                              label: readinessLabel(for: verdict),
+                              color: readinessColor(for: verdict))
+            } else if readinessFetchFailed || readiness != nil {
                 HStack(spacing: 6) {
                     Image(systemName: "bolt.heart")
                         .font(.system(size: 10))

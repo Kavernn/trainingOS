@@ -1,11 +1,12 @@
 import Foundation
 
 struct ReadinessResponse: Codable {
-    let score: Int
-    let verdict: String          // "go" | "moderate" | "rest"
+    // nil = données insuffisantes (aucun signal HRV / FC repos / sommeil / ressenti) :
+    // jamais de score ni de verdict inventés (build 1a, contrat du build 1b).
+    let score: Int?
+    let verdict: String?         // "go" | "moderate" | "rest" | nil
     let why: String
     let adjustment: String?
-    let progressionModifier: Double
     let modules: ReadinessModules
     let muscleRecovery: [String: MuscleGroupRecovery]
     let todaySession: String?
@@ -17,7 +18,6 @@ struct ReadinessResponse: Codable {
 
     enum CodingKeys: String, CodingKey {
         case score, verdict, why, adjustment, modules
-        case progressionModifier = "progression_modifier"
         case muscleRecovery      = "muscle_recovery"
         case todaySession        = "today_session"
         case hrvStatus           = "hrv_status"
@@ -87,7 +87,8 @@ extension ReadinessResponse {
         switch verdict {
         case "go":       return "green"
         case "moderate": return "yellow"
-        default:         return "red"
+        case "rest":     return "red"
+        default:         return "gray"
         }
     }
 
@@ -95,7 +96,8 @@ extension ReadinessResponse {
         switch verdict {
         case "go":       return "🟢"
         case "moderate": return "🟡"
-        default:         return "🔴"
+        case "rest":     return "🔴"
+        default:         return ""    // le libellé « — » suffit
         }
     }
 
@@ -103,7 +105,8 @@ extension ReadinessResponse {
         switch verdict {
         case "go":       return "Prêt"
         case "moderate": return "Modéré"
-        default:         return "Repos"
+        case "rest":     return "Repos"
+        default:         return "—"   // absent ou inconnu : jamais un faux conseil de repos
         }
     }
 }

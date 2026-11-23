@@ -119,6 +119,43 @@ final class APIModelsTests: XCTestCase {
         XCTAssertTrue(decoded.legacyMuscles.isEmpty)
     }
 
+    // MARK: - Readiness optionnelle (build 1a)
+
+    private static func readinessJSON(score: String, verdict: String) -> Data {
+        let module = #"{"score":null,"label":"X","detail":"Données insuffisantes"}"#
+        let modules = ["hrv", "rhr", "acwr", "sleep_quality", "sleep_duration", "subjective",
+                       "muscle_rec", "nutrition", "pattern"].map { "\"\($0)\":\(module)" }.joined(separator: ",")
+        return Data("""
+        {"score":\(score),"verdict":\(verdict),"why":"Pas de HRV, FC repos, sommeil ni ressenti aujourd'hui.",
+         "adjustment":null,"progression_modifier":null,"modules":{\(modules)},"muscle_recovery":{},
+         "today_session":null,"hrv_status":null,"verdict_method":"absolute_cold_start","downgrade_reason":null}
+        """.utf8)
+    }
+
+    func testReadinessWithoutDataDecodesWithNoScoreNoVerdict() throws {
+        let r = try JSONDecoder().decode(ReadinessResponse.self, from: Self.readinessJSON(score: "null", verdict: "null"))
+        XCTAssertNil(r.score)
+        XCTAssertNil(r.verdict)
+        XCTAssertEqual(r.verdictLabel, "—")
+        XCTAssertEqual(r.verdictEmoji, "")
+        XCTAssertEqual(r.verdictColor, "gray")
+    }
+
+    func testReadinessWithScoreStillDecodes() throws {
+        let r = try JSONDecoder().decode(ReadinessResponse.self, from: Self.readinessJSON(score: "72", verdict: "\"go\""))
+        XCTAssertEqual(r.score, 72)
+        XCTAssertEqual(r.verdictLabel, "Prêt")
+    }
+
+    func testRestVerdictStaysRestButUnknownNeverBecomesRest() throws {
+        let rest = try JSONDecoder().decode(ReadinessResponse.self, from: Self.readinessJSON(score: "30", verdict: "\"rest\""))
+        XCTAssertEqual(rest.verdictLabel, "Repos")
+        XCTAssertEqual(rest.verdictEmoji, "🔴")
+        let unknown = try JSONDecoder().decode(ReadinessResponse.self, from: Self.readinessJSON(score: "50", verdict: "\"bizarre\""))
+        XCTAssertEqual(unknown.verdictLabel, "—")
+        XCTAssertNotEqual(unknown.verdictEmoji, "🔴")
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

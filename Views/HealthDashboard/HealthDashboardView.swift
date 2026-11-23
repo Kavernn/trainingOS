@@ -60,7 +60,7 @@ struct HealthDashboardView: View {
     private var yesterday: DailyHealthSummary? { week.dropFirst().first }
     private var todayRecovery: RecoveryEntry? { recoveryLog.first }
     private var dailySummary: DailySummary? {
-        readiness.map { DailySummary(recoveryScore: Double($0.score)) }
+        readiness?.score.map { DailySummary(recoveryScore: Double($0)) }
     }
 
     /// True dès qu'un endpoint principal a rendu un résultat (seed cache OU

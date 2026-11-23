@@ -699,7 +699,7 @@ struct RecoveryView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
                 RecoveryHeroCard(
-                    score: readinessData.map { Double($0.score) / 100.0 },
+                    score: readinessData?.score.map { Double($0) / 100.0 },
                     hrv: todayEntry?.hrv,
                     sleepHours: todayEntry?.sleepHours,
                     restingHr: todayEntry?.restingHr,

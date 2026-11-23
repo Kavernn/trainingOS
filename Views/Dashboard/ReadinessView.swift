@@ -18,7 +18,7 @@ struct ReadinessBadge: View {
 
     private var a11yLabel: String {
         guard let r = readiness else { return "Readiness indisponible" }
-        return "Readiness : \(label(r)), score \(r.score). \(r.why)"
+        return "Readiness : \(label(r)), score \(r.score.map { "\($0)" } ?? "indisponible"). \(r.why)"
     }
 
     // Label a11y = mention explicite du cap quand il downgrade (info accessible non
@@ -60,7 +60,7 @@ struct ReadinessSheet: View {
                                 .frame(width: 72, height: 72)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(readiness.verdictEmoji + "  " + readiness.verdictLabel)
+                                Text([readiness.verdictEmoji, readiness.verdictLabel].filter { !$0.isEmpty }.joined(separator: "  "))
                                     .font(.system(size: 22, weight: .black, design: .rounded))
                                     .foregroundColor(verdictColor)
                                 if let session = readiness.todaySession, !session.isEmpty {
@@ -162,7 +162,8 @@ struct ReadinessSheet: View {
                         }
                         .buttonStyle(SpringButtonStyle())
 
-                        if readiness.verdict != "go" {
+                        // Sans verdict : pas de « Commencer quand même » (rien à contourner).
+                        if let verdict = readiness.verdict, verdict != "go" {
                             Button {
                                 dismiss()
                                 onProceed()
@@ -218,7 +219,8 @@ struct ReadinessSheet: View {
         switch readiness.verdict {
         case "go":       return .statusGreen
         case "moderate": return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:         return .statusRed
+        case "rest":     return .statusRed
+        default:         return .gray
         }
     }
 
@@ -226,7 +228,8 @@ struct ReadinessSheet: View {
         switch readiness.verdict {
         case "go":       return "C'est parti — Go hard"
         case "moderate": return "Commencer en mode modéré"
-        default:         return "Repos actif recommandé"
+        case "rest":     return "Repos actif recommandé"
+        default:         return "Ouvrir ma séance"
         }
     }
 
@@ -249,8 +252,8 @@ struct ReadinessSheet: View {
 // MARK: - Verdict Orb
 
 private struct VerdictOrb: View {
-    let verdict: String
-    let score: Int
+    let verdict: String?
+    let score: Int?
     @State private var pulse: CGFloat = 1.0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -263,10 +266,10 @@ private struct VerdictOrb: View {
             Circle()
                 .strokeBorder(orbColor.opacity(0.35), lineWidth: 2)
                 .accessibilityHidden(true)
-            Text("\(score)")
+            Text(score.map { "\($0)" } ?? "—")
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundColor(orbColor)
-                .accessibilityLabel("Score \(score)")
+                .accessibilityLabel(score.map { "Score \($0)" } ?? "Score indisponible")
         }
         .onAppear {
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
@@ -279,7 +282,8 @@ private struct VerdictOrb: View {
         switch verdict {
         case "go":       return .statusGreen
         case "moderate": return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:         return .statusRed
+        case "rest":     return .statusRed
+        default:         return .gray
         }
     }
 }
