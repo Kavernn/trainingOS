@@ -1,0 +1,23 @@
+-- Migration 108 — user_profile.photo_url (URL publique Supabase Storage)
+--
+-- POURQUOI : docs/schema.sql:742 documente photo_url, mais aucune migration (001-107)
+-- ne la crée. En prod, SELECT * sur user_profile (via /api/dashboard, 2026-11-22)
+-- renvoie 17 colonnes, dont photo_b64, sans photo_url.
+--
+-- CONSÉQUENCE : /api/update_profile_photo ne pouvait pas écrire photo_url. La route
+-- retombait silencieusement sur photo_b64 (662 Ko de base64, soit 91 % du payload
+-- de /api/dashboard), ou renvoyait un 500 qu'iOS ignorait.
+--
+-- Idempotente (IF NOT EXISTS) : sans effet si la colonne existe déjà.
+-- Pas de dollar-quoting, pas d'index (règles migrations TrainingOS).
+-- RLS : table existante, policies inchangées.
+--
+-- EXÉCUTÉE PAR VINCE dans l'éditeur SQL Supabase le 2026-11-22. Script ci-dessous =
+-- texte exact exécuté. Vérification :
+--   SELECT column_name, data_type FROM information_schema.columns
+--   WHERE table_name = 'user_profile' AND column_name LIKE 'photo%';
+--   → photo_b64 | text, photo_url | text
+-- Bucket profile-photos : existe, public (créé à la main, confirmé par Vince).
+-- Non inscrite dans schema_migrations.
+
+ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS photo_url TEXT;
