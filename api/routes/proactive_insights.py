@@ -161,8 +161,8 @@ def _check_d1(recovery: list[dict], acwr: dict | None, hrv: dict | None, readine
     if hrv_trend not in ("up", "stable", ""):
         return None
 
-    # Readiness > 75
-    if readiness is not None and readiness < 75:
+    # Readiness > 75 — une readiness absente ne valide jamais la condition.
+    if readiness is None or readiness < 75:
         return None
 
     # ACWR dans fenêtre optimale

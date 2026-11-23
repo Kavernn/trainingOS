@@ -99,7 +99,7 @@ def get_morning_brief():
         "session_today":         today,
         "session_intensity":     intensity,
         "lss":                   lss,
-        "recommendation":        rec,      # "go" | "go_caution" | "reduce" | "defer"
+        "recommendation":        rec,      # "go" | "go_caution" | "reduce" | "defer" | "unknown" (LSS absent)
         "message":               msg,
         "adjustments":           adjustments,
         "flags":                 flags,
@@ -128,14 +128,18 @@ def _evaluate(lss, intensity, flags, hrv_ms=None, hrv_pct=None, session_name=Non
         return f"HRV {hrv_ms}ms"
 
     hrv_str = _hrv_str()
-    lss_str = f"Readiness {lss:.0f}/100" if lss is not None else None
+    # Le LSS n'est PAS la readiness (deux calculs distincts) : son nom affiché est
+    # « Équilibre de vie » (0 = surmenage, 100 = récupération optimale), comme dans l'app.
+    lss_str = f"Équilibre de vie {lss:.0f}/100" if lss is not None else None
 
     def _lead():
         return hrv_str if hrv_str else lss_str or "Données limitées"
 
     if lss is None:
-        msg = f"{_lead()}. Bonne séance." if session_name else f"{_lead()}."
-        return "go", msg, adj
+        # Anti-fantôme : sans LSS, aucune recommandation inventée (avant : "go" +
+        # « Bonne séance »). Chaîne "unknown" et non null : MorningBriefData.recommendation
+        # n'est pas optionnel côté iOS (affiché « Données insuffisantes » depuis le build 2a).
+        return "unknown", f"{_lead()}.", adj
 
     if lss < 25:
         if intensity == "heavy":
