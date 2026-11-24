@@ -418,7 +418,9 @@ def api_programme_data():
     # (`None`) autorise le fallback legacy ; `{}` ne doit jamais charger l'actif
     # à la place d'un programme explicitement consulté.
     full_program = relational_program if relational_program is not None else load_program()
-    schedule     = get_week_schedule()
+    # Planning DU programme chargé (migration 110) : un programme consulté ne montre jamais
+    # le planning de l'actif (séances absentes → « 0 exercices » dans Structure).
+    schedule     = (_db.get_relational_week_schedule(program_id=program_id) or {}) if program_id else {}
     inventory    = load_inventory()
     programs     = _db.get_all_programs()
     all_sessions = _db.get_all_session_names()
