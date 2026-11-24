@@ -57,6 +57,14 @@ struct DashboardView: View {
 
     func dashboardContent(_ dash: DashboardData) -> some View {
         VStack(alignment: .leading, spacing: 14) {
+            // 3 — Alerte critique (deload, readiness < 40, HRV rouge, semaine en jeu) : juste
+            // sous le hero, avant tout le reste (build 7 ; avant : sous « Mes tendances »).
+            if let signal = vm.criticalSignal(dash: dash) {
+                CriticalAlertCard(signal: signal) {
+                    handleAlertAction(signal: signal, dash: dash)
+                }
+            }
+
             dashboardHeading("MAINTENANT")
 
             // 4 — Séance du jour
@@ -202,19 +210,12 @@ struct DashboardView: View {
             }
             .padding(.top, 8)
 
-            dashboardHeading("MES TENDANCES")
+            // Section renommée (build 7) : elle ne contient pas de tendances.
+            dashboardHeading("À SURVEILLER")
             // SYSTÈME — bannière offline/network unifiée (série C.4).
             // Remplace partialLoadWarning. Les erreurs server/decoding
             // apparaissent via SectionErrorView au-dessus de chaque carte.
             ErrorBannerView.fromAggregator(vm.topFailureAggregator)
-
-            // 3 — Alerte critique
-            if let signal = vm.criticalSignal(dash: dash) {
-                CriticalAlertCard(signal: signal) {
-                    handleAlertAction(signal: signal, dash: dash)
-                }
-
-            }
 
             // 7 — Coach + alerte proactive (priorité : alerte > coach)
             if vm.morningBrief != nil || alertService.visibleAlert != nil {
