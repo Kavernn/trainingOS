@@ -2642,6 +2642,13 @@ struct WorkoutSeanceView: View {
     }
 
     private func prepareWorkoutInventory() async {
+        // La carte courante s'ouvre dès le montage avec les données déjà en mémoire ;
+        // le réseau (inventaire, readiness) ne fait que rafraîchir. Avant, elle attendait
+        // deux allers-retours serveur (réseau lent en salle → carte repliée).
+        await MainActor.run {
+            seedFromSeanceData()
+            openFirstPendingExercise()
+        }
         await loadInventory()
         await loadReadiness()
 
@@ -2656,17 +2663,32 @@ struct WorkoutSeanceView: View {
             )
             await MainActor.run { recentAdHocExercises = recentExercises }
         }
+    }
 
-        await MainActor.run {
-            // Arrive après plusieurs allers-retours réseau : ne jamais écraser un exercice
-            // déjà choisi entre-temps (main passée au partenaire de superset, carte ouverte).
-            guard expandedExercises.isEmpty, lastOpenedExercise == nil else { return }
-            let loggedExercises = Set(vm.logResults.keys)
-            if let first = exercises.first(where: { !loggedExercises.contains($0.0) })?.0 {
-                expandedExercises.insert(first)
-                lastOpenedExercise = first
-            }
+    /// Ouvre le premier exercice non fait, sans jamais écraser un choix déjà fait
+    /// (main passée au partenaire de superset, carte ouverte, reprise).
+    private func openFirstPendingExercise() {
+        guard expandedExercises.isEmpty, lastOpenedExercise == nil else { return }
+        let loggedExercises = Set(vm.logResults.keys)
+        if let first = exercises.first(where: { !loggedExercises.contains($0.0) })?.0 {
+            expandedExercises.insert(first)
+            lastOpenedExercise = first
         }
+    }
+
+    /// Amorce la vue depuis `data` (déjà chargé), sans réseau.
+    private func seedFromSeanceData() {
+        let fromCache  = data.fullProgram[data.today]?.mapValues { $0.value } ?? [:]
+        localProgram   = fromCache
+        exerciseOrder  = data.exerciseOrder[data.today] ?? fromCache.keys.sorted()
+        inventoryTypes    = data.inventoryTypes
+        inventoryTracking = data.inventoryTracking
+        inventoryUnilateral = data.inventoryUnilateral
+        inventoryRest     = data.inventoryRest
+        inventoryHints    = data.inventoryHints
+        inventorySchemes  = data.inventorySchemes
+        inventoryMuscleGroups = data.inventoryMuscleGroups
+        sessionSupersets  = data.exerciseSupersets[data.today] ?? [:]
     }
 
     private func recentAdHocExercises(
@@ -2730,20 +2752,7 @@ struct WorkoutSeanceView: View {
 
     private func loadInventory() async {
         // Seed immediately from already-loaded seanceData
-        let fromCache  = data.fullProgram[data.today]?.mapValues { $0.value } ?? [:]
-        let orderCache = data.exerciseOrder[data.today] ?? fromCache.keys.sorted()
-        await MainActor.run {
-            self.localProgram   = fromCache
-            self.exerciseOrder  = orderCache
-            self.inventoryTypes    = data.inventoryTypes
-            self.inventoryTracking = data.inventoryTracking
-            self.inventoryUnilateral = data.inventoryUnilateral
-            self.inventoryRest     = data.inventoryRest
-            self.inventoryHints    = data.inventoryHints
-            self.inventorySchemes  = data.inventorySchemes
-            self.inventoryMuscleGroups = data.inventoryMuscleGroups
-            self.sessionSupersets  = data.exerciseSupersets[data.today] ?? [:]
-        }
+        await MainActor.run { seedFromSeanceData() }
 
         // Fetch fresh programme + inventory types from network. Un échec
         // doit remonter au sélecteur d'exercices (sans ça, la liste reste

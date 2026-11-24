@@ -105,9 +105,18 @@ final class FocusRenderSnapshotTests: XCTestCase {
         func scrollViews(_ v: UIView) -> [UIScrollView] {
             (v as? UIScrollView).map { [$0] } ?? [] + v.subviews.flatMap(scrollViews)
         }
+        // Attente sur condition (délai max 5 s), jamais une durée fixe : la carte courante
+        // (Deadhang) s'ouvre au montage ; le contenu doit alors dépasser l'écran.
+        func scrollable() -> UIScrollView? {
+            scrollViews(window).filter { $0.contentSize.height > $0.bounds.height }
+                .max { $0.contentSize.height < $1.contentSize.height }
+        }
+        let deadline = Date().addingTimeInterval(5)
+        while scrollable() == nil, Date() < deadline {
+            host.view.layoutIfNeeded(); try await Task.sleep(nanoseconds: 100_000_000)
+        }
         try await shot("1-ouverture")
-        let main = try XCTUnwrap(scrollViews(window).filter { $0.contentSize.height > $0.bounds.height }
-            .max { $0.contentSize.height < $1.contentSize.height })
+        let main = try XCTUnwrap(scrollable())
         main.setContentOffset(CGPoint(x: 0, y: -main.adjustedContentInset.top), animated: false)
         try await shot("2-haut")
         let bottom = main.contentSize.height - main.bounds.height + main.adjustedContentInset.bottom
