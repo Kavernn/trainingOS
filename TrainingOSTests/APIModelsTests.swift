@@ -655,6 +655,9 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(ProgramExerciseMeta.effectiveRest(session: 180, library: 120), 180)
         XCTAssertEqual(ProgramExerciseMeta.effectiveRest(session: nil, library: 60), 60, "selon besoin → bibliothèque")
         XCTAssertEqual(ProgramExerciseMeta.effectiveRest(session: nil, library: 0), 0, "0 = pas de repos, conservé")
+        XCTAssertEqual(d.exerciseMeta["Bench Press"]?.rirLabel, "RIR 2")
+        XCTAssertEqual(ProgramExerciseMeta(targetRirMin: 1, targetRirMax: 2).rirLabel, "RIR 1–2")
+        XCTAssertNil(d.exerciseMeta["Incline Cable Fly"]?.rirLabel, "pas de cible → rien")
     }
 
     // MARK: - SafeString

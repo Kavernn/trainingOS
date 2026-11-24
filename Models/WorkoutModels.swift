@@ -297,6 +297,12 @@ struct ProgramExerciseMeta: Codable, Equatable {
     /// 0 conservé = « pas de repos » explicite : les minuteurs l'ignorent (secs > 0) et la durée
     /// estimée compte bien 0 s. Aucune valeur inventée.
     static func effectiveRest(session: Int?, library: Int?) -> Int? { session ?? library }
+
+    /// « RIR 1–2 » / « RIR 2 » ; nil si pas de cible (bonus « Au choix », v4).
+    var rirLabel: String? {
+        guard let lo = targetRirMin, let hi = targetRirMax else { return nil }
+        return lo == hi ? "RIR \(lo)" : "RIR \(lo)–\(hi)"
+    }
 }
 
 /// Clé `exercise_meta` ({séance: {exercice: ProgramExerciseMeta}}), lue par SeanceData/SeanceSoirData.

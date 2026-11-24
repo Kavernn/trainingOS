@@ -151,7 +151,7 @@ extension ExerciseCard {
             }
             .padding(.top, 8)
             if let target = focusRepsTarget {
-                Text("cible \(target)")
+                Text(["cible \(target)", rirLabel].compactMap { $0 }.joined(separator: " · "))
                     .font(.appLabel).foregroundColor(Color.appTextSecondary)
             }
             // Écart ≥ 48 pt entre les +/− et « Série terminée » : pas d'appui accidentel.
@@ -342,6 +342,8 @@ struct ExerciseCard: View {
     var isBonusSession: Bool = false
     /// Exercice bonus du programme (is_optional) : badge, hors progression de séance.
     var isBonus: Bool = false
+    /// RIR cible de l'exercice de séance (« RIR 1–2 »), nil si aucun.
+    var rirLabel: String? = nil
     var restSeconds: Int? = nil
     var prescription: ExercisePrescription? = nil
     var suggestion: ProgressionSuggestion? = nil
@@ -423,7 +425,7 @@ struct ExerciseCard: View {
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
          isUnilateral: Bool = false,
-         bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false, isBonus: Bool = false,
+         bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false, isBonus: Bool = false, rirLabel: String? = nil,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil, hint: String? = nil,
          logResult: Binding<ExerciseLogResult?>, onLogged: (() -> Void)? = nil,
@@ -480,6 +482,7 @@ struct ExerciseCard: View {
         self.isUnilateral    = isUnilateral
         self.isBonusSession  = isBonusSession
         self.isBonus         = isBonus
+        self.rirLabel        = rirLabel
         self.isSecondSession = isSecondSession
         self.isBonusSession  = isBonusSession
         self.restSeconds     = restSeconds
@@ -1901,7 +1904,7 @@ struct ExerciseCard: View {
                                 .clipShape(Circle())
                         }
                     }
-                    Text(isSkippedCompact ? "Sauté" : displayedScheme)
+                    Text(isSkippedCompact ? "Sauté" : [displayedScheme, rirLabel].compactMap { $0 }.joined(separator: " · "))
                         .font(isCurrentHero
                               ? .appLabel
                               : ((isUpcomingCompact || isCompletedCompact) ? .appMicro : .appCaption))

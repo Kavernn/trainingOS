@@ -1073,6 +1073,7 @@ struct WorkoutSeanceView: View {
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: isSecondSession,
             isBonusSession: isBonusSession, isBonus: isBonus(name),
+            rirLabel: data.exerciseMeta[name]?.rirLabel,
             restSeconds: forceNoRest ? nil : (restOverride ?? restSeconds(for: name)),
             prescription: data.prescriptions?[name],
             suggestion: data.exerciseSuggestions?[name],
