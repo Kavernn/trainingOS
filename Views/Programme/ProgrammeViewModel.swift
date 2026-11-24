@@ -317,7 +317,9 @@ final class ProgrammeViewModel: ObservableObject {
         do {
             let url = try APIService.shared.buildURL(path: "/api/programme_data",
                 queryItems: programId.map { [URLQueryItem(name: "program_id", value: $0)] } ?? [])
-            let eveningURL = try APIService.shared.buildURL(path: "/api/evening_schedule")
+            // Planning du soir DU programme consulté (sinon celui de l'actif s'affichait).
+            let eveningURL = try APIService.shared.buildURL(path: "/api/evening_schedule",
+                queryItems: programId.map { [URLQueryItem(name: "program_id", value: $0)] } ?? [])
             // Independent reads, explicit task lifetimes (no async-let beta issue).
             let programmeRead = Task { try await self.read(url).0 }
             let eveningRead = Task { try await self.read(eveningURL).0 }
@@ -533,7 +535,9 @@ final class ProgrammeViewModel: ObservableObject {
 
     func saveSchedule() async {
         do {
-            try await APIService.shared.saveMorningSchedule(schedule)
+            // Programme CONSULTÉ (Structure peut éditer un programme non actif).
+            guard !loadedProgramId.isEmpty else { lastSaveError = true; return }
+            try await APIService.shared.saveMorningSchedule(schedule, programId: loadedProgramId)
         } catch {
             lastSaveError = true
         }
@@ -541,7 +545,8 @@ final class ProgrammeViewModel: ObservableObject {
 
     func saveEveningSchedule() async {
         do {
-            try await APIService.shared.saveEveningSchedule(eveningSchedule)
+            guard !loadedProgramId.isEmpty else { lastSaveError = true; return }
+            try await APIService.shared.saveEveningSchedule(eveningSchedule, programId: loadedProgramId)
         } catch {
             lastSaveError = true
         }

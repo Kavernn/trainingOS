@@ -660,6 +660,14 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNil(d.exerciseMeta["Incline Cable Fly"]?.rirLabel, "pas de cible → rien")
     }
 
+    /// Incident 2026-11-24 : Structure écrit le planning DU programme consulté, jamais l'actif.
+    func testScheduleEndpointTargetsConsultedProgram() {
+        XCTAssertEqual(APIService.scheduleEndpoint("/api/morning_schedule", programId: "7ddfa7a6-297b"),
+                       "/api/morning_schedule?program_id=7ddfa7a6-297b")
+        XCTAssertEqual(APIService.scheduleEndpoint("/api/evening_schedule", programId: "a b"),
+                       "/api/evening_schedule?program_id=a%20b")
+    }
+
     // MARK: - SafeString
 
     func testSafeStringFromString() throws {

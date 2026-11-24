@@ -693,8 +693,14 @@ extension APIService {
         return data
     }
 
-    func saveEveningSchedule(_ schedule: [String: String]) async throws {
-        _ = try await postProgrammeDirect(endpoint: "/api/evening_schedule", payload: schedule as [String: Any])
+    /// Planning DU programme visé (migration 110) : jamais le programme actif par défaut.
+    static func scheduleEndpoint(_ path: String, programId: String) -> String {
+        path + "?program_id=" + (programId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? programId)
+    }
+
+    func saveEveningSchedule(_ schedule: [String: String], programId: String) async throws {
+        _ = try await postProgrammeDirect(endpoint: Self.scheduleEndpoint("/api/evening_schedule", programId: programId),
+                                          payload: schedule as [String: Any])
         CacheInvalidation.programmeMutated.invalidate()
         await publishActivePlanningChange()
     }
@@ -750,8 +756,9 @@ extension APIService {
         return (try? JSONDecoder().decode(ClearResponse.self, from: data).deleted) ?? 0
     }
 
-    func saveMorningSchedule(_ schedule: [String: String]) async throws {
-        _ = try await postProgrammeDirect(endpoint: "/api/morning_schedule", payload: ["schedule": schedule])
+    func saveMorningSchedule(_ schedule: [String: String], programId: String) async throws {
+        _ = try await postProgrammeDirect(endpoint: Self.scheduleEndpoint("/api/morning_schedule", programId: programId),
+                                          payload: ["schedule": schedule])
         CacheInvalidation.programmeMutated.invalidate()
         await publishActivePlanningChange()
     }
