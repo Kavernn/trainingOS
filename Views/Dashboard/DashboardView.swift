@@ -194,14 +194,17 @@ struct DashboardView: View {
                 }
 
                 HStack(alignment: .top, spacing: 10) {
-                    // 11 — Cardio du jour
-                    VStack(spacing: 4) {
-                        SectionErrorView(state: vm.cardioState) { await vm.loadAll() }
-                        if let cardio = vm.cardioToday {
-                            DashboardCardioCard(entry: cardio)
+                    // 11 — Cardio du jour. Colonne seulement s'il y a une carte ou une erreur à
+                    // montrer (build 5) : sinon la Pensée du jour restait seule à droite d'un trou.
+                    if Self.showsCardioColumn(hasCardio: vm.cardioToday != nil, hasError: vm.cardioState.hasError) {
+                        VStack(spacing: 4) {
+                            SectionErrorView(state: vm.cardioState) { await vm.loadAll() }
+                            if let cardio = vm.cardioToday {
+                                DashboardCardioCard(entry: cardio)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
 
                     // 13 — Pensée du jour (fermeture calme du scroll)
                     QuoteCard()
@@ -570,6 +573,8 @@ struct DashboardView: View {
             BudgetCelebrationView(data: data) { budgetCelebrationData = nil }
         }
     }
+
+    static func showsCardioColumn(hasCardio: Bool, hasError: Bool) -> Bool { hasCardio || hasError }
 
     /// « Parfait » : recommandation `go` réelle ET deload réellement chargé à 0.
     /// Un deload pas encore chargé ne compte plus comme « aucune fatigue » (build 2a).

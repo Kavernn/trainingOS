@@ -422,7 +422,7 @@ final class APIModelsTests: XCTestCase {
         XCTAssertFalse(DashboardHeroState.needsCheckIn(nil))   // chargement / erreur : pas d'invitation
     }
 
-    // MARK: - Build 8 : tuile Entraînement = règle de la streak
+    // MARK: - Build 8 : tuile Entraînement = règle de la streak ; build 5 : grille sans trou
 
     @MainActor
     func testTrainingTileFollowsStreakRule() throws {
@@ -430,6 +430,13 @@ final class APIModelsTests: XCTestCase {
         let streak = try JSONDecoder().decode(StreakResponse.self, from: Data(json.utf8))
         XCTAssertEqual(DashboardDomainGrid.trainingValue(streak), "2 / 5 jours actifs")
         XCTAssertEqual(DashboardDomainGrid.trainingValue(nil), "—")
+    }
+
+    @MainActor
+    func testCardioColumnOnlyWhenSomethingToShow() {
+        XCTAssertFalse(DashboardView.showsCardioColumn(hasCardio: false, hasError: false))
+        XCTAssertTrue(DashboardView.showsCardioColumn(hasCardio: true, hasError: false))
+        XCTAssertTrue(DashboardView.showsCardioColumn(hasCardio: false, hasError: true))
     }
 
     // MARK: - Photo de profil (build 6c)
