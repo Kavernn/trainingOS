@@ -22,6 +22,8 @@ struct TodayCardView: View {
     var onOpenSession: (() -> Void)? = nil
     var readiness: ReadinessResponse? = nil
     var effortCap: EffortCap = .none
+    /// Veille (build 13) : la séance de demain devient une section autonome → masquée ici.
+    var showsTomorrowPreview: Bool = true
     // Volet G : SeanceSoirView en .sheet obligatoirement (voir commentaire au head
     // de SeanceSoirView.swift). NavigationLink push cassait les .alert internes.
     @State private var showSeance2Sheet = false
@@ -313,7 +315,7 @@ struct TodayCardView: View {
                 showSheet: $showBonusSheet
             )
 
-            TomorrowPreviewStrip(dash: dash)
+            if showsTomorrowPreview { TomorrowPreviewStrip(dash: dash) }
         }
         // Fond neutre : brutalist (cardAccentFillOpacity 1.0) + electric (0.80)
         // rendaient la carte hero illisible (fond plein saturé sur textes .gray).

@@ -2,6 +2,50 @@ import SwiftUI
 import Combine
 import OSLog
 
+// MARK: - Build 13 : ordre de la page selon le moment (l'état prime sur l'heure)
+
+enum DashboardSection: Equatable {
+    case today        // séance du jour (CTA / récap, séance PM) + Ma journée
+    case coach        // « À SURVEILLER » : bannière réseau + coach / alerte proactive
+    case moodPrompt   // invite humeur du matin
+    case grid         // « MA JOURNÉE » : grille domaines
+    case actions      // actions du jour
+    case extras       // War Room, Leçon, Cardio, Pensée
+    case budget       // jour de paie
+    case sleep        // routine du soir (EveningSleepCard)
+    case tomorrow     // séance de demain (TomorrowPreviewStrip, sortie de la carte)
+}
+
+enum DashboardMoment: Equatable { case beforeSession, afterSession, evening, eve }
+
+enum DashboardLayout {
+    /// Moment : séance du matin planifiée et non faite → « avant séance » jusqu'à 20 h ;
+    /// 20 h–3 h → veille ; 18 h–20 h → soir ; sinon après séance (séance faite ou repos).
+    static func moment(hour: Int, amPlanned: Bool, amDone: Bool) -> DashboardMoment {
+        if hour >= 20 || hour < 3 { return .eve }
+        if amPlanned && !amDone { return .beforeSession }
+        return hour >= 18 ? .evening : .afterSession
+    }
+
+    /// Liste ordonnée des sections (le hero et l'alerte critique restent en tête, hors liste).
+    /// Une séance PM n'existe que si elle est planifiée ; planifiée et non faite → 2e position.
+    static func sections(hour: Int, amPlanned: Bool, amDone: Bool,
+                         pmPlanned: Bool, pmDone: Bool) -> [DashboardSection] {
+        let pmPending = pmPlanned && !pmDone
+        switch moment(hour: hour, amPlanned: amPlanned, amDone: amDone) {
+        case .beforeSession:
+            return [.today, .coach, .moodPrompt, .grid, .actions, .extras, .budget]
+        case .afterSession:
+            return [.today, .grid, .coach, .moodPrompt, .actions, .extras, .budget]
+        case .evening:
+            return pmPending ? [.today, .grid, .actions, .coach, .extras, .budget]
+                             : [.grid, .actions, .coach, .today, .extras, .budget]
+        case .eve:
+            return (pmPending ? [.today] : []) + [.sleep, .tomorrow, .grid, .actions, .coach, .extras, .budget]
+        }
+    }
+}
+
 // MARK: - Main-actor phase results, published as each structured child completes
 
 final class P2State: @unchecked Sendable {

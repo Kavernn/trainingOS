@@ -54,8 +54,26 @@ struct DashboardView: View {
             .accessibilityAddTraits(.isHeader)
     }
 
+    /// Build 13 : entrées de l'ordre de page (hors view builder : type-checker).
+    private func dashboardSections(_ dash: DashboardData, now: Date = Date()) -> (sections: [DashboardSection], isEve: Bool) {
+        let hour = Calendar.current.component(.hour, from: now)
+        let plan = api.dashboardPlan
+        let amPlanned = plan.map { $0.morning(on: now) != "Repos" } ?? false
+        let pmPlanned = plan?.evening(on: now) != nil
+        let sections = DashboardLayout.sections(hour: hour, amPlanned: amPlanned, amDone: dash.alreadyLoggedToday,
+                                                pmPlanned: pmPlanned, pmDone: dash.secondSessionCompleted)
+        let isEve = DashboardLayout.moment(hour: hour, amPlanned: amPlanned, amDone: dash.alreadyLoggedToday) == .eve
+        return (sections, isEve)
+    }
+
+    private var isMorningMoodPrompt: Bool {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour >= 6 && hour < 14 && vm.moodDue?.isDue == true
+    }
+
     func dashboardContent(_ dash: DashboardData) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let layout = dashboardSections(dash)
+        return VStack(alignment: .leading, spacing: 14) {
             // 3 — Alerte critique (deload, readiness < 40, HRV rouge, semaine en jeu) : juste
             // sous le hero, avant tout le reste (build 7 ; avant : sous « Mes tendances »).
             if let signal = vm.criticalSignal(dash: dash) {
@@ -64,6 +82,34 @@ struct DashboardView: View {
                 }
             }
 
+            ForEach(Array(layout.sections.enumerated()), id: \.offset) { _, section in
+                dashboardSection(section, dash: dash, isEve: layout.isEve)
+            }
+        }
+        .id(appTheme.selectedTheme)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+    }
+
+
+    @ViewBuilder
+    private func dashboardSection(_ section: DashboardSection, dash: DashboardData, isEve: Bool) -> some View {
+        switch section {
+        case .today:      todaySection(dash, isEve: isEve)
+        case .coach:      coachSection(dash)
+        case .moodPrompt: moodPromptSection
+        case .grid:       gridSection(dash)
+        case .actions:    actionsSection
+        case .extras:     extrasSection
+        case .budget:     budgetSection
+        case .sleep:      EveningSleepCard()
+        case .tomorrow:   TomorrowPreviewStrip(dash: dash)
+        }
+    }
+
+    @ViewBuilder
+    private func todaySection(_ dash: DashboardData, isEve: Bool) -> some View {
             dashboardHeading("MAINTENANT")
 
             // 4 — Séance du jour
@@ -77,7 +123,8 @@ struct DashboardView: View {
                                                                sessionLoggedToday: dash.sessions[todayStr] != nil),
                     onOpenSession: onOpenSession,
                     readiness: vm.readinessData,
-                    effortCap: DashboardVerdictArbiter.cap(signal: vm.criticalSignal(dash: dash))
+                    effortCap: DashboardVerdictArbiter.cap(signal: vm.criticalSignal(dash: dash)),
+                    showsTomorrowPreview: !isEve
                 )
 
                 .padding(.vertical, 8)
@@ -89,10 +136,11 @@ struct DashboardView: View {
                 DayComposerTodayEntry(candidate: candidate)
             }
 
-            dashboardHeading("MA JOURNÉE")
-            let hour = Calendar.current.component(.hour, from: Date())
-            let isMorningMoodPrompt = hour >= 6 && hour < 14 && vm.moodDue?.isDue == true
+    }
 
+    @ViewBuilder
+    private func gridSection(_ dash: DashboardData) -> some View {
+            dashboardHeading("MA JOURNÉE")
             // 2 — Grille domaines (Entraînement · Nutrition · Récupération · Finances)
             DashboardDomainGrid(
                 dash: dash,
@@ -104,6 +152,10 @@ struct DashboardView: View {
                 onOpenNutrition: { showNutritionAddSheet = true }
             )
 
+    }
+
+    @ViewBuilder
+    private var actionsSection: some View {
             // 10 — Actions du jour
             DayActionsRow(
                 moodDone: vm.moodDue?.isDue == false,
@@ -112,6 +164,10 @@ struct DashboardView: View {
             )
             .padding(.top, 14)
 
+    }
+
+    @ViewBuilder
+    private var extrasSection: some View {
             VStack(spacing: 10) {
                 HStack(alignment: .top, spacing: 10) {
                     // 11 — War Room strip
@@ -209,6 +265,10 @@ struct DashboardView: View {
             }
             .padding(.top, 8)
 
+    }
+
+    @ViewBuilder
+    private func coachSection(_ dash: DashboardData) -> some View {
             // Section renommée (build 7) : elle ne contient pas de tendances.
             dashboardHeading("À SURVEILLER")
             // SYSTÈME — bannière offline/network unifiée (série C.4).
@@ -253,17 +313,18 @@ struct DashboardView: View {
 
             }
 
+    }
+
+    @ViewBuilder
+    private var moodPromptSection: some View {
             if isMorningMoodPrompt {
                 MorningMoodPromptCard(action: { showMoodSheet = true })
 
             }
-            if hour >= 20 || hour < 3 {
-                EveningSleepCard()
+    }
 
-            }
-
-            // ── FOLD NATUREL ──────────────────────────────
-
+    @ViewBuilder
+    private var budgetSection: some View {
             // 12 — Budget & finances
             SectionErrorView(state: vm.budgetState) { await vm.loadAll() }
             if let bs = vm.budgetStatus {
@@ -299,11 +360,6 @@ struct DashboardView: View {
                 }
             }
 
-        }
-        .id(appTheme.selectedTheme)
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
     }
 
     var appearanceBanner: some View {

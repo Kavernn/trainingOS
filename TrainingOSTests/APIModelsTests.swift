@@ -685,6 +685,32 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNil(ExercisePrescription.deload(sets: 1, base: nil, scheme: "1xmax"), "fourchette inconnue → rien")
     }
 
+    /// Build 13 : ordre de la page selon le moment — l'état prime sur l'heure.
+    func testDashboardLayoutByMoment() {
+        func order(_ h: Int, am: Bool = true, amDone: Bool = false, pm: Bool = false, pmDone: Bool = false) -> [DashboardSection] {
+            DashboardLayout.sections(hour: h, amPlanned: am, amDone: amDone, pmPlanned: pm, pmDone: pmDone)
+        }
+        // Matin avant séance : action avant commentaire.
+        XCTAssertEqual(order(9), [.today, .coach, .moodPrompt, .grid, .actions, .extras, .budget])
+        // 19 h, séance pas faite : reste « avant séance » jusqu'à 20 h.
+        XCTAssertEqual(DashboardLayout.moment(hour: 19, amPlanned: true, amDone: false), .beforeSession)
+        XCTAssertEqual(order(19).first, .today)
+        // Jour de repos : jamais « avant séance » ; le soir commence à 18 h.
+        XCTAssertEqual(DashboardLayout.moment(hour: 10, amPlanned: false, amDone: false), .afterSession)
+        XCTAssertEqual(DashboardLayout.moment(hour: 18, amPlanned: false, amDone: false), .evening)
+        // Aucune PM planifiée, séance faite, 18 h 30 : pas de séance supposée en tête.
+        XCTAssertEqual(order(18, amDone: true), [.grid, .actions, .coach, .today, .extras, .budget])
+        // PM planifiée (ou ajoutée en cours de journée) et non faite à 18 h 30 → 2e (juste sous le hero).
+        XCTAssertEqual(order(18, amDone: true, pm: true).first, .today)
+        // PM faite → retour à l'ordre du soir.
+        XCTAssertEqual(order(18, amDone: true, pm: true, pmDone: true).first, .grid)
+        // Veille : routine sommeil puis séance de demain ; PM non faite → en tête.
+        XCTAssertEqual(Array(order(21, amDone: true).prefix(2)), [.sleep, .tomorrow])
+        XCTAssertEqual(order(21, amDone: true, pm: true).first, .today)
+        XCTAssertFalse(order(21, amDone: true).contains(.today), "veille sans PM : la séance de demain seule")
+        XCTAssertEqual(order(21, amDone: true).filter { $0 == .tomorrow }.count, 1)
+    }
+
     // MARK: - SafeString
 
     func testSafeStringFromString() throws {
