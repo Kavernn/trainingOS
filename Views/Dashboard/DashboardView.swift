@@ -9,9 +9,6 @@ enum DashboardAccentRadiance {
     static let topBandPeak:   Double  = 0.22
     static let topBandHeight: CGFloat = 120
 
-    // Point 2 — Wash StatusBar + liseré bas
-    static let statusBarFill: Double = 0.06
-    static let statusBarRule: Double = 0.20
 }
 
 struct DashboardView: View {
@@ -322,8 +319,8 @@ struct DashboardView: View {
     var pageContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 14) {
-                DashboardBrandingBar(profile: api.dashboard?.profile)
-                DashboardStatusBar(
+                DashboardBrandingBar(
+                    profile: api.dashboard?.profile,
                     dash: api.dashboard,
                     plannedSession: api.dashboardPlan?.morning(on: Date()) ?? "Planning indisponible"
                 )

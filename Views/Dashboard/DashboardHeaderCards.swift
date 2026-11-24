@@ -73,8 +73,35 @@ struct SkeletonBar: View {
 }
 
 // MARK: - Dashboard Branding Bar
+// Build 11 — haut de page compact : la date et le point du jour (ex-bandeau
+// DashboardStatusBar) rejoignent la barre de marque. Une ligne de moins, identité gardée
+// (logo, nom, slogan, avatar). Le halo de couleur du jour reste porté par le fond.
 struct DashboardBrandingBar: View {
     let profile: UserProfile?
+    let dash: DashboardData?
+    let plannedSession: String
+
+    private var dateShort: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_CA")
+        f.dateFormat = "EEE d MMM"
+        return f.string(from: dash.flatMap { DateFormatter.isoDate.date(from: $0.todayDate) } ?? Date()).capitalized
+    }
+
+    private var isLoggedToday: Bool {
+        guard let dash else { return false }
+        return dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
+    }
+
+    /// Couleur du type de séance ; vert une fois la séance loggée ; neutre un jour de repos.
+    private var dotColor: Color {
+        if isLoggedToday { return Color.statusGreen }
+        let low = plannedSession.lowercased()
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") {
+            return Color.secondary
+        }
+        return Color.sessionTypeColor(plannedSession)
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -93,6 +120,17 @@ struct DashboardBrandingBar: View {
 
             Spacer(minLength: 0)
 
+            HStack(spacing: 5) {
+                Text(dateShort)
+                    .font(.appLabel.weight(.medium))
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
+            }
+
             NavigationLink { ProfileView() } label: {
                 ProfileAvatarView(profile: profile, size: 46)
             }
@@ -108,65 +146,6 @@ struct DashboardBrandingBar: View {
             return "Profil"
         }
         return "Profil de \(name)"
-    }
-}
-
-// MARK: - Dashboard Status Bar
-struct DashboardStatusBar: View {
-    let dash: DashboardData?
-    let plannedSession: String
-
-    private var dateShort: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_CA")
-        f.dateFormat = "EEE d MMM"
-        return f.string(from: dash.flatMap { DateFormatter.isoDate.date(from: $0.todayDate) } ?? Date()).capitalized
-    }
-
-    private var isLoggedToday: Bool {
-        guard let dash else { return false }
-        return dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
-    }
-
-    private var dotColor: Color {
-        if isLoggedToday { return Color.statusGreen }
-        let low = plannedSession.lowercased()
-        if low.contains("repos") || low.contains("recovery") || low.contains("rest") {
-            return Color.secondary
-        }
-        return Color.sessionTypeColor(plannedSession)
-    }
-
-    var body: some View {
-        let accent = Color.sessionTypeColor(plannedSession)
-        // Point 2 — Wash accent + liseré bas : la StatusBar devient "le panneau du jour".
-        // Réversible via DashboardAccentRadiance.statusBarFill / statusBarRule.
-        return HStack(spacing: 0) {
-            Text(dateShort)
-                .font(.appLabel.weight(.medium))
-                .foregroundColor(.appTextPrimary)
-
-            Spacer()
-
-            HStack(spacing: 10) {
-                // Build 9 : le nom de séance vit dans le titre de la carte du jour ; le point
-                // garde la couleur du type de séance (et passe au vert une fois loggée).
-                Circle()
-                    .fill(dotColor)
-                    .frame(width: 6, height: 6)
-                    .accessibilityHidden(true)
-
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(accent.opacity(DashboardAccentRadiance.statusBarFill))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(accent.opacity(DashboardAccentRadiance.statusBarRule))
-                .frame(height: 0.5)
-        }
-        .padding(.top, 12)
     }
 }
 
