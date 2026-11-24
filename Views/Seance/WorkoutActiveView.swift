@@ -206,8 +206,12 @@ struct WorkoutSeanceView: View {
     /// Proposition de RPE de séance (RPE réels uniquement) ; nil si aucun — pas de 7 par défaut.
     private var sessionRPEProposal: Double? { RPEHelper.sessionProposal(vm.logResults.values) }
 
+    /// Bonus du programme (is_optional) : hors progression de séance et passage automatique,
+    /// jamais compté comme sauté (seul le geste « Sauter » marque sauté).
+    private func isBonus(_ name: String) -> Bool { data.exerciseMeta[name]?.isOptional == true }
+
     private var trackedExercises: [(String, String)] {
-        exercises.filter { WorkoutCompletion.tracks(inventoryTracking[$0.0] ?? data.inventoryTracking[$0.0]) }
+        exercises.filter { WorkoutCompletion.tracks(inventoryTracking[$0.0] ?? data.inventoryTracking[$0.0]) && !isBonus($0.0) }
     }
     private var trackedResults: [String: ExerciseLogResult] {
         WorkoutCompletion.performed(vm.logResults, tracking: inventoryTracking.merging(data.inventoryTracking) { local, _ in local })
@@ -677,7 +681,7 @@ struct WorkoutSeanceView: View {
     // MARK: - Sticky header (D2)
 
     private var firstUnloggedName: String? {
-        return exercises.first { vm.logResults[$0.0] == nil && !mobilityChecked.contains($0.0) && !skippedExercises.contains($0.0) }?.0
+        return exercises.first { vm.logResults[$0.0] == nil && !mobilityChecked.contains($0.0) && !skippedExercises.contains($0.0) && !isBonus($0.0) }?.0
     }
 
     private var currentExerciseName: String {
@@ -813,7 +817,8 @@ struct WorkoutSeanceView: View {
     /// Une seule carte, en présentation .focus (même builder que la liste → même logique, mêmes callbacks).
     @ViewBuilder private var focusExerciseSection: some View {
         if let name = focusPresentedName, let idx = exercises.firstIndex(where: { $0.0 == name }) {
-            let target = (name: name, scheme: exercises[idx].1, next: idx + 1 < exercises.count ? exercises[idx + 1].0 : nil)
+            let target = (name: name, scheme: exercises[idx].1,
+                          next: exercises[(idx + 1)...].first { !isBonus($0.0) }?.0)
             let member = sessionSupersets.values.first { $0.a == target.name || $0.b == target.name }
             draggableCard(name: target.name, scheme: target.scheme, nextExerciseName: target.next,
                           forceNoRest: member?.a == target.name,
@@ -1067,7 +1072,7 @@ struct WorkoutSeanceView: View {
             isUnilateral: isUnilateral(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: isSecondSession,
-            isBonusSession: isBonusSession,
+            isBonusSession: isBonusSession, isBonus: isBonus(name),
             restSeconds: forceNoRest ? nil : (restOverride ?? restSeconds(for: name)),
             prescription: data.prescriptions?[name],
             suggestion: data.exerciseSuggestions?[name],
@@ -1083,7 +1088,7 @@ struct WorkoutSeanceView: View {
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                     expandedExercises.remove(name)
                 }
-                if let next = exercises.first(where: { !loggedNames.contains($0.0) && !skippedExercises.contains($0.0) && $0.0 != name }) {
+                if let next = exercises.first(where: { !loggedNames.contains($0.0) && !skippedExercises.contains($0.0) && $0.0 != name && !isBonus($0.0) }) {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                         expandedExercises.insert(next.0)
                         lastOpenedExercise = next.0
@@ -2670,7 +2675,7 @@ struct WorkoutSeanceView: View {
     private func openFirstPendingExercise() {
         guard expandedExercises.isEmpty, lastOpenedExercise == nil else { return }
         let loggedExercises = Set(vm.logResults.keys)
-        if let first = exercises.first(where: { !loggedExercises.contains($0.0) })?.0 {
+        if let first = exercises.first(where: { !loggedExercises.contains($0.0) && !isBonus($0.0) })?.0 {
             expandedExercises.insert(first)
             lastOpenedExercise = first
         }
@@ -2728,7 +2733,7 @@ struct WorkoutSeanceView: View {
 
     private func restSeconds(for name: String) -> Int? {
         let rest = inventoryRest.isEmpty ? data.inventoryRest : inventoryRest
-        return rest[name]
+        return ProgramExerciseMeta.effectiveRest(session: data.exerciseMeta[name]?.restSeconds, library: rest[name])
     }
 
     // MARK: - Readiness

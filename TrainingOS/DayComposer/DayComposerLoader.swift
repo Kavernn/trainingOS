@@ -325,7 +325,8 @@ enum DayComposerLoader {
         // Durée estimée : même lecture que l'exécution (séance d'origine), hors empreinte.
         for item in snapshot.initialUnits.flatMap(\.items) {
             let data = item.originSource == .morning ? morning : evening
-            snapshot.restSeconds[item.id] = data.inventoryRest[item.name]
+            snapshot.restSeconds[item.id] = ProgramExerciseMeta.effectiveRest(
+                session: data.exerciseMeta[item.name]?.restSeconds, library: data.inventoryRest[item.name])
             snapshot.prescriptions[item.id] = data.prescriptions?[item.name]
         }
         return DayComposerLoadedBundle(snapshot: snapshot, morningData: morning, eveningData: evening)

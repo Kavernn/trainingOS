@@ -637,6 +637,26 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNil(legacyOnly.prescriptions, "Sans la nouvelle clé : pas de prescription, la carte utilise le schéma")
     }
 
+    /// Build 3 : exercise_meta[today] (repos de séance, bonus) ; repos vide → bibliothèque ; 0 conservé.
+    func testExerciseMetaOfTodayAndEffectiveRest() throws {
+        let json = Data(#"""
+        {"today":"Lundi Push A","today_date":"2026-11-24","already_logged":false,"schedule":{},
+         "full_program":{"Lundi Push A":{"Bench Press":"3x5-8","Incline Cable Fly":"2x12-15"}},
+         "weights":{},"week":1,"inventory_types":{},"exercise_order":{},
+         "exercise_meta":{"Lundi Push A":{
+            "Bench Press":{"rest_seconds":180,"target_rir_min":2,"target_rir_max":2,"is_optional":false},
+            "Incline Cable Fly":{"rest_seconds":null,"target_rir_min":null,"target_rir_max":null,"is_optional":true}},
+          "Jeudi Push B":{"Bench Press":{"rest_seconds":90,"is_optional":true}}}}
+        """#.utf8)
+        let d = try JSONDecoder().decode(SeanceData.self, from: json)
+        XCTAssertEqual(d.exerciseMeta["Bench Press"]?.restSeconds, 180, "valeurs de LA séance du jour")
+        XCTAssertEqual(d.exerciseMeta["Bench Press"]?.isOptional, false)
+        XCTAssertEqual(d.exerciseMeta["Incline Cable Fly"]?.isOptional, true)
+        XCTAssertEqual(ProgramExerciseMeta.effectiveRest(session: 180, library: 120), 180)
+        XCTAssertEqual(ProgramExerciseMeta.effectiveRest(session: nil, library: 60), 60, "selon besoin → bibliothèque")
+        XCTAssertEqual(ProgramExerciseMeta.effectiveRest(session: nil, library: 0), 0, "0 = pas de repos, conservé")
+    }
+
     // MARK: - SafeString
 
     func testSafeStringFromString() throws {

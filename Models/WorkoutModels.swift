@@ -268,6 +268,40 @@ struct GoalProgress: Codable {
 /// Clé `prescriptions_by_session` ({séance: {exercice: prescription}}), lue par SeanceData/SeanceSoirData.
 enum PrescriptionsBySessionKey: String, CodingKey { case value = "prescriptions_by_session" }
 
+/// Valeurs propres d'un exercice de séance (migration 111) : repos, RIR cible, bonus.
+struct ProgramExerciseMeta: Codable, Equatable {
+    let restSeconds: Int?
+    let targetRirMin: Int?
+    let targetRirMax: Int?
+    let isOptional: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case restSeconds = "rest_seconds", targetRirMin = "target_rir_min"
+        case targetRirMax = "target_rir_max", isOptional = "is_optional"
+    }
+
+    init(restSeconds: Int? = nil, targetRirMin: Int? = nil, targetRirMax: Int? = nil, isOptional: Bool = false) {
+        self.restSeconds = restSeconds; self.targetRirMin = targetRirMin
+        self.targetRirMax = targetRirMax; self.isOptional = isOptional
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        restSeconds  = try c.decodeIfPresent(Int.self, forKey: .restSeconds)
+        targetRirMin = try c.decodeIfPresent(Int.self, forKey: .targetRirMin)
+        targetRirMax = try c.decodeIfPresent(Int.self, forKey: .targetRirMax)
+        isOptional   = try c.decodeIfPresent(Bool.self, forKey: .isOptional) ?? false
+    }
+
+    /// Repos effectif : celui de la séance, sinon celui de la bibliothèque (« selon besoin »).
+    /// 0 conservé = « pas de repos » explicite : les minuteurs l'ignorent (secs > 0) et la durée
+    /// estimée compte bien 0 s. Aucune valeur inventée.
+    static func effectiveRest(session: Int?, library: Int?) -> Int? { session ?? library }
+}
+
+/// Clé `exercise_meta` ({séance: {exercice: ProgramExerciseMeta}}), lue par SeanceData/SeanceSoirData.
+enum ExerciseMetaKey: String, CodingKey { case value = "exercise_meta" }
+
 struct ExercisePrescription: Codable {
     let sets: Int
     let repMin: Int
@@ -365,6 +399,8 @@ struct SeanceData: Codable {
     let exerciseOrder: [String: [String]]
     let exerciseSupersets: [String: [String: SupersetEntry]]
     let prescriptions: [String: ExercisePrescription]?
+    /// Valeurs propres des exercices DE CETTE SÉANCE (exercise_meta[today]) ; vide si absent.
+    let exerciseMeta: [String: ProgramExerciseMeta]
     let exerciseSuggestions: [String: ProgressionSuggestion]?
     let loggedTodayNames: Set<String>
     /// Nom soir résolu (override manuel > héritage matin > nil). Backend calcule
@@ -431,6 +467,8 @@ struct SeanceData: Codable {
         // un exercice présent dans deux séances y prenait la fourchette de l'autre.
         prescriptions      = (try? decoder.container(keyedBy: PrescriptionsBySessionKey.self)
             .decode([String: [String: ExercisePrescription]].self, forKey: .value))?[today]
+        exerciseMeta      = (try? decoder.container(keyedBy: ExerciseMetaKey.self)
+            .decode([String: [String: ProgramExerciseMeta]].self, forKey: .value))?[today] ?? [:]
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
         loggedTodayNames   = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
         pushedToEvening    = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
@@ -449,6 +487,7 @@ struct SeanceData: Codable {
          inventoryMuscleGroups: [String: String] = [:],
          exerciseOrder: [String: [String]], exerciseSupersets: [String: [String: SupersetEntry]] = [:],
          prescriptions: [String: ExercisePrescription]? = nil,
+         exerciseMeta: [String: ProgramExerciseMeta] = [:],
          exerciseSuggestions: [String: ProgressionSuggestion]? = nil,
          loggedTodayNames: Set<String> = [],
          eveningSessionName: String? = nil,
@@ -473,6 +512,7 @@ struct SeanceData: Codable {
         self.exerciseOrder       = exerciseOrder
         self.exerciseSupersets   = exerciseSupersets
         self.prescriptions       = prescriptions
+        self.exerciseMeta        = exerciseMeta
         self.exerciseSuggestions = exerciseSuggestions
         self.loggedTodayNames    = loggedTodayNames
         self.eveningSessionName  = eveningSessionName
@@ -503,6 +543,8 @@ struct SeanceSoirData: Codable {
     let exerciseOrder: [String: [String]]
     let exerciseSupersets: [String: [String: SupersetEntry]]
     let prescriptions: [String: ExercisePrescription]?
+    /// Valeurs propres des exercices DE CETTE SÉANCE (exercise_meta[today]) ; vide si absent.
+    let exerciseMeta: [String: ProgramExerciseMeta]
     let exerciseSuggestions: [String: ProgressionSuggestion]?
     let loggedTodayNames: Set<String>
     /// Étape 3b — cf. SeanceData.pushedToEvening. Même sémantique.
@@ -563,6 +605,8 @@ struct SeanceSoirData: Codable {
         // un exercice présent dans deux séances y prenait la fourchette de l'autre.
         prescriptions     = (try? decoder.container(keyedBy: PrescriptionsBySessionKey.self)
             .decode([String: [String: ExercisePrescription]].self, forKey: .value))?[today]
+        exerciseMeta      = (try? decoder.container(keyedBy: ExerciseMetaKey.self)
+            .decode([String: [String: ProgramExerciseMeta]].self, forKey: .value))?[today] ?? [:]
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
         loggedTodayNames  = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
         pushedToEvening   = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
@@ -586,6 +630,7 @@ struct SeanceSoirData: Codable {
                          exerciseOrder: exerciseOrder,
                          exerciseSupersets: exerciseSupersets,
                          prescriptions: prescriptions,
+                         exerciseMeta: exerciseMeta,
                          exerciseSuggestions: exerciseSuggestions,
                          loggedTodayNames: loggedTodayNames,
                          eveningSessionName: nil,

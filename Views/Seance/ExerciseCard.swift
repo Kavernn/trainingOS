@@ -340,6 +340,8 @@ struct ExerciseCard: View {
     var bodyWeight: Double = 0
     var isSecondSession: Bool = false
     var isBonusSession: Bool = false
+    /// Exercice bonus du programme (is_optional) : badge, hors progression de séance.
+    var isBonus: Bool = false
     var restSeconds: Int? = nil
     var prescription: ExercisePrescription? = nil
     var suggestion: ProgressionSuggestion? = nil
@@ -421,7 +423,7 @@ struct ExerciseCard: View {
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
          isUnilateral: Bool = false,
-         bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false,
+         bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false, isBonus: Bool = false,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil, hint: String? = nil,
          logResult: Binding<ExerciseLogResult?>, onLogged: (() -> Void)? = nil,
@@ -476,7 +478,8 @@ struct ExerciseCard: View {
         self.equipmentType   = equipmentType
         self.trackingType    = trackingType
         self.isUnilateral    = isUnilateral
-        self.bodyWeight      = bodyWeight
+        self.isBonusSession  = isBonusSession
+        self.isBonus         = isBonus
         self.isSecondSession = isSecondSession
         self.isBonusSession  = isBonusSession
         self.restSeconds     = restSeconds
@@ -1875,6 +1878,12 @@ struct ExerciseCard: View {
                             .layoutPriority(isCurrentHero ? 1 : 0)
                         if isReplaced && !isCompletedCompact {
                             Text("remplacé")
+                                .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
+                                .padding(.horizontal, 4).padding(.vertical, 4)
+                                .background(Color.forge.opacity(0.12)).clipShape(Capsule())
+                        }
+                        if isBonus {
+                            Text("Bonus")
                                 .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
                                 .padding(.horizontal, 4).padding(.vertical, 4)
                                 .background(Color.forge.opacity(0.12)).clipShape(Capsule())

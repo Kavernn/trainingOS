@@ -1536,7 +1536,8 @@ struct FinishRemainingSheet: View {
             inventoryUnilateral: data.inventoryUnilateral,
             inventoryRest: data.inventoryRest, inventoryHints: data.inventoryHints,
             exerciseOrder: filteredOrder, exerciseSupersets: patchedSupersets,
-            prescriptions: data.prescriptions, exerciseSuggestions: data.exerciseSuggestions
+            prescriptions: data.prescriptions, exerciseMeta: data.exerciseMeta,
+            exerciseSuggestions: data.exerciseSuggestions
         )
     }
 
