@@ -22,7 +22,6 @@ struct TodayCardView: View {
     var onOpenSession: (() -> Void)? = nil
     var readiness: ReadinessResponse? = nil
     var effortCap: EffortCap = .none
-    @State private var showReadinessSheet = false
     // Volet G : SeanceSoirView en .sheet obligatoirement (voir commentaire au head
     // de SeanceSoirView.swift). NavigationLink push cassait les .alert internes.
     @State private var showSeance2Sheet = false
@@ -248,10 +247,9 @@ struct TodayCardView: View {
                 if plannedMorning != "Repos" || hasPartialLogs {
                     Group {
                         if let onOpenSession {
-                            Button(action: {
-                                if readiness != nil { showReadinessSheet = true }
-                                else { onOpenSession() }
-                            }) {
+                            // Build 3c : ouvre directement la séance (la fiche readiness
+                            // s'ouvre en touchant l'anneau du hero).
+                            Button(action: onOpenSession) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
                                     Text(presentation.action ?? "Ouvrir ma séance")
@@ -322,11 +320,6 @@ struct TodayCardView: View {
         // rendaient la carte hero illisible (fond plein saturé sur textes .gray).
         // L'accent reste porté par l'icône, le titre, les numéros et le CTA gradient.
         .glassCard()
-        .sheet(isPresented: $showReadinessSheet) {
-            if let r = readiness {
-                ReadinessSheet(readiness: r) { onOpenSession?() }
-            }
-        }
         // Ancre stable (hors du if secondSessionCompleted L119) : sinon fetchDashboard
         // post-log soir démonte le sheet host avant que le récap ne se présente.
         .fullScreenCover(isPresented: $showSeance2Sheet) { SeanceSoirView() }

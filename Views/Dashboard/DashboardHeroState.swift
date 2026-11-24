@@ -13,6 +13,13 @@ struct DashboardHeroState: View {
     let recovery: RecoveryEntry?
     let weeklyStreak: Int
     let userName: String?
+    var onRingTap: () -> Void = {}
+    var onCheckIn: () -> Void = {}
+
+    /// Readiness reçue mais sans score (aucun signal du jour) → invitation au check-in.
+    static func needsCheckIn(_ readiness: ReadinessResponse?) -> Bool {
+        readiness != nil && readiness?.score == nil
+    }
 
     // MARK: Salutation
     private var greeting: String {
@@ -63,6 +70,7 @@ struct DashboardHeroState: View {
                 .foregroundColor(.appTextPrimary)
 
             HStack(spacing: 16) {
+                Button(action: onRingTap) {
                 ProgressRing(progress: ringProgress, color: ringColor, size: 96, lineWidth: 10) {
                     VStack(spacing: 0) {
                         if let score = readiness?.score {
@@ -79,6 +87,10 @@ struct DashboardHeroState: View {
                         }
                     }
                 }
+                }
+                .buttonStyle(.plain)
+                .disabled(readiness == nil)
+                .accessibilityLabel(readiness?.score.map { "Readiness \($0) sur 100, détails" } ?? "Readiness indisponible, détails")
                 VStack(alignment: .leading, spacing: 4) {
                     Text(readiness?.verdictLabel ?? "—")
                         .font(.appHeadline.weight(.bold))
@@ -108,6 +120,10 @@ struct DashboardHeroState: View {
                 statCell(icon: "moon.zzz.fill",
                          value: sleepValue,
                          label: sleepLabel)
+            }
+
+            if Self.needsCheckIn(readiness) {
+                PrimaryButton(title: "Fais ton check-in", icon: "checkmark.circle", size: .medium, action: onCheckIn)
             }
 
             if let why = readiness?.why, !why.isEmpty {

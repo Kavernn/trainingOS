@@ -411,6 +411,17 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(Notification.Name.recoveryLogged.rawValue, "trainingos.recoveryLogged")
     }
 
+    // MARK: - Build 3c : invitation au check-in seulement sans score
+
+    @MainActor
+    func testHeroAsksForCheckInOnlyWhenReadinessHasNoScore() throws {
+        let empty = try JSONDecoder().decode(ReadinessResponse.self, from: Self.readinessJSON(score: "null", verdict: "null"))
+        let scored = try JSONDecoder().decode(ReadinessResponse.self, from: Self.readinessJSON(score: "72", verdict: "\"go\""))
+        XCTAssertTrue(DashboardHeroState.needsCheckIn(empty))
+        XCTAssertFalse(DashboardHeroState.needsCheckIn(scored))
+        XCTAssertFalse(DashboardHeroState.needsCheckIn(nil))   // chargement / erreur : pas d'invitation
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

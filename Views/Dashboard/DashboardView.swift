@@ -21,6 +21,7 @@ struct DashboardView: View {
     @ObservedObject private var loadingState = APILoadingState.shared
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
+    @State private var showReadinessSheet = false
     @State private var lastRefresh: Date = .distantPast
     @State private var actionErrorMessage: String? = nil
     @State private var showNutritionAddSheet = false
@@ -293,18 +294,27 @@ struct DashboardView: View {
     }
 
     var appearanceBanner: some View {
-            // 6 — Hero State (salutation, ring readiness, HRV, sommeil, streak hebdo, synthèse) — tap → onglet Santé
-            Button { onOpenHealth?() } label: {
-                DashboardHeroState(
-                    readiness:    vm.hasCurrentDayContext ? vm.readinessData : nil,
-                    hrvAnalysis:  vm.hasCurrentDayContext ? vm.hrvAnalysis : nil,
-                    recovery:     vm.hasCurrentDayContext ? vm.todayRecovery : nil,
-                    weeklyStreak: vm.hasCurrentDayContext ? (vm.streakData?.weeklyStreakCurrent ?? 0) : 0,
-                    userName:     api.dashboard?.profile.name
-                )
-            }
-            .buttonStyle(.plain)
+            // 6 — Hero State (salutation, ring readiness, HRV, sommeil, streak hebdo, synthèse).
+            // Build 3c : anneau → fiche readiness ; « Fais ton check-in » sans score ;
+            // reste du hero → onglet Santé (tap + action VoiceOver).
+            DashboardHeroState(
+                readiness:    vm.hasCurrentDayContext ? vm.readinessData : nil,
+                hrvAnalysis:  vm.hasCurrentDayContext ? vm.hrvAnalysis : nil,
+                recovery:     vm.hasCurrentDayContext ? vm.todayRecovery : nil,
+                weeklyStreak: vm.hasCurrentDayContext ? (vm.streakData?.weeklyStreakCurrent ?? 0) : 0,
+                userName:     api.dashboard?.profile.name,
+                onRingTap:    { showReadinessSheet = true },
+                onCheckIn:    { AppState.shared.enqueueLaunchPrompt(.morningReveal) }
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { onOpenHealth?() }
+            .accessibilityAction(named: "Ouvrir l'onglet Santé") { onOpenHealth?() }
             .padding(.top, 8)
+            .sheet(isPresented: $showReadinessSheet) {
+                if let r = vm.readinessData {
+                    ReadinessSheet(readiness: r) { onOpenSession?() }
+                }
+            }
 
     }
 
