@@ -397,6 +397,20 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(LogRecoverySheet.editedHKFields(current: ["hrv": "40"], baseline: [:]), ["hrv"])
     }
 
+    // MARK: - Build 3a : readiness rechargée après check-in, séance, tirer-pour-rafraîchir
+
+    @MainActor
+    func testAnalyticsReloadWhenForcedEvenIfAlreadyLoadedToday() {
+        XCTAssertFalse(DashboardViewModel.shouldLoadAnalytics(forced: false, loadedDate: "2026-11-23", today: "2026-11-23"))
+        XCTAssertTrue(DashboardViewModel.shouldLoadAnalytics(forced: true, loadedDate: "2026-11-23", today: "2026-11-23"))
+        XCTAssertTrue(DashboardViewModel.shouldLoadAnalytics(forced: false, loadedDate: "2026-11-22", today: "2026-11-23"))
+        XCTAssertTrue(DashboardViewModel.shouldLoadAnalytics(forced: false, loadedDate: "", today: "2026-11-23"))
+    }
+
+    func testRecoveryLoggedNotificationName() {
+        XCTAssertEqual(Notification.Name.recoveryLogged.rawValue, "trainingos.recoveryLogged")
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

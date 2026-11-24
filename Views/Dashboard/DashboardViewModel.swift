@@ -281,6 +281,7 @@ final class DashboardViewModel: ObservableObject {
     }
 
     private var sessionObserver: (any NSObjectProtocol)?
+    private var recoveryObserver: (any NSObjectProtocol)?
 
     init(publicationPermission: ((Int, String) -> Bool)? = nil,
          publishMacroHint: @escaping @MainActor (MacroNutritionHint?) -> Void = { AppState.shared.macroSessionHint = $0 }) {
@@ -291,18 +292,44 @@ final class DashboardViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { await self?.reloadAfterMutation() }
+            Task { await self?.reloadAfterMutation(refreshAnalytics: true) }
+        }
+        // Check-in / fiche récupération enregistrés côté serveur : readiness recalculée.
+        recoveryObserver = NotificationCenter.default.addObserver(
+            forName: .recoveryLogged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { await self?.reloadAfterMutation(refreshAnalytics: true) }
         }
     }
 
     deinit {
         if let sessionObserver { NotificationCenter.default.removeObserver(sessionObserver) }
+        if let recoveryObserver { NotificationCenter.default.removeObserver(recoveryObserver) }
     }
 
     private var refreshRunning = false
     private var refreshRequested = false
+    /// Recharge forcée des analytics (readiness, streak…) au prochain chargement, cache
+    /// client contourné. Consommé par loadAnalytics ; survit à un chargement mis en file.
+    private var analyticsForced = false
 
-    func reloadAfterMutation() async {
+    /// Analytics chargées une fois par jour, sauf recharge forcée (check-in, séance
+    /// terminée, tirer-pour-rafraîchir) : avant, la readiness d'avant le check-in restait
+    /// affichée toute la journée.
+    static func shouldLoadAnalytics(forced: Bool, loadedDate: String, today: String) -> Bool {
+        forced || loadedDate != today
+    }
+
+    /// Tirer-pour-rafraîchir : tout recharger, analytics comprises.
+    func refreshFromUser() async {
+        analyticsForced = true
+        await loadAll(mode: .refresh)
+    }
+
+    func reloadAfterMutation(refreshAnalytics: Bool = false) async {
+        if refreshAnalytics { analyticsForced = true }
         lastLoad = nil
         if refreshRunning {
             refreshRequested = true
@@ -531,12 +558,14 @@ final class DashboardViewModel: ObservableObject {
     }
 
     private func loadAnalytics(today: String, contextVersion: Int) async {
-        // Analytics — once per calendar day
-        if analyticsLoadedDate != today {
+        // Analytics — once per calendar day, or forced (check-in, séance, pull-to-refresh)
+        let forced = analyticsForced
+        if Self.shouldLoadAnalytics(forced: forced, loadedDate: analyticsLoadedDate, today: today) {
+            analyticsForced = false
             await receiveAnalytics(today: today, contextVersion: contextVersion) { group, p3 in
                 group.addTask { @MainActor in
                     await self.readinessState.load {
-                        let r = try await APIService.shared.fetchReadiness()
+                        let r = try await APIService.shared.fetchReadiness(forceRefresh: forced)
                         guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
                         p3.readinessData = r
                         return r

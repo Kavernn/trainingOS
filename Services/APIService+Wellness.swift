@@ -53,6 +53,9 @@ extension APIService {
         let data = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
         CacheInvalidation.recoveryLogged.invalidate()
         CacheInvalidation.energyLogged.invalidate()
+        // Écrit côté serveur (readiness recalculée) → l'onglet Aujourd'hui recharge.
+        // File offline : rien à recalculer tant que le serveur n'a pas reçu.
+        if data != nil { NotificationCenter.default.post(name: .recoveryLogged, object: nil) }
         return data != nil
     }
 
@@ -153,4 +156,9 @@ extension APIService {
         return try APIService.decoder.decode(MorningBriefData.self, from: data)
     }
 
+}
+
+extension Notification.Name {
+    /// Récupération (check-in du matin, fiche) enregistrée côté serveur.
+    static let recoveryLogged = Notification.Name("trainingos.recoveryLogged")
 }

@@ -422,7 +422,7 @@ struct DashboardView: View {
                     pageContent
                 }
                 .refreshable {
-                    await vm.loadAll(mode: .refresh)
+                    await vm.refreshFromUser()
                     guard !Task.isCancelled else { return }
                     await loadEducationalIfNeeded()
                     lastRefresh = Date()
