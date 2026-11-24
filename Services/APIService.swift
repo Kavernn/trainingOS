@@ -89,11 +89,24 @@ enum DashboardContextError: LocalizedError, Equatable {
     case planningMismatch
     /// Version ou date du contexte inattendues.
     case incompatible
+    /// Aucun programme actif (409 no_active_program) ou programme actif introuvable (404).
+    case noActiveProgram
 
     var errorDescription: String? {
         switch self {
         case .planningMismatch: return "Ton planning ne correspond pas au programme actif."
         case .incompatible:     return "Données incompatibles — mise à jour requise."
+        case .noActiveProgram:  return "Aucun programme actif."
+        }
+    }
+
+    /// Réponse non-2xx de /api/dashboard_context qui signale un état de programme (et non une panne).
+    static func fromContextResponse(status: Int, body: Data) -> DashboardContextError? {
+        guard let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+              let code = json["error"] as? String else { return nil }
+        switch (status, code) {
+        case (409, "no_active_program"), (404, "active_program_not_found"): return .noActiveProgram
+        default: return nil
         }
     }
 }
@@ -168,8 +181,8 @@ final class APILoadingState: ObservableObject {
     @Published var isRefreshing = false
     @Published var isSlow = false
     @Published var error: String?
-    /// L'erreur pleine page est une incohérence de planning (pas une panne réseau).
-    @Published var planningMismatch = false
+    /// L'erreur pleine page est un état de programme / planning (pas une panne réseau).
+    @Published var contextIssue: DashboardContextError?
 
     /// Message lisible en français ; jamais le texte système brut (« The operation
     /// couldn't be completed… »).
@@ -491,7 +504,7 @@ class APIService: ObservableObject {
         APILoadingState.shared.isRefreshing = false
         APILoadingState.shared.isSlow = false
         APILoadingState.shared.error = nil
-        APILoadingState.shared.planningMismatch = false
+        APILoadingState.shared.contextIssue = nil
     }
 
     @discardableResult
@@ -514,7 +527,7 @@ class APIService: ObservableObject {
         APILoadingState.shared.isLoading = mode == .initial || (dashboard == nil && dashboardPlan == nil)
         APILoadingState.shared.isSlow = false
         APILoadingState.shared.error = nil
-        APILoadingState.shared.planningMismatch = false
+        APILoadingState.shared.contextIssue = nil
         defer {
             if generation == dashboardGeneration {
                 dashboardRequestRunning = false
@@ -539,6 +552,10 @@ class APIService: ObservableObject {
                let body = try? JSONSerialization.jsonObject(with: data) as? [String: String],
                body == ["error": "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."] {
                 throw DashboardContextReadError.routeUnavailable
+            }
+            if path == "/api/dashboard_context", let http = response as? HTTPURLResponse,
+               let issue = DashboardContextError.fromContextResponse(status: http.statusCode, body: data) {
+                throw issue
             }
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 throw URLError(.badServerResponse)
@@ -631,7 +648,8 @@ class APIService: ObservableObject {
             // Full-page failure is only appropriate without prior coherent data.
             if dashboard == nil {
                 APILoadingState.shared.error = APILoadingState.message(for: error)
-                APILoadingState.shared.planningMismatch = (error as? DashboardContextError) == .planningMismatch
+                let issue = error as? DashboardContextError
+                APILoadingState.shared.contextIssue = issue == .incompatible ? nil : issue
             }
             return false
         }

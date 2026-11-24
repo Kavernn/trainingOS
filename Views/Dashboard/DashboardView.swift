@@ -386,12 +386,12 @@ struct DashboardView: View {
             } else if let err = loadingState.error {
                 VStack(spacing: 16) {
                     // Incohérence de planning ≠ panne réseau : état explicite + accès au Programme.
-                    Image(systemName: loadingState.planningMismatch ? "calendar.badge.exclamationmark" : "wifi.exclamationmark")
+                    Image(systemName: loadingState.contextIssue != nil ? "calendar.badge.exclamationmark" : "wifi.exclamationmark")
                     .font(.system(size: 48)).foregroundColor(.gray)
-                    Text(loadingState.planningMismatch ? "Planning à mettre à jour" : "Connexion impossible")
+                    Text(Self.fullPageTitle(loadingState.contextIssue))
                         .foregroundColor(.appOnBackground).fontWeight(.semibold)
                     Text(err).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center)
-                    if loadingState.planningMismatch {
+                    if loadingState.contextIssue != nil {
                         PrimaryButton(title: "Ouvrir Programme", icon: "list.bullet.clipboard", size: .medium) {
                             AppState.shared.pendingDeepLink = "programme"
                         }
@@ -575,6 +575,15 @@ struct DashboardView: View {
     }
 
     static func showsCardioColumn(hasCardio: Bool, hasError: Bool) -> Bool { hasCardio || hasError }
+
+    /// Titre de l'erreur pleine page : un état de programme n'est jamais « Connexion impossible ».
+    static func fullPageTitle(_ issue: DashboardContextError?) -> String {
+        switch issue {
+        case .planningMismatch?: return "Planning à mettre à jour"
+        case .noActiveProgram?:  return "Aucun programme actif"
+        default:                 return "Connexion impossible"
+        }
+    }
 
     /// « Parfait » : recommandation `go` réelle ET deload réellement chargé à 0.
     /// Un deload pas encore chargé ne compte plus comme « aucune fatigue » (build 2a).

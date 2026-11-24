@@ -518,6 +518,19 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(generic, "Une erreur est survenue — réessaie.")
     }
 
+    @MainActor
+    func testNoActiveProgramIsAnExplicitStateNotAnOutage() {
+        func body(_ s: String) -> Data { Data(s.utf8) }
+        XCTAssertEqual(DashboardContextError.fromContextResponse(status: 409, body: body(#"{"error":"no_active_program"}"#)), .noActiveProgram)
+        XCTAssertEqual(DashboardContextError.fromContextResponse(status: 404, body: body(#"{"error":"active_program_not_found"}"#)), .noActiveProgram)
+        XCTAssertNil(DashboardContextError.fromContextResponse(status: 503, body: body(#"{"error":"dashboard_context_unavailable"}"#)))
+        XCTAssertNil(DashboardContextError.fromContextResponse(status: 409, body: body("pas du json")))
+        XCTAssertEqual(DashboardView.fullPageTitle(.noActiveProgram), "Aucun programme actif")
+        XCTAssertEqual(DashboardView.fullPageTitle(.planningMismatch), "Planning à mettre à jour")
+        XCTAssertEqual(DashboardView.fullPageTitle(nil), "Connexion impossible")
+        XCTAssertEqual(APILoadingState.message(for: DashboardContextError.noActiveProgram), "Aucun programme actif.")
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {
