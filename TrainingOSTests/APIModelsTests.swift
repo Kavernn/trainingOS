@@ -469,6 +469,17 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNil(AlertService.dashboardAlert(from: alerts, dismissed: ["low_protein_2026-11-23"], today: "2026-11-23"))
     }
 
+    // MARK: - Build 10 : finances masquées par défaut
+
+    @MainActor
+    func testFinanceAmountMaskedUntilRevealed() {
+        XCTAssertEqual(DashboardDomainGrid.financeText(cents: 123_456, revealed: false), "•••• $")
+        XCTAssertNotEqual(DashboardDomainGrid.financeText(cents: 123_456, revealed: true), "•••• $")
+        XCTAssertTrue(DashboardDomainGrid.financeText(cents: 123_456, revealed: true).contains("234"))
+        XCTAssertEqual(DashboardDomainGrid.financeText(cents: nil, revealed: true), "—")
+        XCTAssertEqual(DashboardDomainGrid.financeText(cents: nil, revealed: false), "—")
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

@@ -56,6 +56,11 @@ struct DashboardDomainGrid: View {
     var onOpenHealth:  (() -> Void)? = nil
     var onOpenNutrition: () -> Void
 
+    // Build 10 — finances masquées par défaut (téléphone posé en salle) ; œil ≥ 44 pt ;
+    // remasquées dès que l'app quitte le premier plan.
+    @State private var financeRevealed = false
+    @Environment(\.scenePhase) private var scenePhase
+
     /// « x / 5 jours actifs » ; « — » tant que la streak n'est pas chargée (build 8).
     static func trainingValue(_ streak: StreakResponse?) -> String {
         guard let s = streak else { return "—" }
@@ -93,9 +98,9 @@ struct DashboardDomainGrid: View {
     }
 
     // Finances — état vide honnête si budgetStatus nil. Formatage AU SITE d'affichage.
-    private var financeValue: String {
-        guard let bs = budgetStatus else { return "—" }
-        return BudgetFormat.dollars(bs.totalVariableCents)
+    static func financeText(cents: Int?, revealed: Bool) -> String {
+        guard let cents else { return "—" }
+        return revealed ? BudgetFormat.dollars(cents) : "•••• $"
     }
     private var financeSubtext: String {
         guard let bs = budgetStatus else { return "Budget indisponible" }
@@ -103,6 +108,13 @@ struct DashboardDomainGrid: View {
     }
 
     var body: some View {
+        grid
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { financeRevealed = false }
+            }
+    }
+
+    private var grid: some View {
         VStack(spacing: .appCardSpacing) {
             HStack(spacing: .appCardSpacing) {
                 Button { onOpenSession?() } label: {
@@ -143,12 +155,25 @@ struct DashboardDomainGrid: View {
                     DomainTile(
                         icon: "dollarsign.circle.fill",
                         title: "FINANCES",
-                        value: financeValue,
+                        value: Self.financeText(cents: budgetStatus?.totalVariableCents, revealed: financeRevealed),
                         subtext: financeSubtext,
                         tint: Color.domainAccent(.finance)
                     )
                 }
                 .buttonStyle(.plain)
+                .overlay(alignment: .bottomTrailing) {
+                    if budgetStatus != nil {
+                        Button { financeRevealed.toggle() } label: {
+                            Image(systemName: financeRevealed ? "eye.slash" : "eye")
+                                .font(.appLabel.weight(.semibold))
+                                .foregroundColor(.appTextSecondary)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(financeRevealed ? "Masquer le montant" : "Afficher le montant")
+                    }
+                }
             }
         }
     }
