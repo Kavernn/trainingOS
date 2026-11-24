@@ -153,7 +153,8 @@ def api_seance_data():
     if not already_logged and today_exercises:
         ex_info_bulk = _db.get_exercises_info_bulk(today_exercises)
         exercise_suggestions = _sp.generate_exercise_suggestions_bulk(
-            today_exercises, weights, ex_info_bulk
+            today_exercises, weights, ex_info_bulk,
+            get_strength_exercises(full_program.get(today_str) or {}),
         )
         for ex_name, sug in exercise_suggestions.items():
             if sug.get("suggestion_type") == "increase_weight" and sug.get("suggested_weight"):
@@ -312,7 +313,8 @@ def api_seance_soir_data():
     if not already_logged and today_soir_exercises:
         ex_info_bulk = _db.get_exercises_info_bulk(today_soir_exercises)
         exercise_suggestions = _sp.generate_exercise_suggestions_bulk(
-            today_soir_exercises, weights, ex_info_bulk
+            today_soir_exercises, weights, ex_info_bulk,
+            get_strength_exercises(full_program.get(today_soir) or {}),
         )
         for ex_name, sug in exercise_suggestions.items():
             if sug.get("suggestion_type") == "increase_weight" and sug.get("suggested_weight"):

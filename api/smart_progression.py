@@ -487,10 +487,29 @@ def generate_exercise_suggestion(exercise_name: str) -> Optional[dict]:
     return s
 
 
+def _session_schemes(program_id, session_name: str, *, strict: bool = False) -> dict:
+    """{exercice: scheme} de LA SÉANCE (program_block_exercises) — la progression raisonne
+    sur ce scheme, jamais sur le défaut de bibliothèque (build 3, migration 112)."""
+    from blocks import get_strength_exercises
+    program = db.get_full_program(program_id, strict=strict) if program_id else None
+    if program is None:
+        if strict:
+            raise RuntimeError("Session schemes unavailable")
+        return {}
+    return get_strength_exercises(program.get(session_name) or {})
+
+
+def _with_session_scheme(info: dict, scheme) -> dict:
+    # _suggest_for_exercise lit la clé historique « default_scheme » : on y place le scheme
+    # de la séance. Absent (exercice hors programme) → "" → aucune suggestion de scheme.
+    return {**info, "default_scheme": scheme or ""}
+
+
 def generate_exercise_suggestions_bulk(
     exercise_names: list[str],
     weights_cache: dict,
     exercise_info_cache: dict,
+    session_schemes: dict,
 ) -> dict:
     """
     Batch version of generate_exercise_suggestion that uses pre-loaded data.
@@ -513,7 +532,8 @@ def generate_exercise_suggestions_bulk(
             continue
         # Translate 'sets' key → 'sets_json' expected by _suggest_for_exercise
         logs = [{**h, "sets_json": h.get("sets")} for h in history_entries]
-        s = _suggest_for_exercise(ex_name, logs[0], logs[1], info, logs)
+        s = _suggest_for_exercise(ex_name, logs[0], logs[1],
+                                  _with_session_scheme(info, session_schemes.get(ex_name)), logs)
         if s and s.get("suggestion_type") != "maintain":
             results[ex_name] = s
     return results
@@ -622,6 +642,7 @@ def generate_suggestions(
 
     suggestions: list[dict] = []
     regression_count = 0
+    schemes = _session_schemes(program_id or db.get_active_program_id(), session_name, strict=strict)
 
     for log in current_logs:
         name     = log["exercise_name"]
@@ -633,7 +654,8 @@ def generate_suggestions(
         if not prev_log:
             continue
         history  = history_bulk.get(name, [])
-        s = _suggest_for_exercise(name, log, prev_log, info, history, phase=phase)
+        s = _suggest_for_exercise(name, log, prev_log, _with_session_scheme(info, schemes.get(name)),
+                                  history, phase=phase)
         if s is None:
             continue
         if s["suggestion_type"] == "regression":
@@ -642,7 +664,7 @@ def generate_suggestions(
             # Freeze the reference read used for this calculation; never replace
             # its CAS expectation with a later database read.
             s.update(expected_current_weight=info.get("current_weight"),
-                     expected_current_scheme=info.get("default_scheme"),
+                     expected_current_scheme=schemes.get(name),
                      program_id=program_id, reference_available=True)
         suggestions.append(s)
 

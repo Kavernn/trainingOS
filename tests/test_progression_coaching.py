@@ -86,11 +86,24 @@ class SuggestionContracts(unittest.TestCase):
         self.db.get_progression_session=lambda *a,**kw:dict(id='prev' if kw.get('previous') else 'now',date='2026-09-30' if kw.get('previous') else '2026-10-02')
         self.db.get_exercise_logs_for_session_with_names=lambda *a,**kw:[dict(exercise_name='X',weight=100,reps='12',sets_json=[dict(weight=100,reps=12)]*3)]
         self.db.get_exercise_history_bulk=lambda *a,**kw:{'X':[]}
+        # Build 3 / 112 : la progression lit le scheme DE LA SÉANCE (program_block_exercises).
+        self.session_scheme='3x12'
+        self.db.get_full_program=lambda pid,strict=False:{'A':{'blocks':[{'type':'strength','order':0,'exercises':{'X':self.session_scheme}}]}}
     def suggestions(self,**overrides):
         return self.client.get('/api/progression_suggestions',query_string=dict(date='2026-10-02',session_type='evening',session_name='A',**overrides))
     def test_actionable_snapshot_and_equipment(self):
         r=self.suggestions();self.assertEqual(r.status_code,200)
         s=r.json['suggestions'][0];self.assertEqual(s['suggested_weight'],102.5);self.assertEqual(s['expected_current_weight'],100);self.assertEqual(s['expected_current_scheme'],'3x12');self.assertTrue(s['reference_available'])
+    def test_session_scheme_wins_over_library_default(self):
+        # Bibliothèque 3x8 (défaut), séance 3x12 : la recommandation et son CAS portent sur la séance.
+        info=self.db.get_exercises_info_bulk('X')['X'];self.db.get_exercises_info_bulk=lambda *a,**kw:{'X':{**info,'default_scheme':'3x8'}}
+        r=self.suggestions();self.assertEqual(r.status_code,200)
+        s=r.json['suggestions'][0];self.assertEqual(s['expected_current_scheme'],'3x12');self.assertEqual(s['current_scheme'],'3x12')
+    def test_exercise_outside_session_gets_no_scheme_cas(self):
+        self.session_scheme=None
+        self.db.get_full_program=lambda pid,strict=False:{'A':{'blocks':[{'type':'strength','order':0,'exercises':{}}]}}
+        r=self.suggestions();self.assertEqual(r.status_code,200)
+        self.assertTrue(all(s.get('expected_current_scheme') is None for s in r.json['suggestions']))
     def test_maintain_only_valid(self):
         self.db.get_exercise_logs_for_session_with_names=lambda *a,**kw:[{'exercise_name':'X'}]
         r=self.suggestions();self.assertEqual(r.status_code,200);self.assertEqual(r.json['suggestions'][0]['suggestion_type'],'maintain')
