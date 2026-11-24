@@ -31,6 +31,12 @@ struct DashboardHeroState: View {
         return base
     }
 
+    /// Thème monochrome (Sin City) : anneau gris assumé, verdict en couleur principale.
+    static var isSurgicalTheme: Bool {
+        let theme = AppTheme.shared.selectedTheme
+        return theme != .arctic && theme.colors.accentDistribution == .surgical
+    }
+
     // MARK: Ring readiness
     private var ringProgress: Double {
         guard let s = readiness?.score else { return 0 }
@@ -47,7 +53,7 @@ struct DashboardHeroState: View {
         guard let score = hrvAnalysis?.hrvScore else { return "—" }
         let delta = Int(score - 100)
         let sign = delta >= 0 ? "+" : "-"
-        return "\(sign)\(abs(delta))% vs baseline"
+        return "\(sign)\(abs(delta))% vs ta moyenne 7 j"
     }
 
     // MARK: Sommeil bloc
@@ -55,7 +61,6 @@ struct DashboardHeroState: View {
         guard let h = recovery?.sleepHours else { return "—" }
         return String(format: "%.1f h", h)
     }
-    private var sleepLabel: String { recovery?.sleepQualityLabel ?? "—" }
 
     private var moodImage: UIImage? {
         let normalizedRawValue = HeroMoodPreference.normalizedRawValue(heroMoodRawValue)
@@ -64,62 +69,47 @@ struct DashboardHeroState: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let hasPhoto = moodImage != nil
+        return VStack(alignment: .leading, spacing: 10) {
+            // Haut : photo libre, salutation posée dessus (ombre légère pour le contraste).
             Text(greeting)
                 .font(.appTitle.weight(.bold))
                 .foregroundColor(.appTextPrimary)
+                .shadow(color: hasPhoto ? Color.appCard.opacity(0.7) : .clear, radius: 6)
+            if hasPhoto { Spacer(minLength: 56) }
 
-            HStack(spacing: 16) {
+            // Bande compacte, dimensionnée au contenu, sur le dégradé bas.
+            HStack(spacing: 12) {
                 Button(action: onRingTap) {
-                ProgressRing(progress: ringProgress, color: ringColor, size: 96, lineWidth: 10) {
-                    VStack(spacing: 0) {
-                        if let score = readiness?.score {
-                            Text("\(score)")
-                                .font(.appHero)
-                                .foregroundColor(.appTextPrimary)
-                            Text("/100")
-                                .font(.appMicro)
-                                .foregroundColor(.appTextTertiary)
-                        } else {
-                            Text("—")
-                                .font(.appHero)
-                                .foregroundColor(.appTextTertiary)
-                        }
+                    ProgressRing(progress: ringProgress, color: ringColor, size: 64, lineWidth: 7,
+                                 backgroundColor: Color.appTextPrimary.opacity(0.35)) {
+                        Text(readiness?.score.map(String.init) ?? "—")
+                            .font(.appHeadline.weight(.bold))
+                            .foregroundColor(readiness?.score == nil ? .appTextSecondary : .appTextPrimary)
                     }
-                }
                 }
                 .buttonStyle(.plain)
                 .disabled(readiness == nil)
                 .accessibilityLabel(readiness?.score.map { "Readiness \($0) sur 100, détails" } ?? "Readiness indisponible, détails")
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(readiness?.verdictLabel ?? "—")
                         .font(.appHeadline.weight(.bold))
-                        .foregroundColor(ringColor)
+                        .foregroundColor(readiness?.verdict == nil ? .appTextSecondary
+                                         : (Self.isSurgicalTheme ? .appTextPrimary : ringColor))
                     if weeklyStreak > 0 {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flame.fill")
-                                .font(.appCaption)
-                                .foregroundColor(.appTextSecondary)
-                            Text(weeklyStreak == 1 ? "1 semaine" : "\(weeklyStreak) semaines")
-                                .font(.appCaption)
-                                .foregroundColor(.appTextSecondary)
-                        }
+                        Label(weeklyStreak == 1 ? "1 semaine" : "\(weeklyStreak) semaines", systemImage: "flame.fill")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
                     }
                 }
                 Spacer(minLength: 0)
             }
 
-            HStack(spacing: 0) {
-                statCell(icon: "waveform.path.ecg",
-                         value: hrvValue,
-                         label: hrvDeltaLabel)
-                Rectangle()
-                    .fill(Color.appSeparator)
-                    .frame(width: 1)
-                    .padding(.vertical, 4)
-                statCell(icon: "moon.zzz.fill",
-                         value: sleepValue,
-                         label: sleepLabel)
+            HStack(spacing: 16) {
+                statCell(icon: "waveform.path.ecg", value: hrvValue, label: hrvDeltaLabel)
+                // Durée seule : le jugement sur le sommeil vient de la phrase serveur (une seule règle).
+                statCell(icon: "moon.zzz.fill", value: sleepValue, label: nil)
+                Spacer(minLength: 0)
             }
 
             if Self.needsCheckIn(readiness) {
@@ -140,32 +130,26 @@ struct DashboardHeroState: View {
                 GeometryReader { geometry in
                     ZStack {
                         Color.appCard
-
                         Image(uiImage: moodImage)
                             .resizable()
                             .scaledToFill()
                             .frame(width: geometry.size.width, height: geometry.size.height)
                             .clipped()
-
-                        Color.appCard.opacity(0.06)
-
+                        // Haut (~20 %) : carte → transparent, pour le titre sur une photo chargée.
                         LinearGradient(
                             gradient: Gradient(stops: [
-                                .init(color: Color.appCard.opacity(0.80), location: 0.00),
-                                .init(color: Color.appCard.opacity(0.56), location: 0.34),
-                                .init(color: Color.appCard.opacity(0.14), location: 0.68),
-                                .init(color: Color.appCard.opacity(0.04), location: 1.00)
+                                .init(color: Color.appCard.opacity(0.75), location: 0.00),
+                                .init(color: Color.appCard.opacity(0.0), location: 0.20)
                             ]),
-                            startPoint: .leading,
-                            endPoint: .trailing
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
-
+                        // Bas (~45 %) : transparent → carte du thème.
                         LinearGradient(
                             gradient: Gradient(stops: [
-                                .init(color: Color.appCard.opacity(0.02), location: 0.00),
-                                .init(color: Color.appCard.opacity(0.06), location: 0.45),
-                                .init(color: Color.appCard.opacity(0.34), location: 0.68),
-                                .init(color: Color.appCard.opacity(0.80), location: 1.00)
+                                .init(color: Color.appCard.opacity(0.0), location: 0.40),
+                                .init(color: Color.appCard.opacity(0.88), location: 0.62),
+                                .init(color: Color.appCard.opacity(0.96), location: 1.00)
                             ]),
                             startPoint: .top,
                             endPoint: .bottom
@@ -185,21 +169,21 @@ struct DashboardHeroState: View {
         .cornerRadius(.appCardRadius)
     }
 
-    private func statCell(icon: String, value: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
+    /// Une ligne : icône + valeur + libellé (≥ appCaption sur la photo).
+    private func statCell(icon: String, value: String, label: String?) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+            Text(value)
+                .font(.appLabel.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+            if let label {
+                Text(label)
                     .font(.appCaption)
                     .foregroundColor(.appTextSecondary)
-                Text(value)
-                    .font(.appHeadline.weight(.semibold))
-                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
             }
-            Text(label)
-                .font(.appMicro)
-                .foregroundColor(.appTextTertiary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
     }
 }
