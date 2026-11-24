@@ -124,6 +124,7 @@ private struct iOSContentView: View {
             case "warroom":   selectedTab = 4
             case "dashboard": selectedTab = 0
             case "seance":    selectedTab = 1
+            case "programme": selectedTab = 2
             case "recovery":  selectedTab = 3
             case "more":      selectedTab = 4
             default: break

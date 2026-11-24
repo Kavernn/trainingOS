@@ -82,7 +82,23 @@ struct DashboardPlan: Codable {
 
 /// Strict wire projection for the lightweight route. Legacy Programme remains
 /// unchanged for other consumers and for explicitly detected older backends.
-private struct DashboardContextRead: Decodable {
+/// Incohérence de données du contexte (jamais une panne réseau).
+enum DashboardContextError: LocalizedError, Equatable {
+    /// Le planning cite des séances absentes du programme actif (ex. programme créé et
+    /// activé sans son planning, 23 nov 2026).
+    case planningMismatch
+    /// Version ou date du contexte inattendues.
+    case incompatible
+
+    var errorDescription: String? {
+        switch self {
+        case .planningMismatch: return "Ton planning ne correspond pas au programme actif."
+        case .incompatible:     return "Données incompatibles — mise à jour requise."
+        }
+    }
+}
+
+struct DashboardContextRead: Decodable {
     let schema_version: Int
     let date: String
     let active_program_id: String
@@ -99,7 +115,10 @@ private struct DashboardContextRead: Decodable {
     }
     func validate(date expectedDate: String) throws {
         let days = Set(["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"])
-        guard schema_version == 1, date == expectedDate, programme.isActive,
+        // Avant : un seul URLError(.cannotParseResponse) pour tout → « Connexion impossible
+        // -1017 » sur une simple incohérence de planning.
+        guard schema_version == 1, date == expectedDate else { throw DashboardContextError.incompatible }
+        guard programme.isActive,
               Set(session_order) == Set(full_program.keys), session_order.count == full_program.count,
               Set(exercise_order.keys) == Set(full_program.keys),
               full_program.allSatisfy({ name, exercises in
@@ -111,7 +130,7 @@ private struct DashboardContextRead: Decodable {
                   Set(slots.keys).isSubset(of: days) && slots.values.allSatisfy {
                       $0 == "Repos" || full_program[$0] != nil
                   }
-              }) else { throw URLError(.cannotParseResponse) }
+              }) else { throw DashboardContextError.planningMismatch }
     }
     func matches(_ other: Self) -> Bool {
         programme.matches(other.programme) && date == other.date &&
@@ -149,6 +168,23 @@ final class APILoadingState: ObservableObject {
     @Published var isRefreshing = false
     @Published var isSlow = false
     @Published var error: String?
+    /// L'erreur pleine page est une incohérence de planning (pas une panne réseau).
+    @Published var planningMismatch = false
+
+    /// Message lisible en français ; jamais le texte système brut (« The operation
+    /// couldn't be completed… »).
+    static func message(for error: Error) -> String {
+        if let context = error as? DashboardContextError { return context.errorDescription ?? "" }
+        if error is DecodingError { return "Données incompatibles — mise à jour requise." }
+        switch (error as? URLError)?.code {
+        case .notConnectedToInternet?, .dataNotAllowed?: return "Pas de connexion internet."
+        case .timedOut?:                                 return "Le serveur met trop de temps à répondre — réessaie."
+        case .networkConnectionLost?:                    return "Connexion interrompue — réessaie."
+        case .cannotFindHost?, .cannotConnectToHost?, .dnsLookupFailed?: return "Serveur injoignable — réessaie."
+        case .badServerResponse?, .cannotParseResponse?: return "Réponse du serveur illisible — réessaie."
+        default:                                         return "Une erreur est survenue — réessaie."
+        }
+    }
 }
 
 class APIService: ObservableObject {
@@ -455,6 +491,7 @@ class APIService: ObservableObject {
         APILoadingState.shared.isRefreshing = false
         APILoadingState.shared.isSlow = false
         APILoadingState.shared.error = nil
+        APILoadingState.shared.planningMismatch = false
     }
 
     @discardableResult
@@ -477,6 +514,7 @@ class APIService: ObservableObject {
         APILoadingState.shared.isLoading = mode == .initial || (dashboard == nil && dashboardPlan == nil)
         APILoadingState.shared.isSlow = false
         APILoadingState.shared.error = nil
+        APILoadingState.shared.planningMismatch = false
         defer {
             if generation == dashboardGeneration {
                 dashboardRequestRunning = false
@@ -592,8 +630,8 @@ class APIService: ObservableObject {
                   (error as? URLError)?.code != .cancelled else { return false }
             // Full-page failure is only appropriate without prior coherent data.
             if dashboard == nil {
-                APILoadingState.shared.error = error is DecodingError
-                    ? "Données incompatibles — mise à jour requise" : error.localizedDescription
+                APILoadingState.shared.error = APILoadingState.message(for: error)
+                APILoadingState.shared.planningMismatch = (error as? DashboardContextError) == .planningMismatch
             }
             return false
         }

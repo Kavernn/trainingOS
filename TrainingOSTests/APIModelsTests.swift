@@ -480,6 +480,44 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(DashboardDomainGrid.financeText(cents: nil, revealed: false), "—")
     }
 
+    // MARK: - Incohérence de planning ≠ panne réseau (incident 23 nov 2026)
+
+    @MainActor
+    private func context(schedule: String, date: String = "2026-11-23") throws -> DashboardContextRead {
+        let json = """
+        {"schema_version":1,"date":"\(date)","active_program_id":"p1","current_program_id":"p1",
+         "schedule":\(schedule),"evening_schedule":{},
+         "full_program":{"Lundi Push A":{"Bench Press":"4x6"}},
+         "session_order":["Lundi Push A"],"exercise_order":{"Lundi Push A":["Bench Press"]}}
+        """
+        return try JSONDecoder().decode(DashboardContextRead.self, from: Data(json.utf8))
+    }
+
+    @MainActor
+    func testPlanningCitingSessionsOutsideActiveProgramIsPlanningMismatch() throws {
+        // 23 nov : « Hiver 2027 » actif (1 séance), planning resté sur GymProgramme v4.
+        let stale = try context(schedule: #"{"Lun":"Lundi AM — Push A","Mar":"Repos"}"#)
+        XCTAssertThrowsError(try stale.validate(date: "2026-11-23")) { error in
+            XCTAssertEqual(error as? DashboardContextError, .planningMismatch)
+            XCTAssertNil(error as? URLError)                       // plus jamais -1017
+        }
+        XCTAssertNoThrow(try context(schedule: #"{"Lun":"Lundi Push A","Mar":"Repos"}"#).validate(date: "2026-11-23"))
+        XCTAssertThrowsError(try context(schedule: "{}", date: "2026-11-22").validate(date: "2026-11-23")) { error in
+            XCTAssertEqual(error as? DashboardContextError, .incompatible)
+        }
+    }
+
+    @MainActor
+    func testDashboardErrorMessagesAreReadableFrench() {
+        XCTAssertEqual(APILoadingState.message(for: DashboardContextError.planningMismatch),
+                       "Ton planning ne correspond pas au programme actif.")
+        XCTAssertEqual(APILoadingState.message(for: URLError(.notConnectedToInternet)), "Pas de connexion internet.")
+        XCTAssertEqual(APILoadingState.message(for: URLError(.cannotParseResponse)), "Réponse du serveur illisible — réessaie.")
+        let generic = APILoadingState.message(for: URLError(.unknown))
+        XCTAssertFalse(generic.contains("operation"))                 // jamais le texte système anglais
+        XCTAssertEqual(generic, "Une erreur est survenue — réessaie.")
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

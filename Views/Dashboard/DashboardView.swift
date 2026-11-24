@@ -385,10 +385,17 @@ struct DashboardView: View {
                 .foregroundColor(.appTextPrimary).padding()
             } else if let err = loadingState.error {
                 VStack(spacing: 16) {
-                    Image(systemName: "wifi.exclamationmark")
+                    // Incohérence de planning ≠ panne réseau : état explicite + accès au Programme.
+                    Image(systemName: loadingState.planningMismatch ? "calendar.badge.exclamationmark" : "wifi.exclamationmark")
                     .font(.system(size: 48)).foregroundColor(.gray)
-                    Text("Connexion impossible").foregroundColor(.appOnBackground).fontWeight(.semibold)
+                    Text(loadingState.planningMismatch ? "Planning à mettre à jour" : "Connexion impossible")
+                        .foregroundColor(.appOnBackground).fontWeight(.semibold)
                     Text(err).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center)
+                    if loadingState.planningMismatch {
+                        PrimaryButton(title: "Ouvrir Programme", icon: "list.bullet.clipboard", size: .medium) {
+                            AppState.shared.pendingDeepLink = "programme"
+                        }
+                    }
                     Button {
                         Task { await api.fetchDashboard() }
                     } label: {
