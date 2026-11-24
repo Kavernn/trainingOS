@@ -17,10 +17,33 @@ class MorningBriefEvaluateTests(unittest.TestCase):
             self.assertNotIn("Bonne séance", msg)
             self.assertEqual(msg, "Données limitées.")
 
-    def test_missing_lss_keeps_real_hrv_lead(self):
-        rec, msg, _ = _evaluate(None, "moderate", {}, hrv_ms=58, hrv_pct=-4, session_name="Push A")
+    def test_missing_lss_never_quotes_hrv_figure(self):
+        rec, msg, _ = _evaluate(None, "moderate", {}, hrv_zone="green", session_name="Push A")
         self.assertEqual(rec, "unknown")
-        self.assertEqual(msg, "HRV 58ms (-4% vs baseline).")
+        self.assertEqual(msg, "Données limitées.")
+
+    def test_red_hrv_never_called_optimal(self):
+        # 23 nov : HRV −44 % (zone rouge) + Équilibre de vie 78 → avant « récupération optimale ».
+        for lss in (65.0, 78.4, 100.0):
+            for intensity in ("heavy", "moderate", "light"):
+                rec, msg, adj = _evaluate(lss, intensity, {}, hrv_zone="red", session_name="Lundi AM — Push A")
+                low = msg.lower()
+                self.assertNotIn("optimal", low, (lss, intensity))
+                self.assertNotIn("pousse fort", low, (lss, intensity))
+                self.assertEqual(rec, "go_caution")
+                self.assertIn("HRV bas — évite les efforts maximaux", adj)
+                self.assertNotIn("ms", msg)                 # aucun chiffre HRV
+
+    def test_red_hrv_never_optimal_at_any_lss(self):
+        for lss in (10.0, 30.0, 50.0, 70.0, 95.0):
+            for intensity in ("heavy", "moderate", "light"):
+                _, msg, _ = _evaluate(lss, intensity, {}, hrv_zone="red")
+                self.assertNotIn("optimal", msg.lower(), (lss, intensity))
+
+    def test_green_hrv_keeps_optimal_message(self):
+        rec, msg, _ = _evaluate(80.0, "moderate", {}, hrv_zone="green", session_name="Push A")
+        self.assertEqual(rec, "go")
+        self.assertIn("récupération optimale", msg)
 
     def test_lss_is_named_equilibre_de_vie_not_readiness(self):
         _, msg, _ = _evaluate(80.0, "moderate", {}, session_name="Push A")

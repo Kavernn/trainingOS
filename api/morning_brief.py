@@ -17,30 +17,21 @@ def invalidate_cache() -> None:
     _CACHE.clear()
 
 
-def _get_hrv_context():
-    """Return (today_hrv_ms, pct_vs_baseline) or (None, None)."""
+def _get_hrv_zone():
+    """Zone HRV du jour ("green" | "orange" | "red") ou None — SOURCE UNIQUE hrv_engine, la
+    même que la readiness (_score_hrv). Avant : baseline maison (moyenne des logs à partir du
+    6e), troisième calcul de « HRV vs baseline » sur la même page."""
     try:
         import db as _db_hrv
-        logs = _db_hrv.get_recovery_logs(limit=35)
-        if not logs:
-            return None, None
-        today_hrv = None
-        for log in logs[:3]:
-            if log.get("hrv") is not None:
-                today_hrv = float(log["hrv"])
-                break
-        if today_hrv is None:
-            return None, None
-        baseline_vals = [float(l["hrv"]) for l in logs[5:] if l.get("hrv") is not None]
-        if len(baseline_vals) < 5:
-            baseline_vals = [float(l["hrv"]) for l in logs[1:] if l.get("hrv") is not None]
-        if not baseline_vals:
-            return round(today_hrv), None
-        baseline = sum(baseline_vals) / len(baseline_vals)
-        pct = round((today_hrv - baseline) / baseline * 100)
-        return round(today_hrv), pct
-    except Exception:
-        return None, None
+        from hrv_engine import compute_hrv_analysis
+        from user_profile import load_user_profile
+        from utils import _today_mtl as _tmtl
+        sensitivity = str(load_user_profile().get("hrv_sensitivity") or "standard")
+        analysis = compute_hrv_analysis(_db_hrv.get_recovery_logs() or [], _tmtl(), sensitivity=sensitivity)
+        return analysis.get("hrv_zone") if analysis.get("baseline_available") else None
+    except Exception as e:
+        logger.warning("morning_brief hrv zone failed: %s", e)
+        return None
 
 
 HEAVY = {"Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs"}
@@ -69,8 +60,8 @@ def get_morning_brief():
     intensity = _intensity(today)
     components = lss_data.get("components", {})
 
-    hrv_ms, hrv_pct = _get_hrv_context()
-    rec, msg, adjustments = _evaluate(lss, intensity, flags, hrv_ms=hrv_ms, hrv_pct=hrv_pct, session_name=today)
+    hrv_zone = _get_hrv_zone()
+    rec, msg, adjustments = _evaluate(lss, intensity, flags, hrv_zone=hrv_zone, session_name=today)
 
     # Spirit signals — yesterday's practice (metadata only)
     breathwork_yesterday = False
@@ -113,27 +104,19 @@ def get_morning_brief():
     return result
 
 
-def _evaluate(lss, intensity, flags, hrv_ms=None, hrv_pct=None, session_name=None):
+def _evaluate(lss, intensity, flags, hrv_zone=None, session_name=None):
     adj = []
     if flags.get("hrv_drop"):          adj.append("HRV bas — évite les efforts maximaux")
     if flags.get("sleep_deprivation"): adj.append("Manque de sommeil — réduis l'intensité")
     if flags.get("training_overload"): adj.append("Surcharge cumulée — déload recommandé")
 
-    def _hrv_str():
-        if hrv_ms is None:
-            return None
-        if hrv_pct is not None:
-            sign = "+" if hrv_pct >= 0 else ""
-            return f"HRV {hrv_ms}ms ({sign}{hrv_pct}% vs baseline)"
-        return f"HRV {hrv_ms}ms"
-
-    hrv_str = _hrv_str()
-    # Le LSS n'est PAS la readiness (deux calculs distincts) : son nom affiché est
-    # « Équilibre de vie » (0 = surmenage, 100 = récupération optimale), comme dans l'app.
+    # Build 9 : plus de chiffre HRV dans la phrase (la valeur du jour vit dans le hero).
+    # Le LSS n'est PAS la readiness : son nom affiché est « Équilibre de vie »
+    # (0 = surmenage, 100 = récupération optimale), comme dans l'app.
     lss_str = f"Équilibre de vie {lss:.0f}/100" if lss is not None else None
 
     def _lead():
-        return hrv_str if hrv_str else lss_str or "Données limitées"
+        return lss_str or "Données limitées"
 
     if lss is None:
         # Anti-fantôme : sans LSS, aucune recommandation inventée (avant : "go" +
@@ -166,6 +149,15 @@ def _evaluate(lss, intensity, flags, hrv_ms=None, hrv_pct=None, session_name=Non
             return "go_caution", msg, adj
         msg = f"{_lead()} — récupération correcte. Bonne séance."
         return "go", msg, adj
+
+    # Règle (validée par Vince) : HRV en zone rouge → la récupération n'est jamais
+    # qualifiée d'« optimale » (ni « Pousse fort »), avec ou sans chiffre, et le « go »
+    # descend à « go_caution » — même garde-fou que le veto HRV de la readiness.
+    if hrv_zone == "red":
+        if "HRV bas — évite les efforts maximaux" not in adj:
+            adj.append("HRV bas — évite les efforts maximaux")
+        msg = f"{_lead()} — HRV bas ce matin : séance normale, sans chercher le max."
+        return "go_caution", msg, adj
 
     if intensity == "heavy":
         msg = f"{_lead()} — fenêtre optimale. Pousse fort ce soir."
