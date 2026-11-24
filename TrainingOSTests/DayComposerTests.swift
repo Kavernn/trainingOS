@@ -1648,6 +1648,7 @@ final class DayComposerTests: XCTestCase {
 
     @MainActor
     /// Build 3 : les bonus (is_optional) sortent de la durée estimée, affichés « +~X min avec bonus ».
+    @MainActor
     func testBonusExcludedFromEstimatedDurationAndLabelled() throws {
         let date = "2026-11-16"
         let program = ["AM": ["A": SafeString("3x10"), "B": SafeString("2x12")], "PM": [String: SafeString]()]
