@@ -1646,7 +1646,6 @@ final class DayComposerTests: XCTestCase {
                        "Déplacement Matin/Soir : durées inchangées")
     }
 
-    @MainActor
     /// Build 3 : les bonus (is_optional) sortent de la durée estimée, affichés « +~X min avec bonus ».
     @MainActor
     func testBonusExcludedFromEstimatedDurationAndLabelled() throws {
@@ -1675,6 +1674,7 @@ final class DayComposerTests: XCTestCase {
         XCTAssertNil(DayComposerDuration.bonusLabel(0))
     }
 
+    @MainActor
     func testValidateFillsDurationInputsPerOccurrenceFromOriginSession() throws {
         let date = "2026-11-16"
         let program = ["AM": ["A": SafeString("3x10")], "PM": ["A": SafeString("3x10")]]
