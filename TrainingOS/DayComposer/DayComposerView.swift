@@ -216,7 +216,8 @@ struct DayComposerView: View {
     /// l'aperçu non vérifié n'affiche rien plutôt qu'une valeur inventée.
     private func totalDurationSuffix(_ snapshot: DayComposerSnapshot) -> String {
         guard verified, let label = DayComposerDuration.totalLabel(units, setAside: setAside, in: snapshot) else { return "" }
-        return " · " + label
+        let bonus = DayComposerDuration.bonusLabel(DayComposerDuration.bonusSeconds(units, setAside: setAside, in: snapshot))
+        return " · " + label + (bonus.map { " (\($0))" } ?? "")
     }
 
     private func unitDurationLabel(_ unit: DayComposerUnit, snapshot: DayComposerSnapshot) -> String? {

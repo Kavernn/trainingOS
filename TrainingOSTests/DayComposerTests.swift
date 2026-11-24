@@ -1647,6 +1647,33 @@ final class DayComposerTests: XCTestCase {
     }
 
     @MainActor
+    /// Build 3 : les bonus (is_optional) sortent de la durée estimée, affichés « +~X min avec bonus ».
+    func testBonusExcludedFromEstimatedDurationAndLabelled() throws {
+        let date = "2026-11-16"
+        let program = ["AM": ["A": SafeString("3x10"), "B": SafeString("2x12")], "PM": [String: SafeString]()]
+        let order = ["AM": ["A", "B"], "PM": [String]()]
+        func dto(_ name: String) -> SeanceData {
+            SeanceData(today: name, todayDate: date, alreadyLogged: false,
+                schedule: [TrainingDoctrine.dayNames[0]: name], fullProgram: program, weights: [:], week: 1,
+                inventoryTypes: [:], inventoryRest: ["A": 60, "B": 60], exerciseOrder: order,
+                exerciseMeta: ["B": ProgramExerciseMeta(isOptional: true)])
+        }
+        let context = DayComposerLoader.Context(active_program_id: "A", current_program_id: "A",
+            full_program: program, schedule: dto("AM").schedule, exercise_order: order)
+        let s = try DayComposerLoader.validate(program: "A", date: date, currentDate: date, weekdayIndex: 0,
+            before: context, after: context, morning: dto("AM"), evening: dto("PM"),
+            completion: .init(today_date: date, second_session_completed: false)).snapshot
+        let units = s.morning.units
+        let bonusUnit = try XCTUnwrap(units.first { $0.items.map(\.name) == ["B"] })
+        XCTAssertTrue(DayComposerDuration.isBonus(bonusUnit, in: s))
+        let total = DayComposerDuration.totalSeconds(units, setAside: [], in: s)
+        let bonus = DayComposerDuration.bonusSeconds(units, setAside: [], in: s)
+        XCTAssertEqual(total, 3 * 40 + 2 * 60, "A seul : 3 séries × 40 s + 2 repos × 60 s")
+        XCTAssertEqual(bonus, 2 * 40 + 1 * 60)
+        XCTAssertEqual(DayComposerDuration.bonusLabel(bonus), "+~2 min avec bonus")
+        XCTAssertNil(DayComposerDuration.bonusLabel(0))
+    }
+
     func testValidateFillsDurationInputsPerOccurrenceFromOriginSession() throws {
         let date = "2026-11-16"
         let program = ["AM": ["A": SafeString("3x10")], "PM": ["A": SafeString("3x10")]]

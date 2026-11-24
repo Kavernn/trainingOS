@@ -152,6 +152,8 @@ struct DayComposerSnapshot {
     /// Remplies uniquement par `DayComposerLoader.validate` ; vides dans l'aperçu non vérifié.
     var restSeconds: [DayComposerItemID: Int] = [:]
     var prescriptions: [DayComposerItemID: ExercisePrescription] = [:]
+    /// Occurrences bonus (is_optional) : hors durée estimée, affichées « +~X min avec bonus ».
+    var bonusItems: Set<DayComposerItemID> = []
 
     var initialUnits: [DayComposerUnit] { morning.units + evening.units }
     var initialIDs: [DayComposerItemID] { initialUnits.flatMap { $0.items.map(\.id) } }
@@ -329,10 +331,28 @@ enum DayComposerDuration {
         }.reduce(0, +)
     }
 
-    /// Somme des unités NON mises de côté.
+    /// Unité bonus : tous ses exercices sont des bonus du programme.
+    static func isBonus(_ unit: DayComposerUnit, in snapshot: DayComposerSnapshot) -> Bool {
+        !unit.items.isEmpty && unit.items.allSatisfy { snapshot.bonusItems.contains($0.id) }
+    }
+
+    /// Somme des unités NON mises de côté, bonus exclus.
     static func totalSeconds(_ units: [DayComposerUnit], setAside: Set<DayComposerItemID>,
                              in snapshot: DayComposerSnapshot) -> Int {
-        units.filter { !setAside.contains($0.id) }.map { seconds($0, in: snapshot) }.reduce(0, +)
+        units.filter { !setAside.contains($0.id) && !isBonus($0, in: snapshot) }
+            .map { seconds($0, in: snapshot) }.reduce(0, +)
+    }
+
+    /// Durée des bonus non mis de côté (0 si aucun).
+    static func bonusSeconds(_ units: [DayComposerUnit], setAside: Set<DayComposerItemID>,
+                             in snapshot: DayComposerSnapshot) -> Int {
+        units.filter { !setAside.contains($0.id) && isBonus($0, in: snapshot) }
+            .map { seconds($0, in: snapshot) }.reduce(0, +)
+    }
+
+    /// « +~X min avec bonus », nil sans bonus.
+    static func bonusLabel(_ seconds: Int) -> String? {
+        seconds > 0 ? "+~\(max(1, Int((Double(seconds) / 60).rounded()))) min avec bonus" : nil
     }
 
     /// Total affichable : nil quand il ne reste aucune unité requise (jamais « ≈ 0 min »).

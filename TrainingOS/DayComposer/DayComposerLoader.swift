@@ -328,6 +328,7 @@ enum DayComposerLoader {
             snapshot.restSeconds[item.id] = ProgramExerciseMeta.effectiveRest(
                 session: data.exerciseMeta[item.name]?.restSeconds, library: data.inventoryRest[item.name])
             snapshot.prescriptions[item.id] = data.prescriptions?[item.name]
+            if data.exerciseMeta[item.name]?.isOptional == true { snapshot.bonusItems.insert(item.id) }
         }
         return DayComposerLoadedBundle(snapshot: snapshot, morningData: morning, eveningData: evening)
     }
