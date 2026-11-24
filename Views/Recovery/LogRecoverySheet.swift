@@ -31,6 +31,9 @@ struct LogRecoverySheet: View {
     @AppStorage("recoveryLogPrefersFull") private var prefersFull = false
     @AppStorage("recoveryLogFullUseCount") private var fullUseCount = 0
     @State private var initialSnapshot: RecoverySnapshot? = nil
+    /// Valeur affichée de chaque champ HealthKit au pré-remplissage (entrée existante ou
+    /// HealthKit, asynchrone). Sert à n'envoyer que ce que l'utilisateur a modifié.
+    @State private var hkBaseline: [String: String] = [:]
     @State private var confirmDiscard = false
 
     private var isEditing: Bool { prefillEntry != nil }
@@ -70,6 +73,20 @@ struct LogRecoverySheet: View {
                (hasBedtime  && bedtime  != snap.bedtime)   ||
                (hasWakeTime && wakeTime != snap.wakeTime)  ||
                notes             != snap.notes
+    }
+
+    /// Valeurs affichées des champs HealthKit (clés = colonnes serveur).
+    private var hkFieldValues: [String: String] {
+        ["sleep_hours": sleepHoursStr, "resting_hr": restingHrStr, "hrv": hrvStr,
+         "steps": stepsStr, "active_energy": activeEnergyStr,
+         "hr_morning": hrMorningStr, "hr_post_workout": hrPostWorkoutStr, "hr_evening": hrEveningStr,
+         "bedtime": hasBedtime ? timeFmt.string(from: bedtime) : "",
+         "wake_time": hasWakeTime ? timeFmt.string(from: wakeTime) : ""]
+    }
+
+    /// Champs HealthKit modifiés par rapport au pré-remplissage (vides exclus : rien à saisir).
+    static func editedHKFields(current: [String: String], baseline: [String: String]) -> Set<String> {
+        Set(current.filter { !$0.value.isEmpty && $0.value != (baseline[$0.key] ?? "") }.keys)
     }
 
     private var dateStr: String {
@@ -291,6 +308,7 @@ struct LogRecoverySheet: View {
             .onAppear {
                 prefill()
                 initialSnapshot = currentSnapshot
+                hkBaseline = hkFieldValues
             }
         }
     }
@@ -326,6 +344,8 @@ struct LogRecoverySheet: View {
                     if let win = await hk.fetchSleepWindow(for: date) {
                         if !hasBedtime { bedtime = win.bedtime; hasBedtime = true }
                         if !hasWakeTime { wakeTime = win.wakeTime; hasWakeTime = true }
+                        hkBaseline["bedtime"] = timeFmt.string(from: bedtime)
+                        hkBaseline["wake_time"] = timeFmt.string(from: wakeTime)
                     }
                 }
             }
@@ -352,6 +372,7 @@ struct LogRecoverySheet: View {
             if let e  = snap.hrEvening     { hrEveningStr     = String(format: "%.0f", e) }
             if let win = snap.sleepWindow  { bedtime = win.bedtime; hasBedtime = true
                                              wakeTime = win.wakeTime; hasWakeTime = true }
+            hkBaseline = hkFieldValues   // pré-rempli par HealthKit = non saisi
             isLoadingHK = false
         }
     }
@@ -362,25 +383,30 @@ struct LogRecoverySheet: View {
             fullUseCount += 1
             if fullUseCount >= 3 { prefersFull = true }
         }
+        // Champs HealthKit : n'envoyer QUE ceux modifiés, déclarés manuels. Les valeurs
+        // pré-remplies non touchées restent à la synchro (précision complète, mise à jour).
+        let edited = Self.editedHKFields(current: hkFieldValues, baseline: hkBaseline)
+        func hkValue<T>(_ key: String, _ value: T?) -> T? { edited.contains(key) ? value : nil }
         Task {
             do {
                 try await APIService.shared.logRecovery(
-                    sleepHours:    Double(sleepHoursStr.replacingOccurrences(of: ",", with: ".")),
+                    sleepHours:    hkValue("sleep_hours", Double(sleepHoursStr.replacingOccurrences(of: ",", with: "."))),
                     sleepQuality:  sleepQuality > 0 ? sleepQuality : nil,
-                    restingHr:     Double(restingHrStr),
-                    hrv:           Double(hrvStr),
-                    steps:         stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
+                    restingHr:     hkValue("resting_hr", Double(restingHrStr)),
+                    hrv:           hkValue("hrv", Double(hrvStr)),
+                    steps:         hkValue("steps", stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0))),
                     soreness:      soreness == 0 ? nil : soreness,
                     fatigue:       fatigue == 0 ? nil : fatigue,
                     energyPre:     energyPre == 0 ? nil : energyPre,
-                    activeEnergy:  activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
-                    hrMorning:     hrMorningStr.isEmpty ? nil : Double(hrMorningStr),
-                    hrPostWorkout: hrPostWorkoutStr.isEmpty ? nil : Double(hrPostWorkoutStr),
-                    hrEvening:     hrEveningStr.isEmpty ? nil : Double(hrEveningStr),
+                    activeEnergy:  hkValue("active_energy", activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr)),
+                    hrMorning:     hkValue("hr_morning", hrMorningStr.isEmpty ? nil : Double(hrMorningStr)),
+                    hrPostWorkout: hkValue("hr_post_workout", hrPostWorkoutStr.isEmpty ? nil : Double(hrPostWorkoutStr)),
+                    hrEvening:     hkValue("hr_evening", hrEveningStr.isEmpty ? nil : Double(hrEveningStr)),
                     notes:         notes,
                     date:          dateStr,
-                    bedtime:       hasBedtime ? timeFmt.string(from: bedtime) : nil,
-                    wakeTime:      hasWakeTime ? timeFmt.string(from: wakeTime) : nil
+                    bedtime:       hkValue("bedtime", hasBedtime ? timeFmt.string(from: bedtime) : nil),
+                    wakeTime:      hkValue("wake_time", hasWakeTime ? timeFmt.string(from: wakeTime) : nil),
+                    manualFields:  edited.sorted()
                 )
                 triggerNotificationFeedback(.success)
                 triggerImpact(style: .medium)

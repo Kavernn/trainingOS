@@ -378,6 +378,25 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNil(main([], day: "2026-10-10"))
     }
 
+    // MARK: - Fiche récupération : seuls les champs HealthKit modifiés sont déclarés (manual_fields)
+
+    @MainActor
+    func testRecoverySheetDeclaresOnlyEditedHealthKitFields() {
+        let baseline = ["hrv": "26", "resting_hr": "77", "sleep_hours": "7.1", "steps": "416",
+                        "bedtime": "22:10", "wake_time": "05:39", "hr_evening": ""]
+        // Rien touché : aucun champ déclaré (la synchro garde la main, précision complète).
+        XCTAssertEqual(LogRecoverySheet.editedHKFields(current: baseline, baseline: baseline), [])
+        // HRV et coucher modifiés, FC soir saisie (vide au départ).
+        var current = baseline
+        current["hrv"] = "31"; current["bedtime"] = "22:30"; current["hr_evening"] = "58"
+        XCTAssertEqual(LogRecoverySheet.editedHKFields(current: current, baseline: baseline), ["hrv", "bedtime", "hr_evening"])
+        // Champ vidé : rien à déclarer (pas de valeur saisie).
+        current = baseline; current["resting_hr"] = ""
+        XCTAssertEqual(LogRecoverySheet.editedHKFields(current: current, baseline: baseline), [])
+        // Pré-remplissage pas encore arrivé (baseline vide) : une valeur présente compte comme saisie.
+        XCTAssertEqual(LogRecoverySheet.editedHKFields(current: ["hrv": "40"], baseline: [:]), ["hrv"])
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

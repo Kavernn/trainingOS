@@ -29,8 +29,11 @@ extension APIService {
                      activeEnergy: Double? = nil, hrMorning: Double? = nil,
                      hrPostWorkout: Double? = nil, hrEvening: Double? = nil,
                      notes: String? = nil, date: String? = nil,
-                     bedtime: String? = nil, wakeTime: String? = nil) async throws -> Bool {
+                     bedtime: String? = nil, wakeTime: String? = nil,
+                     manualFields: [String]? = nil) async throws -> Bool {
         var body: [String: Any] = [:]
+        // Champs HealthKit réellement saisis : protégés de la synchro côté serveur (migration 109).
+        if let v = manualFields  { body["manual_fields"]      = v }
         if let v = notes         { body["notes"]              = v }
         if let v = sleepHours    { body["sleep_hours"]        = v }
         if let v = sleepQuality  { body["sleep_quality"]      = v }
