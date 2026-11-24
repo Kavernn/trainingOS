@@ -37,8 +37,7 @@ def get_active_program_id(*, strict: bool = False) -> str | None:
 
     Priority:
     1. user_profile.active_program_id (explicit user choice)
-    2. weekly_schedule morning slot (legacy schedule-based detection)
-    3. Oldest program (default fallback)
+    2. Oldest program (default fallback)
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         if strict:
@@ -62,40 +61,8 @@ def get_active_program_id(*, strict: bool = False) -> str | None:
             raise
         pass
 
-    # 2. Schedule-based detection — only conclusive when all morning slots agree
-    def _do() -> str | None:
-        resp = (
-            db_core._client.table("weekly_schedule")
-            .select("program_sessions(program_id)")
-            .eq("slot", "morning")
-            .not_.is_("session_id", "null")
-            .execute()
-        )
-        if strict and resp.data is None:
-            raise RuntimeError("Schedule unavailable")
-        pids = {
-            str(row["program_sessions"]["program_id"])
-            for row in (resp.data or [])
-            if row.get("program_sessions") and row["program_sessions"].get("program_id")
-        }
-        return pids.pop() if len(pids) == 1 else None
-
-    try:
-        result = _do()
-        if result is not None:
-            return result
-    except Exception as e:
-        if strict:
-            raise
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                result = _do()
-                if result is not None:
-                    return result
-            except Exception as e2:
-                db_core.logger.error("get_active_program_id retry error: %s", e2)
-        else:
-            db_core.logger.error("get_active_program_id error: %s", e)
+    # 2. (supprimé, migration 110) : la détection par le planning n'a plus de sens, le
+    #    planning appartient à un programme. Repli : programme le plus ancien.
     return get_default_program_id(strict=strict)
 
 
@@ -589,7 +556,7 @@ def delete_program_session(name: str, program_id: str | None = None) -> bool:
         return False
 
 
-def get_relational_week_schedule(*, strict: bool = False) -> dict:
+def get_relational_week_schedule(*, strict: bool = False, program_id: str | None = None) -> dict:
     """Return {"Lun": "Push A", "Mar": "Pull A", ...} from weekly_schedule JOIN program_sessions.
 
     Days with no session assigned are omitted.
@@ -601,9 +568,14 @@ def get_relational_week_schedule(*, strict: bool = False) -> dict:
         return {}
 
     def _do() -> dict:
+        # Planning du programme donné (déjà résolu par l'appelant) ou du programme actif.
+        pid = program_id or get_active_program_id(strict=strict)
+        if not pid:
+            return {}  # aucun programme : aucun planning
         resp = (
             db_core._client.table("weekly_schedule")
             .select("day_name, program_sessions(name)")
+            .eq("program_id", pid)
             .eq("slot", "morning")
             .execute()
         )
@@ -645,6 +617,9 @@ def set_relational_week_schedule(schedule: dict) -> bool:
 
     def _do() -> bool:
         active_pid = get_active_program_id()
+        if not active_pid:
+            db_core.logger.error("set_relational_week_schedule: aucun programme actif")
+            return False
         for day_name, session_name in schedule.items():
             session_id = None
             if session_name:
@@ -665,8 +640,8 @@ def set_relational_week_schedule(schedule: dict) -> bool:
                         session_name, active_pid, day_name,
                     )
             db_core._client.table("weekly_schedule").upsert(
-                {"day_name": day_name, "session_id": session_id, "slot": "morning"},
-                on_conflict="day_name,slot",
+                {"program_id": active_pid, "day_name": day_name, "session_id": session_id, "slot": "morning"},
+                on_conflict="program_id,day_name,slot",
             ).execute()
         return True
 
@@ -683,7 +658,7 @@ def set_relational_week_schedule(schedule: dict) -> bool:
         return False
 
 
-def get_evening_week_schedule(*, strict: bool = False) -> dict:
+def get_evening_week_schedule(*, strict: bool = False, program_id: str | None = None) -> dict:
     """Return {"Lun": "Core", ...} for slot='evening' from weekly_schedule."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         if strict:
@@ -691,9 +666,13 @@ def get_evening_week_schedule(*, strict: bool = False) -> dict:
         return {}
 
     def _do() -> dict:
+        pid = program_id or get_active_program_id(strict=strict)
+        if not pid:
+            return {}
         resp = (
             db_core._client.table("weekly_schedule")
             .select("day_name, program_sessions(name)")
+            .eq("program_id", pid)
             .eq("slot", "evening")
             .execute()
         )
@@ -736,10 +715,14 @@ def set_evening_week_schedule(schedule: dict) -> bool:
 
     def _do() -> bool:
         active_pid = get_active_program_id()
+        if not active_pid:
+            db_core.logger.error("set_evening_week_schedule: aucun programme actif")
+            return False
 
         persisted = (
             db_core._client.table("weekly_schedule")
             .select("day_name")
+            .eq("program_id", active_pid)
             .eq("slot", "evening")
             .execute()
         )
@@ -752,6 +735,7 @@ def set_evening_week_schedule(schedule: dict) -> bool:
             (
                 db_core._client.table("weekly_schedule")
                 .delete()
+                .eq("program_id", active_pid)
                 .eq("day_name", day_name)
                 .eq("slot", "evening")
                 .execute()
@@ -771,8 +755,8 @@ def set_evening_week_schedule(schedule: dict) -> bool:
                 if sess_resp.data:
                     session_id = sess_resp.data[0]["id"]
             db_core._client.table("weekly_schedule").upsert(
-                {"day_name": day_name, "session_id": session_id, "slot": "evening"},
-                on_conflict="day_name,slot",
+                {"program_id": active_pid, "day_name": day_name, "session_id": session_id, "slot": "evening"},
+                on_conflict="program_id,day_name,slot",
             ).execute()
         return True
 

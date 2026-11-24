@@ -386,8 +386,8 @@ def api_dashboard_context():
         if not active:
             return jsonify({"error": "no_active_program"}), 409
         program = get_full_program(active, strict=True)
-        schedule = get_relational_week_schedule(strict=True)
-        evening = get_evening_week_schedule(strict=True)
+        schedule = get_relational_week_schedule(strict=True, program_id=active)
+        evening = get_evening_week_schedule(strict=True, program_id=active)
         flat = {name: {ex: cap_scheme_sets(scheme)
                        for ex, scheme in get_strength_exercises(session).items()}
                 for name, session in program.items()}

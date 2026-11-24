@@ -95,8 +95,9 @@ class _Client:
         return _Query(self, table_name)
 
 
-def _schedule_row(day, slot, session_id):
-    return {"day_name": day, "slot": slot, "session_id": session_id}
+def _schedule_row(day, slot, session_id, program_id="program-1"):
+    # Migration 110 : chaque ligne de planning appartient à un programme.
+    return {"program_id": program_id, "day_name": day, "slot": slot, "session_id": session_id}
 
 
 def _save(client, snapshot):
@@ -106,9 +107,10 @@ def _save(client, snapshot):
         assert db_programs.set_evening_week_schedule(snapshot) is True
 
 
-def _fetch(client):
+def _fetch(client, program_id="program-1"):
     with patch.object(db_programs.db_core, "_client", client), \
-         patch.object(db_programs.db_core, "MODE", "ONLINE"):
+         patch.object(db_programs.db_core, "MODE", "ONLINE"), \
+         patch.object(db_programs, "get_active_program_id", return_value=program_id):
         return db_programs.get_evening_week_schedule()
 
 

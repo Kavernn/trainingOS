@@ -27,9 +27,9 @@ class ReadFixture:
                          {'id': 'selected', 'name': 'Selected', 'created_at': '2'}],
             'program_sessions': [session('AM', 0, ['Squat', 'Row']), session('PM', 1, ['Stretch'])],
             'weekly_schedule': [
-                {'day_name': 'Lun', 'slot': 'morning', 'session_id': 'AM', 'program_sessions': {'name': 'AM', 'program_id': 'active'}},
-                {'day_name': 'Lun', 'slot': 'evening', 'session_id': 'PM', 'program_sessions': {'name': 'PM', 'program_id': 'active'}},
-                {'day_name': 'Dim', 'slot': 'morning', 'session_id': None, 'program_sessions': None}],
+                {'program_id': 'active', 'day_name': 'Lun', 'slot': 'morning', 'session_id': 'AM', 'program_sessions': {'name': 'AM', 'program_id': 'active'}},
+                {'program_id': 'active', 'day_name': 'Lun', 'slot': 'evening', 'session_id': 'PM', 'program_sessions': {'name': 'PM', 'program_id': 'active'}},
+                {'program_id': 'active', 'day_name': 'Dim', 'slot': 'morning', 'session_id': None, 'program_sessions': None}],
             'exercises': [{'id': str(i), 'name': n, 'type': 'machine', 'default_scheme': '3x10',
                            'tracking_type': 'reps', 'muscles': ['back']} for i, n in enumerate(
                                ['Squat', 'Row', 'Stretch'] + [f'Catalogue {i}' for i in range(97)])],
