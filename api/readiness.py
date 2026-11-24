@@ -785,10 +785,13 @@ def _active_energy_modifier(rec_logs: list | None = None) -> tuple[float, bool]:
     return 1.0, False
 
 
-# ── 30-min cache ──────────────────────────────────────────────────────────────
+# ── Cache 5 min (build 3b) ────────────────────────────────────────────────────
+# Vidé par toute écriture réussie (index.py, after_request) et par recovery_logs
+# (db_body). Par instance Vercel : le TTL court borne le score servi par une autre
+# instance après une écriture (avant : 30 min).
 
 _CACHE: dict = {}
-_CACHE_TTL = 30 * 60
+READINESS_CACHE_TTL_SECONDS = 5 * 60
 
 _INSUFFICIENT_WHY = "Pas de HRV, FC repos, sommeil ni ressenti aujourd'hui — fais ton check-in."
 
@@ -799,7 +802,7 @@ def compute() -> dict:
     """Compute and return the full readiness payload."""
     now    = _time.time()
     cached = _CACHE.get("result")
-    if cached and (now - cached["ts"]) < _CACHE_TTL:
+    if cached and (now - cached["ts"]) < READINESS_CACHE_TTL_SECONDS:
         return cached["data"]
 
     try:

@@ -67,6 +67,22 @@ def _require_api_key():
     if auth != f"Bearer {_API_KEY}":
         return jsonify({"error": "Unauthorized"}), 401
 
+# ── Readiness : cache vidé après toute écriture réussie (build 3b) ──
+# Point unique : séances, exercices, cardio, HIIT, programme (22 fonctions + RPC) nourrissent
+# la readiness. Une écriture réussie (2xx) vide son cache ; la lecture suivante recalcule.
+_MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+@app.after_request
+def _invalidate_readiness_after_write(response):
+    from flask import request
+    if request.method in _MUTATING_METHODS and 200 <= response.status_code < 300:
+        try:
+            import readiness
+            readiness.invalidate_cache()
+        except Exception as e:
+            logger.warning("readiness cache invalidation after write failed: %s", e)
+    return response
+
 # ── Wearable / Apple Watch routes ───────────────────────────
 wearable.register_routes(app)
 
