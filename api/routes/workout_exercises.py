@@ -20,10 +20,10 @@ def api_save_exercise():
     inv = load_inventory() or {}
 
     # Règle build 3 : aucun exercice de la bibliothèque sans repos (création comme édition ;
-    # un null effacerait le repos existant).
+    # un null effacerait le repos existant). 0 = « pas de repos » explicite (protocole, cardio).
     rest = data.get("rest_seconds")
-    if isinstance(rest, bool) or not isinstance(rest, int) or rest <= 0:
-        return jsonify({"error": "rest_seconds requis (entier > 0)"}), 400
+    if isinstance(rest, bool) or not isinstance(rest, int) or rest < 0:
+        return jsonify({"error": "rest_seconds requis (entier ≥ 0)"}), 400
 
     raw_load_profile = data.get("load_profile")
     entry = {

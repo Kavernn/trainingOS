@@ -165,12 +165,28 @@ class TestLibraryNeverRewritesProgram(BaseRouteTest):
         self.assertEqual(before, self.store["program"]["Upper A"]["blocks"][0]["exercises"])
 
     def test_library_exercise_never_without_rest(self):
-        for rest in (None, 0, "90", True):
+        for rest in (None, -1, "90", True):
             body = {"name": "Z-Move", "type": "machine"}
             if rest is not None:
                 body["rest_seconds"] = rest
             self.assertEqual(400, self.post("/api/save_exercise", body).status_code, rest)
         self.assertNotIn("Z-Move", self.store["inventory"])
+
+
+class TestZeroRestMeansNoRest(BaseRouteTest):
+    """Décision A (2026-11-24) : 0 = « pas de repos » explicite ; seul le vide est refusé."""
+    def test_library_accepts_zero_rest(self):
+        r = self.post("/api/save_exercise", {"name": "Zone-2", "type": "machine", "rest_seconds": 0})
+        self.assertEqual(200, r.status_code)
+        self.assertEqual(0, self.store["inventory"]["Zone-2"]["rest_seconds"])
+
+    def test_add_of_zero_rest_exercise_leaves_session_rest_empty(self):
+        meta = patch.object(sys.modules["db"], "set_program_exercise_meta", return_value=True).start()
+        self.addCleanup(patch.stopall)
+        self.store["inventory"]["Cable Fly"]["rest_seconds"] = 0
+        r = self.post("/api/programme", {"action": "add", "jour": "Upper A", "exercise": "Cable Fly", "scheme": "1x20"})
+        self.assertEqual(200, r.status_code)
+        self.assertEqual({"rest_seconds": None}, meta.call_args.args[3])   # 0 refusé par la contrainte pbe
 
 
 class TestPayloadsExposeExerciseMeta(BaseRouteTest):

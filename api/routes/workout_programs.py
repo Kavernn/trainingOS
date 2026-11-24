@@ -15,10 +15,18 @@ MUTATING_ACTIONS = frozenset({
 
 
 def _rest_seconds_or_error(value):
-    """Repos de bibliothèque : entier > 0 obligatoire (jamais vide, jamais inventé)."""
-    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-        return None, (jsonify({"error": "rest_seconds requis (entier > 0)"}), 400)
+    """Repos de bibliothèque : entier ≥ 0 obligatoire (0 = « pas de repos » explicite ;
+    jamais vide, jamais inventé)."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None, (jsonify({"error": "rest_seconds requis (entier ≥ 0)"}), 400)
     return value, None
+
+
+def _program_rest_default(library_rest):
+    """Repos copié à l'ajout. La contrainte pbe_rest_seconds_positive (111) refuse 0 :
+    un « pas de repos » de bibliothèque reste NULL dans la séance → l'app lit la
+    bibliothèque (0) → aucun minuteur. Même résultat, aucune valeur inventée."""
+    return library_rest or None
 
 
 def _meta_fields_or_error(data):
@@ -278,7 +286,7 @@ def api_programme():
         # Valeur par défaut de la bibliothèque copiée À L'AJOUT ; ensuite l'exercice de
         # programme garde la sienne (modifier la bibliothèque ne la réécrit jamais).
         if not _db.set_program_exercise_meta(program_id, jour, exercise,
-                                             {"rest_seconds": inv[exercise].get("rest_seconds")}):
+                                             {"rest_seconds": _program_rest_default(inv[exercise].get("rest_seconds"))}):
             return jsonify({"error": "repos par défaut non copié (exercice introuvable après ajout)"}), 500
         logger.info(
             "programme add: jour='%s' exercise='%s' scheme='%s' target=%s order=%s post_count=%d",
@@ -336,7 +344,7 @@ def api_programme():
             exos.pop(old_ex, None)
             exos[new_ex] = scheme
         _db.save_full_program({jour: session_def}, program_id, allow_empty_blocks=True)
-        meta = {"rest_seconds": inv[new_ex].get("rest_seconds"),
+        meta = {"rest_seconds": _program_rest_default(inv[new_ex].get("rest_seconds")),
                 "is_optional": bool(old_meta.get("is_optional")),
                 "target_rir_min": old_meta.get("target_rir_min"),
                 "target_rir_max": old_meta.get("target_rir_max")}
