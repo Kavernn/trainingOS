@@ -1,9 +1,12 @@
 # deload.py
 import json
+import logging
 from pathlib import Path
 from sessions import load_sessions
 import db as _db
 from utils import _today_mtl
+
+logger = logging.getLogger("trainingos")
 
 
 BASE_DIR      = Path(__file__).parent
@@ -144,16 +147,22 @@ def detect_performance_drop(weights: dict, threshold: float = 0.10) -> list[dict
 # CALCUL DES POIDS DE DELOAD
 # ─────────────────────────────────────────────────────────────
 
-def _parse_sets_from_scheme(scheme: str) -> int:
-    """Parse '3x8-12' → 3. Returns 0 on failure."""
-    try:
-        return int(str(scheme).strip().split("x")[0])
-    except Exception:
-        return 0
+def active_program_session_schemes() -> dict:
+    """{séance: {exercice: scheme}} du programme actif. {} si aucun programme actif ;
+    None si le programme est illisible (l'appelant n'invente alors aucune prescription)."""
+    from blocks import get_strength_exercises
+    pid = _db.get_active_program_id()
+    if not pid:
+        return {}
+    program = _db.get_full_program(pid)
+    if program is None:
+        return None
+    return {name: get_strength_exercises(sdef) for name, sdef in program.items()}
 
 
 def calculer_poids_deload(weights: dict, exercices: list[str] = None,
-                           fatigue_type: str = "peripheral") -> dict:
+                           fatigue_type: str = "peripheral",
+                           session_schemes: dict | None = None) -> dict:
     """
     Prescription de deload selon le type de fatigue détecté.
 
@@ -170,8 +179,10 @@ def calculer_poids_deload(weights: dict, exercices: list[str] = None,
     if fatigue_type == "overreaching":
         return {}  # repos complet — coach_message dans le rapport explique
 
+    from utils import parse_scheme_strict
     result = {}
     cibles = exercices or [k for k in weights if k != "sessions"]
+    session_schemes = session_schemes or {}
 
     for ex in cibles:
         data = weights.get(ex, {})
@@ -183,13 +194,22 @@ def calculer_poids_deload(weights: dict, exercices: list[str] = None,
             if data.get("load_profile") == "compound_heavy":
                 continue
 
-        sets_normaux = _parse_sets_from_scheme(data.get("default_scheme", "")) or 3
-        sets_deload  = max(1, round(sets_normaux * presc["sets_factor"]))
+        # Séries PAR SÉANCE du programme actif (un exercice peut avoir 3x5-8 un jour et
+        # 3x6-8 un autre) ; la charge reste par exercice (une seule current_weight, appliquée
+        # telle quelle par /api/apply_deload). Hors programme actif ou scheme illisible
+        # (« 1xmax ») : aucune ligne — plus de « 3 séries » inventées.
+        by_session = {}
+        for session, schemes in session_schemes.items():
+            parsed = parse_scheme_strict(str(schemes.get(ex))) if ex in schemes else None
+            if parsed:
+                by_session[session] = {"sets_normaux": parsed[0],
+                                       "sets_deload": max(1, round(parsed[0] * presc["sets_factor"]))}
+        if not by_session:
+            continue
         result[ex] = {
             "poids_actuel":  round(poids_actuel, 1),
             "poids_deload":  round(poids_actuel * presc["weight_factor"], 1),
-            "sets_normaux":  sets_normaux,
-            "sets_deload":   sets_deload,
+            "sets_by_session": by_session,
             "fatigue_type":  fatigue_type,
             "duration_days": presc["duration_days"],
             "note": (
@@ -603,7 +623,14 @@ def analyser_deload(weights: dict) -> dict:
     deload_targets = list(dict.fromkeys(stagnant_names + drop_names))
 
     fatigue_type = fatigue_diag["fatigue_type"]
-    prescription = calculer_poids_deload(weights, deload_targets, fatigue_type=fatigue_type) if recommande else {}
+    prescription = {}
+    if recommande:
+        schemes = active_program_session_schemes()
+        if schemes is None:
+            logger.warning("deload: programme actif illisible — aucune prescription")
+        else:
+            prescription = calculer_poids_deload(weights, deload_targets, fatigue_type=fatigue_type,
+                                                 session_schemes=schemes)
 
     rapport = {
         "deload_actif":          deload_actif,
@@ -688,7 +715,8 @@ def afficher_rapport_deload(weights: dict):
         print(f"  💡 RECOMMANDATION : Semaine de deload suggérée\n")
         print(f"  Prescription (même poids -10%, 50% des sets) :\n")
         for ex, presc in rapport["deload_prescription"].items():
-            print(f"    • {ex:<25} → {presc['poids_deload']} lbs × {presc['sets_deload']} sets ({presc['note']})")
+            sets = ", ".join(f"{s} {v['sets_deload']}" for s, v in presc["sets_by_session"].items())
+            print(f"    • {ex:<25} → {presc['poids_deload']} lbs ; séries : {sets} ({presc['note']})")
         print()
 
         choix = selectionner(
