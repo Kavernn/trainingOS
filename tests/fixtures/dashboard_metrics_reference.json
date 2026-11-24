@@ -2046,7 +2046,7 @@
           "2026-09-28": {
             "comment": "AM: First | PM: Second",
             "completed": false,
-            "duration_min": 50,
+            "duration_min": null,
             "energy_pre": 4,
             "exos": [
               "Exercise 000",
@@ -2495,7 +2495,7 @@
         "target_calories": 2345,
         "today": "Upper A",
         "today_date": "2026-09-28",
-        "total_workout_min_today": 50,
+        "total_workout_min_today": null,
         "week": 30
       },
       "status": 200
@@ -2770,7 +2770,7 @@
           "2026-09-28": {
             "comment": null,
             "completed": false,
-            "duration_min": 0,
+            "duration_min": null,
             "energy_pre": 4,
             "exos": [
               "Bench Press"
@@ -2788,7 +2788,7 @@
                 "type": "morning"
               },
               {
-                "duration_min": 0,
+                "duration_min": null,
                 "label": "PM",
                 "rpe": null,
                 "type": "evening"

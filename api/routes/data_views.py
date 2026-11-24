@@ -58,6 +58,20 @@ def _dashboard_logged_names(db, sessions):
 
 
 
+def _known_duration(minutes):
+    """Durée de séance connue, ou None (absente ou ≤ 0 = inconnue, comme 51f9faee)."""
+    return minutes if isinstance(minutes, (int, float)) and minutes > 0 else None
+
+
+def _total_duration(slots):
+    """Somme des durées des créneaux du jour. Un seul créneau à durée inconnue rend le total
+    inconnu (None) : jamais une somme partielle présentée comme la durée de la journée."""
+    durations = [_known_duration(s.get("duration_min")) for s in slots]
+    if not durations or any(d is None for d in durations):
+        return None
+    return sum(durations)
+
+
 @data_views_bp.route("/api/dashboard")
 def api_dashboard():
     from weights import load_weights
@@ -190,11 +204,11 @@ def api_dashboard():
                     "type":         s.get("session_type"),
                     "label":        _SLOT_LABELS.get(s.get("session_type"), s.get("session_type")),
                     "rpe":          s.get("rpe"),
-                    "duration_min": s.get("duration_min"),
+                    "duration_min": _known_duration(s.get("duration_min")),
                 }
                 for s in _today_all  # déjà trié morning→evening→bonus (db_sessions.py:283)
             ],
-            "duration_min":   sum((s.get("duration_min") or 0) for s in _today_all),
+            "duration_min":   _total_duration(_today_all),
             "session_volume": _existing.get("session_volume"),  # déjà sommé v_session_volume
             "exos":           _existing.get("exos"),            # déjà unifié via _today_logged_names
             "energy_pre":     next((s.get("energy_pre") for s in _today_all
@@ -221,7 +235,7 @@ def api_dashboard():
     for _d, _entry in merged_sessions.items():
         _entry["session_count"] = (_entry.get("session_count") or 0) + _hiit_count_by_date.get(_d, 0)
 
-    _total_workout_min_today = sum(int(s.get("duration_min") or 0) for s in _today_all)
+    _total_workout_min_today = _total_duration(_today_all)
 
     # Séance 2 planifiée : source de vérité UNIQUE = get_today_evening() (planner.py),
     # même helper que /api/seance_soir_data → jamais de divergence entre menu et vue.
@@ -297,7 +311,7 @@ def api_dashboard():
         "nutrition_settings":  load_nutrition_settings(),
         "target_calories":     compute_target_calories(),
         "profile":             profile,
-        "total_workout_min_today": _total_workout_min_today if _total_workout_min_today > 0 else None,
+        "total_workout_min_today": None if _total_workout_min_today is None else int(round(_total_workout_min_today)),
         "has_evening_session":     _evening_session_name is not None,
         "evening_session_name":    _evening_session_name,
         "second_session_completed": _second_session_completed,
