@@ -34,6 +34,8 @@ struct DashboardView: View {
     @State private var lessonRefreshFailed: Bool = false
     // Mode Jour de Paie — sheet pré-remplie + célébration après log.
     @State private var budgetPrefill: PlannedTransfer? = nil
+    /// Montants du jour de paie masqués par défaut (comme la tuile Finances), remasqués hors premier plan.
+    @State private var paydayRevealed = false
     @State private var pendingBudgetCelebration: BudgetCelebrationData? = nil
     @State private var budgetCelebrationData: BudgetCelebrationData? = nil
     @Environment(\.scenePhase) private var scenePhase
@@ -270,6 +272,19 @@ struct DashboardView: View {
                         BudgetCard(status: bs, onTransferTap: { pt in
                             budgetPrefill = pt
                         })
+                        .redacted(reason: paydayRevealed ? [] : .placeholder)
+                        .allowsHitTesting(paydayRevealed)
+                        .overlay(alignment: .topTrailing) {
+                            Button { paydayRevealed.toggle() } label: {
+                                Image(systemName: paydayRevealed ? "eye.slash" : "eye")
+                                    .font(.appLabel.weight(.semibold))
+                                    .foregroundColor(.appTextSecondary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(paydayRevealed ? "Masquer les montants" : "Afficher les montants")
+                        }
                         NavigationLink { BudgetView() } label: {
                             HStack {
                                 Spacer()
@@ -454,6 +469,7 @@ struct DashboardView: View {
             checkAndShowMorningReveal()
         }
         .onChange(of: scenePhase) {
+            if scenePhase != .active { paydayRevealed = false }
             if scenePhase == .active {
                 BehaviorTracker.shared.record(.appOpen)
                 if !loadingState.isLoading, api.dashboard?.todayDate != todayStr || Date().timeIntervalSince(lastRefresh) > 300 {
