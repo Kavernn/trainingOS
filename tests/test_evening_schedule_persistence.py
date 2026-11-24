@@ -172,7 +172,7 @@ def test_evening_clear_does_not_touch_morning_assignment():
 def test_evening_schedule_endpoint_returns_500_when_persistence_fails():
     app = Flask(__name__)
     app.register_blueprint(workout_schedule_bp)
-    failing_db = SimpleNamespace(set_evening_week_schedule=lambda _schedule: False)
+    failing_db = SimpleNamespace(set_evening_week_schedule=lambda _schedule, _program_id=None: False)
 
     with patch.dict(sys.modules, {"db": failing_db}):
         response = app.test_client().post("/api/evening_schedule", json={})

@@ -763,18 +763,22 @@ def make_store():
         delete_session_exercise_logs(session_id)
         return True
 
-    def get_relational_week_schedule():
-        return copy.deepcopy(store.get("morning_schedule", {}))
+    # program_id=None → programme actif (clé historique) ; sinon planning du programme donné.
+    def _sched_key(base, program_id):
+        return base if program_id is None else f"{base}:{program_id}"
 
-    def set_relational_week_schedule(schedule):
-        store["morning_schedule"] = copy.deepcopy(schedule)
+    def get_relational_week_schedule(*, strict=False, program_id=None):
+        return copy.deepcopy(store.get(_sched_key("morning_schedule", program_id), {}))
+
+    def set_relational_week_schedule(schedule, program_id=None):
+        store[_sched_key("morning_schedule", program_id)] = copy.deepcopy(schedule)
         return True
 
-    def get_evening_week_schedule():
-        return copy.deepcopy(store.get("evening_schedule", {}))
+    def get_evening_week_schedule(*, strict=False, program_id=None):
+        return copy.deepcopy(store.get(_sched_key("evening_schedule", program_id), {}))
 
-    def set_evening_week_schedule(schedule):
-        store["evening_schedule"] = copy.deepcopy(schedule)
+    def set_evening_week_schedule(schedule, program_id=None):
+        store[_sched_key("evening_schedule", program_id)] = copy.deepcopy(schedule)
         return True
 
     # ── Fakes ajoutés commit sync 2026-07 (fields exposés par endpoints récents

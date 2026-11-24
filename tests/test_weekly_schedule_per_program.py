@@ -82,3 +82,13 @@ def test_no_program_means_no_schedule_and_refused_writes():
     assert _run(client, None, db_programs.set_relational_week_schedule, {"Lun": "Push B"}) is False
     assert _run(client, None, db_programs.set_evening_week_schedule, {"Lun": "Pull B"}) is False
     assert client.store["weekly_schedule"] == []
+
+
+def test_explicit_program_id_writes_a_non_active_program_only():
+    # Planning d'Hiver 2027 rempli sans l'activer : v4 (actif) reste intact.
+    client = _client_two_programs()
+    _run(client, "program-1", db_programs.set_relational_week_schedule, {"Lun": "Push B"})
+    assert _run(client, "program-1", db_programs.set_relational_week_schedule, {"Lun": "Lundi Push A", "Dim": None}, "winter")
+    assert _run(client, "program-1", db_programs.set_evening_week_schedule, {}, "winter")
+    assert _run(client, "program-1", db_programs.get_relational_week_schedule) == {"Lun": "Push B"}
+    assert _run(client, "winter", db_programs.get_relational_week_schedule) == {"Lun": "Lundi Push A", "Dim": "Repos"}

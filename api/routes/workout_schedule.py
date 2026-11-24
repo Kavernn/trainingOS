@@ -425,16 +425,30 @@ def api_seance_bonus_data():
     })
 
 
+def _schedule_program_id():
+    """?program_id= explicite (planning d'un programme non actif). Absent → programme actif.
+    Présent mais vide → erreur 400 (jamais un repli silencieux sur le programme actif)."""
+    if "program_id" not in request.args:
+        return None, None
+    pid = (request.args.get("program_id") or "").strip()
+    if not pid:
+        return None, (jsonify({"success": False, "error": "invalid_program_id"}), 400)
+    return pid, None
+
+
 @workout_schedule_bp.route("/api/evening_schedule", methods=["GET", "POST"])
 def api_evening_schedule():
     import db as _db
+    program_id, error = _schedule_program_id()
+    if error:
+        return error
     if request.method == "POST":
         schedule = request.get_json() or {}
-        success = _db.set_evening_week_schedule(schedule)
+        success = _db.set_evening_week_schedule(schedule, program_id)
         if not success:
             return jsonify({"success": False, "error": "evening_schedule_persistence_failed"}), 500
         return jsonify({"success": True})
-    return jsonify(_db.get_evening_week_schedule())
+    return jsonify(_db.get_evening_week_schedule(program_id=program_id))
 
 
 @workout_schedule_bp.route("/api/cycle_start_date", methods=["GET", "POST"])
@@ -468,15 +482,21 @@ def api_cycle_start_date():
     return jsonify({"date": cycle_start_date})
 
 
-@workout_schedule_bp.route("/api/morning_schedule", methods=["POST"])
+@workout_schedule_bp.route("/api/morning_schedule", methods=["GET", "POST"])
 def api_morning_schedule():
-    """Save morning weekly schedule: {"schedule": {"Lun": "Push A", "Mar": "Repos", ...}}"""
+    """POST {"schedule": {"Lun": "Push A", "Mar": "Repos", ...}} ; GET → planning du matin.
+    ?program_id= : planning d'un programme précis (non actif), sinon programme actif."""
     import db as _db
+    program_id, error = _schedule_program_id()
+    if error:
+        return error
+    if request.method == "GET":
+        return jsonify(_db.get_relational_week_schedule(program_id=program_id))
     data     = request.get_json() or {}
     schedule = data.get("schedule", {})
     cleaned  = {day: (None if seance in ("Repos", "") else seance)
                 for day, seance in schedule.items()}
-    ok = _db.set_relational_week_schedule(cleaned)
+    ok = _db.set_relational_week_schedule(cleaned, program_id)
     return jsonify({"success": ok})
 
 

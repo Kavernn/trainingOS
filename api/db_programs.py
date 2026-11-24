@@ -598,7 +598,7 @@ def get_relational_week_schedule(*, strict: bool = False, program_id: str | None
         return {}
 
 
-def set_relational_week_schedule(schedule: dict) -> bool:
+def set_relational_week_schedule(schedule: dict, program_id: str | None = None) -> bool:
     """Upsert weekly_schedule. schedule = {"Lun": "Push A", "Mar": None, ...}.
 
     None / missing session_name clears the day (session_id = NULL).
@@ -608,7 +608,8 @@ def set_relational_week_schedule(schedule: dict) -> bool:
         return False
 
     def _do() -> bool:
-        active_pid = get_active_program_id()
+        # Programme explicite (planning d'un programme non actif) ou programme actif.
+        active_pid = program_id or get_active_program_id()
         if not active_pid:
             db_core.logger.error("set_relational_week_schedule: aucun programme actif")
             return False
@@ -692,7 +693,7 @@ def get_evening_week_schedule(*, strict: bool = False, program_id: str | None = 
         return {}
 
 
-def set_evening_week_schedule(schedule: dict) -> bool:
+def set_evening_week_schedule(schedule: dict, program_id: str | None = None) -> bool:
     """Replace the complete evening schedule snapshot.
 
     Present canonical days are upserted; persisted evening rows absent from the
@@ -706,7 +707,7 @@ def set_evening_week_schedule(schedule: dict) -> bool:
         return False
 
     def _do() -> bool:
-        active_pid = get_active_program_id()
+        active_pid = program_id or get_active_program_id()
         if not active_pid:
             db_core.logger.error("set_evening_week_schedule: aucun programme actif")
             return False
