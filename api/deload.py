@@ -623,13 +623,17 @@ def analyser_deload(weights: dict) -> dict:
     deload_targets = list(dict.fromkeys(stagnant_names + drop_names))
 
     fatigue_type = fatigue_diag["fatigue_type"]
+    # Décharge ACTIVE (décidée par Vince, recommandée ou non) : tout le programme actif.
+    # Sinon, recommandation seulement : exercices stagnants / en baisse. Ni l'un ni l'autre : rien.
     prescription = {}
-    if recommande:
+    if deload_actif or recommande:
         schemes = active_program_session_schemes()
         if schemes is None:
             logger.warning("deload: programme actif illisible — aucune prescription")
         else:
-            prescription = calculer_poids_deload(weights, deload_targets, fatigue_type=fatigue_type,
+            targets = (list(dict.fromkeys(ex for exos in schemes.values() for ex in exos))
+                       if deload_actif else deload_targets)
+            prescription = calculer_poids_deload(weights, targets, fatigue_type=fatigue_type,
                                                  session_schemes=schemes)
 
     rapport = {
