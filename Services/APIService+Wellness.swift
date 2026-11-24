@@ -56,40 +56,6 @@ extension APIService {
         return data != nil
     }
 
-    // MARK: - iOS-side manual > HK protection
-
-    /// Construit le payload HK en excluant les champs déjà saisis manuellement.
-    ///
-    /// Règle : si `existingEntry.source == "manual"` ET que le champ a déjà une valeur,
-    /// on ne l'envoie pas — la saisie manuelle prime sur HealthKit des deux côtés.
-    /// Les champs cumulatifs (steps, active_energy) sont toujours inclus car ils
-    /// croissent dans la journée ; le backend les protège aussi si source="manual".
-    static func buildHKPayload(
-        snapshot: WearableSnapshot,
-        existingEntry: RecoveryEntry?
-    ) -> [String: Any] {
-        let isManual = existingEntry?.source == "manual"
-
-        // Retourne la valeur HK seulement si on ne risque pas d'écraser une valeur manuelle.
-        func hk<T>(_ existing: T?, _ fromHK: T?) -> T? {
-            guard let v = fromHK else { return nil }
-            if isManual && existing != nil { return nil }
-            return v
-        }
-
-        var body: [String: Any] = [:]
-        if let v = hk(existingEntry?.sleepHours,    snapshot.sleepHours)    { body["sleep_hours"]       = v }
-        if let v = hk(existingEntry?.restingHr,     snapshot.restingHr)     { body["resting_hr"]        = v }
-        if let v = hk(existingEntry?.hrv,           snapshot.hrv)           { body["hrv"]               = v }
-        if let v = hk(existingEntry?.hrMorning,     snapshot.hrMorning)     { body["hr_morning"]        = Int(v) }
-        if let v = hk(existingEntry?.hrPostWorkout, snapshot.hrPostWorkout) { body["hr_post_workout"]   = Int(v) }
-        if let v = hk(existingEntry?.hrEvening,     snapshot.hrEvening)     { body["hr_evening"]        = Int(v) }
-        // Cumulatifs — toujours inclus (le backend protège si source=manual)
-        if let v = snapshot.steps        { body["steps"]         = v }
-        if let v = snapshot.activeEnergy { body["active_energy"] = v }
-        return body
-    }
-
     func deleteRecovery(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/delete_recovery", payload: ["date": date])
         CacheInvalidation.recoveryLogged.invalidate()
