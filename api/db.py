@@ -158,7 +158,6 @@ from db_programs import (
     reorder_program_sessions,
     get_active_program_id,
     set_active_program_id,
-    get_default_program_id,
     get_relational_week_schedule,
     set_relational_week_schedule,
     get_evening_week_schedule,

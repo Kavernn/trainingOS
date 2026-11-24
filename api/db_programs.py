@@ -35,14 +35,16 @@ def get_all_programs() -> list:
 def get_active_program_id(*, strict: bool = False) -> str | None:
     """Return the active program_id.
 
-    Priority:
-    1. user_profile.active_program_id (explicit user choice)
-    2. Oldest program (default fallback)
+    Source unique : user_profile.active_program_id (choix explicite de l'utilisateur).
+    Aucun repli : sans choix explicite → None (dashboard_context répond 409
+    no_active_program, l'app affiche « Aucun programme actif »). Avant : repli sur le
+    planning, puis sur le programme le plus ancien — un programme jamais choisi pouvait
+    devenir silencieusement « actif ».
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         if strict:
             raise RuntimeError("Program context unavailable")
-        return get_default_program_id(strict=strict)
+        return None
 
     # 1. Explicit choice stored in user_profile
     try:
@@ -61,9 +63,7 @@ def get_active_program_id(*, strict: bool = False) -> str | None:
             raise
         pass
 
-    # 2. (supprimé, migration 110) : la détection par le planning n'a plus de sens, le
-    #    planning appartient à un programme. Repli : programme le plus ancien.
-    return get_default_program_id(strict=strict)
+    return None
 
 
 def set_active_program_id(program_id: str) -> bool:
@@ -102,17 +102,6 @@ def set_session_override(session: str | None) -> bool:
         return update_profile({"session_override": None})
     payload = {"date": _today_mtl(), "session": session}
     return update_profile({"session_override": _json.dumps(payload)})
-
-
-def get_default_program_id(*, strict: bool = False) -> str | None:
-    """Return the UUID of the first (oldest) program, or None if none exist."""
-    if strict:
-        rows = db_core._client.table("programs").select("id").order("created_at").limit(1).execute().data
-        if rows is None:
-            raise RuntimeError("Programs unavailable")
-        return rows[0]["id"] if rows else None
-    programs = get_all_programs()
-    return programs[0]["id"] if programs else None
 
 
 def create_program(name: str) -> str | None:
@@ -181,12 +170,12 @@ def delete_program(program_id: str) -> bool:
 
 
 def get_cycle_start_date(program_id: str | None = None) -> str | None:
-    """Return a program's cycle_start_date, falling back to the default only when omitted."""
+    """Return a program's cycle_start_date ; omitted → the ACTIVE program (never the oldest)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return None
 
     def _do() -> str | None:
-        target_program_id = program_id if program_id is not None else get_default_program_id()
+        target_program_id = program_id if program_id is not None else get_active_program_id()
         if not target_program_id:
             return None
         resp = (db_core._client.table("programs")
@@ -213,12 +202,12 @@ def get_cycle_start_date(program_id: str | None = None) -> str | None:
 
 
 def set_cycle_start_date(date_str: str, program_id: str | None = None) -> bool:
-    """Set a program's cycle date, falling back to the default only when omitted."""
+    """Set a program's cycle date ; omitted → the ACTIVE program (never the oldest)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
 
     def _do() -> bool:
-        target_program_id = program_id if program_id is not None else get_default_program_id()
+        target_program_id = program_id if program_id is not None else get_active_program_id()
         if not target_program_id:
             return False
         resp = (db_core._client.table("programs")
@@ -265,7 +254,8 @@ def get_all_session_names() -> list[str]:
 def get_full_program(program_id: str | None = None, *, strict: bool = False) -> dict | None:
     """Return {session_name: {"blocks": [{"type", "order", "exercises": {name: scheme}}]}}.
 
-    If program_id is None, uses the first/oldest program.
+    If program_id is None, returns the sessions of ALL programs (voulu par l'inventaire et
+    le renommage d'exercice). Pour le programme du jour, passer le programme actif.
     Compatible with the block format used by planner.py / blocks.py.
     Returns {} if relational tables are genuinely empty (no sessions).
     Returns None if the relational layer is unavailable or a network/query error occurs —
@@ -469,7 +459,9 @@ def save_full_program(program: dict, program_id: str | None = None,
     if db_core._client is None or db_core.MODE == "OFFLINE":
         raise RuntimeError("save_full_program: Supabase indisponible")
     if program_id is None:
-        program_id = get_default_program_id()
+        program_id = get_active_program_id()  # jamais le programme le plus ancien
+        if not program_id:
+            raise RuntimeError("save_full_program: aucun programme actif")
 
     # Sérialise sessions / exercises en arrays (préserve l'ordre — jsonb ne
     # garantit pas l'ordre des clés d'objet).

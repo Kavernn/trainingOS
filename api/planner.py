@@ -36,6 +36,10 @@ def load_program() -> dict:
     """
     import db as _db
     program_id = _db.get_active_program_id()
+    if not program_id:
+        # Sans programme actif : aucun programme (jamais l'union de tous les programmes).
+        logger.warning("load_program: aucun programme actif")
+        return {}
     program = _db.get_full_program(program_id=program_id)
 
     if program is None:

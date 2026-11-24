@@ -64,7 +64,7 @@ def _db_context(client):
     return (
         patch.object(db_programs.db_core, "_client", client),
         patch.object(db_programs.db_core, "MODE", "ONLINE"),
-        patch.object(db_programs, "get_default_program_id", return_value="program-a"),
+        patch.object(db_programs, "get_active_program_id", return_value="program-a"),
     )
 
 

@@ -155,12 +155,15 @@ class TestDashboardContext(BaseRouteTest):
         self.assertEqual(result.status_code, 404)
         self.assertEqual(self.json(result)['error'], 'active_program_not_found')
 
-    def test_active_resolution_fallbacks_reuse_existing_priority_without_writes(self):
+    def test_no_explicit_active_program_is_409_never_oldest_program(self):
+        # Retrait des replis (planning, puis programme le plus ancien) : seul le choix
+        # explicite user_profile.active_program_id fait foi.
+        self.assertEqual(self.json(self.context())['active_program_id'], 'active')
         self.fixture.rows['user_profile'] = []
-        self.assertEqual(self.json(self.context())['active_program_id'], 'active')
-        self.fixture.rows['weekly_schedule'] = []
-        self.assertEqual(self.json(self.context())['active_program_id'], 'active')
-        self.fixture.rows['programs'] = []
+        result = self.context()
+        self.assertEqual(result.status_code, 409)
+        self.assertEqual(self.json(result)['error'], 'no_active_program')
+        self.fixture.rows['user_profile'] = [{'id': 1, 'active_program_id': None}]
         self.assertEqual(self.context().status_code, 409)
         self.assertFalse(self.fixture.writes)
 

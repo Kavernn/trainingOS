@@ -715,9 +715,6 @@ def make_store():
     def get_all_programs():
         return []
 
-    def get_default_program_id():
-        return None
-
     def get_all_session_names():
         program = store.get("program", {})
         return sorted(program.keys())
@@ -998,7 +995,6 @@ def make_store():
         insert_deload_period=insert_deload_period,
         complete_active_deload_period=complete_active_deload_period,
         get_all_programs=get_all_programs,
-        get_default_program_id=get_default_program_id,
         get_all_session_names=get_all_session_names,
         complete_workout_session=complete_workout_session,
         complete_workout_session_bonus=complete_workout_session_bonus,
