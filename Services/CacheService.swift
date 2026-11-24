@@ -49,9 +49,10 @@ final class CacheService {
         "programme_data":     24 * 3600,
         // Health
         "recovery_data":      3600,
-        // Readiness score + history 14j — matches backend readiness cache TTL 1800s (readiness.py:736)
-        "readiness":          30 * 60,
-        "readiness_history":  30 * 60,
+        // Readiness : 5 min, aligné sur READINESS_CACHE_TTL_SECONDS (api/readiness.py, build 3b).
+        // Check-in, séance terminée et tirer-pour-rafraîchir la relisent sans cache (build 3a).
+        "readiness":          5 * 60,
+        "readiness_history":  30 * 60,   // points quotidiens : 30 min suffisent
         "cardio_data":        30 * 60,
         "acwr":               60 * 60,
         // Streak — invalidated on session logged
