@@ -251,6 +251,9 @@ def get_all_session_names() -> list[str]:
         return []
 
 
+PROGRAM_EXERCISE_META = ("rest_seconds", "target_rir_min", "target_rir_max", "is_optional")
+
+
 def get_full_program(program_id: str | None = None, *, strict: bool = False) -> dict | None:
     """Return {session_name: {"blocks": [{"type", "order", "exercises": {name: scheme}}]}}.
 
@@ -274,7 +277,8 @@ def get_full_program(program_id: str | None = None, *, strict: bool = False) -> 
         q = db_core._client.table("program_sessions").select(
             "id, name, order_index, "
             "program_blocks(id, type, order_index, hiit_config, "
-            "program_block_exercises(scheme, order_index, exercises(id, name)))"
+            "program_block_exercises(scheme, order_index, rest_seconds, target_rir_min, "
+            "target_rir_max, is_optional, exercises(id, name)))"
         ).order("order_index")
         if program_id:
             q = q.eq("program_id", program_id)
@@ -308,6 +312,7 @@ def get_full_program(program_id: str | None = None, *, strict: bool = False) -> 
                     )
                     exercises = {}
                     exercise_ids = {}
+                    exercise_meta = {}
                     for r in ex_rows:
                         ex_join = r.get("exercises") or {}
                         name = ex_join.get("name")
@@ -317,10 +322,14 @@ def get_full_program(program_id: str | None = None, *, strict: bool = False) -> 
                         exercises[name] = r.get("scheme", "3x8-12")
                         if ex_id:
                             exercise_ids[name] = ex_id
+                        # Valeurs propres de l'exercice de programme (migration 111).
+                        exercise_meta[name] = {k: r.get(k) for k in PROGRAM_EXERCISE_META}
+                        exercise_meta[name]["is_optional"] = bool(r.get("is_optional"))
                     built_blocks.append({
                         "type": btype, "order": border,
                         "exercises": exercises,
                         "exercise_ids": exercise_ids,
+                        "exercise_meta": exercise_meta,
                     })
                 else:
                     built_blocks.append({"type": btype, "order": border,
@@ -341,6 +350,32 @@ def get_full_program(program_id: str | None = None, *, strict: bool = False) -> 
                 return None
         db_core.logger.error("get_full_program error: %s", e)
         return None
+
+
+def set_program_exercise_meta(program_id: str, session_name: str, exercise_name: str,
+                              fields: dict) -> bool:
+    """Écrit les valeurs propres (PROGRAM_EXERCISE_META) d'UN exercice de séance.
+    False si la séance ou l'exercice n'existe pas dans ce programme (rien écrit).
+    Lève sur erreur réseau/contrainte (jamais de succès silencieux)."""
+    unknown = set(fields) - set(PROGRAM_EXERCISE_META)
+    if unknown or not fields:
+        raise ValueError(f"set_program_exercise_meta: champs invalides {sorted(unknown) or 'aucun'}")
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        raise RuntimeError("set_program_exercise_meta: Supabase indisponible")
+    c = db_core._client
+    sessions = (c.table("program_sessions").select("id").eq("program_id", program_id)
+                .eq("name", session_name).limit(1).execute().data) or []
+    if not sessions:
+        return False
+    blocks = (c.table("program_blocks").select("id").eq("session_id", sessions[0]["id"])
+              .in_("type", list(REPS_BLOCKS)).execute().data) or []
+    exercises = (c.table("exercises").select("id").eq("name", exercise_name)
+                 .is_("deleted_at", "null").limit(1).execute().data) or []
+    if not blocks or not exercises:
+        return False
+    resp = (c.table("program_block_exercises").update(dict(fields))
+            .in_("block_id", [b["id"] for b in blocks]).eq("exercise_id", exercises[0]["id"]).execute())
+    return bool(resp.data)
 
 
 def get_session_supersets(program_id: str | None = None) -> dict:

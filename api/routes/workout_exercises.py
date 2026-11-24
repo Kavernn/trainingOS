@@ -19,6 +19,12 @@ def api_save_exercise():
 
     inv = load_inventory() or {}
 
+    # Règle build 3 : aucun exercice de la bibliothèque sans repos (création comme édition ;
+    # un null effacerait le repos existant).
+    rest = data.get("rest_seconds")
+    if isinstance(rest, bool) or not isinstance(rest, int) or rest <= 0:
+        return jsonify({"error": "rest_seconds requis (entier > 0)"}), 400
+
     raw_load_profile = data.get("load_profile")
     entry = {
         "type":              data.get("type", "machine"),
@@ -64,12 +70,9 @@ def api_save_exercise():
             if modified:
                 save_program(modified)
     else:
+        # La bibliothèque fournit des valeurs PAR DÉFAUT : modifier un exercice ne réécrit
+        # jamais un programme existant (chaque exercice de séance garde son scheme).
         add_exercise(name, entry)
-        import db as _db
-        ex_id = _db.get_exercise_id(name)
-        new_scheme = entry.get("default_scheme", "")
-        if ex_id and new_scheme:
-            _db.update_program_scheme_for_exercise(ex_id, new_scheme)
 
     return jsonify({"success": True})
 

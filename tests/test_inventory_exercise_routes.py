@@ -17,7 +17,7 @@ from conftest import BaseRouteTest
 class TestSaveExerciseCreate(BaseRouteTest):
 
     def test_create_new_exercise(self):
-        r = self.post("/api/save_exercise", {
+        r = self.post("/api/save_exercise", {"rest_seconds": 90, 
             "name": "Dumbbell Curl",
             "type": "dumbbell",
             "increment": 2.5,
@@ -27,31 +27,31 @@ class TestSaveExerciseCreate(BaseRouteTest):
         self.assertIn("Dumbbell Curl", self.store["inventory"])
 
     def test_created_exercise_has_correct_type(self):
-        self.post("/api/save_exercise", {
+        self.post("/api/save_exercise", {"rest_seconds": 90, 
             "name": "Dumbbell Curl", "type": "dumbbell", "increment": 2.5,
         })
         self.assertEqual("dumbbell", self.store["inventory"]["Dumbbell Curl"]["type"])
 
     def test_create_returns_success(self):
-        r = self.post("/api/save_exercise", {"name": "Push-up", "type": "bodyweight"})
+        r = self.post("/api/save_exercise", {"rest_seconds": 90, "name": "Push-up", "type": "bodyweight"})
         self.assertTrue(self.json(r).get("success"))
 
     def test_missing_name_returns_400(self):
-        r = self.post("/api/save_exercise", {"type": "machine"})
+        r = self.post("/api/save_exercise", {"rest_seconds": 90, "type": "machine"})
         self.assertEqual(400, r.status_code)
 
 
 class TestSaveExerciseUpdate(BaseRouteTest):
 
     def test_update_existing_exercise_type(self):
-        self.post("/api/save_exercise", {
+        self.post("/api/save_exercise", {"rest_seconds": 90, 
             "name": "Cable Fly", "type": "cable", "increment": 5,
             "default_scheme": "3x15",
         })
         self.assertEqual("cable", self.store["inventory"]["Cable Fly"]["type"])
 
     def test_update_default_scheme(self):
-        self.post("/api/save_exercise", {
+        self.post("/api/save_exercise", {"rest_seconds": 90, 
             "name": "Cable Fly", "type": "cable", "default_scheme": "4x12",
         })
         self.assertEqual("4x12", self.store["inventory"]["Cable Fly"]["default_scheme"])
@@ -61,7 +61,7 @@ class TestSaveExerciseRename(BaseRouteTest):
     """P1 fix: rename must propagate to program using block-format traversal."""
 
     def test_rename_updates_inventory_key(self):
-        self.post("/api/save_exercise", {
+        self.post("/api/save_exercise", {"rest_seconds": 90, 
             "original_name": "Bench Press",
             "name": "Barbell Bench Press",
             "type": "barbell",
@@ -71,7 +71,7 @@ class TestSaveExerciseRename(BaseRouteTest):
 
     def test_rename_propagates_to_program_strength_block(self):
         """P1: rename from Inventaire must update exercise in program sessions."""
-        self.post("/api/save_exercise", {
+        self.post("/api/save_exercise", {"rest_seconds": 90, 
             "original_name": "Bench Press",
             "name": "Barbell Bench Press",
             "type": "barbell",
@@ -90,7 +90,7 @@ class TestSaveExerciseRename(BaseRouteTest):
             if b["type"] == "strength"
         )["exercises"]["Bench Press"]
 
-        self.post("/api/save_exercise", {
+        self.post("/api/save_exercise", {"rest_seconds": 90, 
             "original_name": "Bench Press",
             "name": "Barbell Bench Press",
             "type": "barbell",
@@ -102,7 +102,7 @@ class TestSaveExerciseRename(BaseRouteTest):
         self.assertEqual(old_scheme, strength["exercises"]["Barbell Bench Press"])
 
     def test_rename_preserves_other_exercises_in_session(self):
-        self.post("/api/save_exercise", {
+        self.post("/api/save_exercise", {"rest_seconds": 90, 
             "original_name": "Bench Press",
             "name": "Barbell Bench Press",
             "type": "barbell",
@@ -167,7 +167,7 @@ class TestCatalogueTrackingPreservation(BaseRouteTest):
     def test_non_strength_and_plyo_tracking_survive_endurance_metadata(self):
         for modality in ('cardio', 'interval', 'mobility', 'protocol', 'plyo', 'carry'):
             name = 'Catalogue modality ' + modality
-            response = self.post('/api/save_exercise', {
+            response = self.post('/api/save_exercise', {'rest_seconds': 90, 
                 'name': name, 'type': 'machine', 'weight_type': 'endurance',
                 'tracking_type': modality, 'default_scheme': '8x30s',
             })
@@ -176,5 +176,5 @@ class TestCatalogueTrackingPreservation(BaseRouteTest):
             self.assertEqual(self.store['inventory'][name]['default_scheme'], '8x30s')
 
     def test_legacy_endurance_without_modality_still_means_time(self):
-        self.post('/api/save_exercise', {'name': 'Legacy timer', 'weight_type': 'endurance'})
+        self.post('/api/save_exercise', {'rest_seconds': 90, 'name': 'Legacy timer', 'weight_type': 'endurance'})
         self.assertEqual(self.store['inventory']['Legacy timer']['tracking_type'], 'time')

@@ -126,12 +126,12 @@ SESSIONS = {
 }
 
 INVENTORY = {
-    "Bench Press":    {"type": "barbell", "default_scheme": "4x5-7", "increment": 5, "bar_weight": 45},
-    "Back Squat":     {"type": "barbell", "default_scheme": "4x5-7", "increment": 5, "bar_weight": 45},
-    "Barbell Row":    {"type": "barbell", "default_scheme": "4x6-8", "increment": 5, "bar_weight": 45},
-    "Overhead Press": {"type": "barbell", "default_scheme": "3x6-8", "increment": 5, "bar_weight": 45},
-    "Romanian Deadlift": {"type": "barbell", "default_scheme": "3x8-10", "increment": 5, "bar_weight": 45},
-    "Cable Fly":      {"type": "cable",   "default_scheme": "3x12-15", "increment": 5},
+    "Bench Press":    {"type": "barbell", "default_scheme": "4x5-7", "increment": 5, "bar_weight": 45, "rest_seconds": 120},
+    "Back Squat":     {"type": "barbell", "default_scheme": "4x5-7", "increment": 5, "bar_weight": 45, "rest_seconds": 120},
+    "Barbell Row":    {"type": "barbell", "default_scheme": "4x6-8", "increment": 5, "bar_weight": 45, "rest_seconds": 120},
+    "Overhead Press": {"type": "barbell", "default_scheme": "3x6-8", "increment": 5, "bar_weight": 45, "rest_seconds": 120},
+    "Romanian Deadlift": {"type": "barbell", "default_scheme": "3x8-10", "increment": 5, "bar_weight": 45, "rest_seconds": 120},
+    "Cable Fly":      {"type": "cable",   "default_scheme": "3x12-15", "increment": 5, "rest_seconds": 120},
 }
 
 PROFILE = {

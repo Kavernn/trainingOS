@@ -206,7 +206,7 @@ class TestProgramDoesNotAffectHistory(unittest.TestCase):
     def test_add_exercise_preserves_history(self):
         before = self._weights_snapshot()
         r = self._post({"action": "add", "jour": "Upper A",
-                        "exercise": "Cable Fly", "scheme": "3x12-15"})
+                        "exercise": "Cable Fly", "scheme": "3x12-15", "rest_seconds": 90})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(before, self._weights_snapshot(),
                          "add : weights modifié !")
@@ -235,6 +235,8 @@ class TestProgramDoesNotAffectHistory(unittest.TestCase):
                          "scheme : weights modifié !")
 
     def test_replace_exercise_preserves_history(self):
+        # Invariant prod : un exercice de programme existe en bibliothèque, avec un repos.
+        self.store["inventory"]["Bench Press"] = {"type": "barbell", "rest_seconds": 120}
         before = self._weights_snapshot()
         r = self._post({"action": "replace", "jour": "Upper A",
                         "old_exercise": "Bench Press",

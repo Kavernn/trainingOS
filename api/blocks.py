@@ -121,6 +121,18 @@ def get_strength_exercise_ids(session_def: dict) -> dict:
     return merged
 
 
+def get_strength_exercise_meta(session_def: dict) -> dict:
+    """{name: {rest_seconds, target_rir_min, target_rir_max, is_optional}} — valeurs propres
+    de l'exercice de programme (migration 111), mêmes clés que get_strength_exercises."""
+    if "blocks" not in session_def:
+        return {}
+    merged: dict = {}
+    for block in sorted(session_def["blocks"], key=lambda b: b.get("order", 0)):
+        if block.get("type") in REPS_BLOCKS:
+            merged.update(block.get("exercise_meta", {}))
+    return merged
+
+
 def upsert_block(blocks: list, new_block: dict) -> list:
     """Insert or replace a block by type. Preserves all other blocks."""
     btype = new_block["type"]

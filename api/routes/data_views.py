@@ -409,7 +409,7 @@ def api_programme_data():
     import db as _db
     from planner import load_program, get_week_schedule
     from inventory import load_inventory, add_exercise
-    from blocks import get_strength_exercises
+    from blocks import get_strength_exercises, get_strength_exercise_meta
 
     active_program_id = _db.get_active_program_id()
     program_id = request.args.get("program_id") or active_program_id
@@ -473,6 +473,8 @@ def api_programme_data():
         "inventory_patterns":  inventory_patterns,
         "inventory_1rm":       inventory_1rm,
         "exercise_order":      exercise_order,
+        # Valeurs propres par exercice de séance (repos, RIR cible, bonus — migration 111).
+        "exercise_meta":       {sname: get_strength_exercise_meta(sdef) for sname, sdef in (full_program or {}).items()},
         "programs":            programs,
         # `current_program_id` reste l'identifiant du programme chargé pour
         # compatibilité. L'actif réel est exposé séparément : une consultation

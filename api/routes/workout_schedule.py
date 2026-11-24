@@ -23,7 +23,7 @@ def api_seance_data():
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
                          get_suggested_weights_for_today, get_today_evening, sessions_for_date)
     from inventory import load_inventory
-    from blocks import get_strength_exercises, get_strength_exercise_ids
+    from blocks import get_strength_exercises, get_strength_exercise_ids, get_strength_exercise_meta
     from progression import prescribe_volume
     from deload import get_cached_fatigue_score
     from utils import _parse_scheme, get_current_week, get_mesocycle_info
@@ -199,6 +199,7 @@ def api_seance_data():
         # matching par nom à l'écriture (doctrine). Union pour couvrir les exos
         # déplacés inter-sessions et le cas pseudo-séance soir orphelin.
         "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
+        "exercise_meta": {sname: get_strength_exercise_meta(sdef) for sname, sdef in full_program.items()},
         # Nom soir résolu (override manuel > héritage matin > None). Exposé pour
         # que les call sites iOS de SeanceSoirView passent le vrai nom soir sans
         # deviner ni faire un fetch séparé. Cf. commit héritage soir.
@@ -213,7 +214,7 @@ def api_seance_soir_data():
                          get_suggested_weights_for_today, get_evening_schedule)
     from weights import load_weights
     from inventory import load_inventory
-    from blocks import get_strength_exercises, get_strength_exercise_ids
+    from blocks import get_strength_exercises, get_strength_exercise_ids, get_strength_exercise_meta
     from utils import get_current_week, _parse_scheme, get_mesocycle_info
     from progression import prescribe_volume
     from deload import get_cached_fatigue_score
@@ -354,6 +355,7 @@ def api_seance_soir_data():
         # Étape 3b — {name: id} union de TOUTES les sessions du programme.
         # Couvre pseudo-séance soir + exos cross-session moved.
         "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
+        "exercise_meta": {sname: get_strength_exercise_meta(sdef) for sname, sdef in full_program.items()},
     })
 
 
@@ -374,7 +376,7 @@ def api_seance_bonus_data():
                          get_suggested_weights_for_today)
     from weights import load_weights
     from inventory import load_inventory
-    from blocks import get_strength_exercises, get_strength_exercise_ids
+    from blocks import get_strength_exercises, get_strength_exercise_ids, get_strength_exercise_meta
     from utils import get_current_week, cap_scheme_sets
 
     weights      = load_weights()
@@ -429,6 +431,7 @@ def api_seance_bonus_data():
         "exercise_order": exercise_order,
         "pushed_to_bonus": _day_plan["pushed_to_bonus"],
         "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
+        "exercise_meta": {sname: get_strength_exercise_meta(sdef) for sname, sdef in full_program.items()},
     })
 
 

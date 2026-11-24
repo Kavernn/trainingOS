@@ -10,8 +10,40 @@ workout_programs_bp = Blueprint("workout_programs", __name__)
 MUTATING_ACTIONS = frozenset({
     "create_seance", "delete_seance", "rename", "reorder_sessions",
     "add", "remove", "scheme", "replace", "reorder",
-    "add_block", "remove_block", "reorder_blocks",
+    "add_block", "remove_block", "reorder_blocks", "meta",
 })
+
+
+def _rest_seconds_or_error(value):
+    """Repos de bibliothèque : entier > 0 obligatoire (jamais vide, jamais inventé)."""
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        return None, (jsonify({"error": "rest_seconds requis (entier > 0)"}), 400)
+    return value, None
+
+
+def _meta_fields_or_error(data):
+    """Champs `meta` présents dans le payload → dict validé. rest_seconds null = « selon
+    besoin » (l'app prend le repos de la bibliothèque) ; RIR null/null = pas de cible."""
+    fields = {}
+    if "rest_seconds" in data:
+        v = data["rest_seconds"]
+        if v is not None and (isinstance(v, bool) or not isinstance(v, int) or v <= 0):
+            return None, (jsonify({"error": "rest_seconds invalide"}), 400)
+        fields["rest_seconds"] = v
+    if "target_rir_min" in data or "target_rir_max" in data:
+        lo, hi = data.get("target_rir_min"), data.get("target_rir_max")
+        both_null = lo is None and hi is None
+        valid = all(isinstance(x, int) and not isinstance(x, bool) and 0 <= x <= 5 for x in (lo, hi))
+        if not both_null and not (valid and lo <= hi):
+            return None, (jsonify({"error": "RIR cible invalide (0 à 5, min ≤ max, ou les deux null)"}), 400)
+        fields["target_rir_min"], fields["target_rir_max"] = lo, hi
+    if "is_optional" in data:
+        if not isinstance(data["is_optional"], bool):
+            return None, (jsonify({"error": "is_optional invalide"}), 400)
+        fields["is_optional"] = data["is_optional"]
+    if not fields:
+        return None, (jsonify({"error": "aucune valeur à écrire"}), 400)
+    return fields, None
 
 
 @workout_programs_bp.route("/api/programs", methods=["GET", "POST"])
@@ -192,18 +224,7 @@ def api_programme():
                 "programme_ok": False,
             }), 500
 
-        # Sync default_scheme catalogue quand new_scheme fourni (hint UX
-        # séparé des programmes ; pas critique à l'atomicité).
-        if new_scheme is not None:
-            try:
-                inv2 = load_inventory() or {}
-                if new_ex in inv2 and isinstance(inv2[new_ex], dict):
-                    entry = dict(inv2[new_ex])
-                    entry["default_scheme"] = new_scheme
-                    add_exercise(new_ex, entry)
-            except Exception as e:
-                logger.warning("rename: default_scheme catalogue non sync (non critique): %s", e)
-
+        # Règle build 3 : une modification dans un programme ne touche jamais la bibliothèque.
         return jsonify({"success": True, "report": report})
 
     if action == "reorder_sessions":
@@ -246,8 +267,19 @@ def api_programme():
             session_def["blocks"] = upsert_block(blks, target)
         target.setdefault("exercises", {})[exercise] = scheme
         if exercise not in inv:
-            add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
+            # Création à la volée : ce schéma devient le 1er défaut ; repos obligatoire.
+            rest, error = _rest_seconds_or_error(data.get("rest_seconds"))
+            if error:
+                return error
+            add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5,
+                                    "rest_seconds": rest})
+            inv[exercise] = {"rest_seconds": rest}
         _db.save_full_program({jour: session_def}, program_id)
+        # Valeur par défaut de la bibliothèque copiée À L'AJOUT ; ensuite l'exercice de
+        # programme garde la sienne (modifier la bibliothèque ne la réécrit jamais).
+        if not _db.set_program_exercise_meta(program_id, jour, exercise,
+                                             {"rest_seconds": inv[exercise].get("rest_seconds")}):
+            return jsonify({"error": "repos par défaut non copié (exercice introuvable après ajout)"}), 500
         logger.info(
             "programme add: jour='%s' exercise='%s' scheme='%s' target=%s order=%s post_count=%d",
             jour, exercise, scheme, target.get("type"), target.get("order"),
@@ -274,11 +306,6 @@ def api_programme():
         for block in matched:
             block.get("exercises", {})[exercise] = new_scheme
         _db.save_full_program({jour: session_def}, program_id)
-        inv = load_inventory() or {}
-        if exercise in inv and isinstance(inv[exercise], dict):
-            entry = dict(inv[exercise])
-            entry["default_scheme"] = new_scheme
-            add_exercise(exercise, entry)
         return jsonify({"success": True})
 
     if action == "replace":
@@ -288,21 +315,44 @@ def api_programme():
         matched = find_blocks_containing(blks, old_ex)
         if not matched:
             return jsonify({"error": "Exercice introuvable dans la séance"}), 404
+        # Le créneau garde son statut bonus et son RIR cible ; le repos repart du défaut
+        # de bibliothèque du nouvel exercice (comme un ajout).
+        old_meta = next((b.get("exercise_meta", {}).get(old_ex) for b in matched
+                         if old_ex in b.get("exercise_meta", {})), None) or {}
+        inv = load_inventory() or {}
+        if new_ex not in inv:
+            # Création à la volée (le catalogue doit connaître new_ex avant la RPC) :
+            # copie de la fiche de l'ancien exercice, repos compris.
+            entry = {**inv.get(old_ex, {}), "default_scheme": scheme}
+            entry.setdefault("type", "machine")
+            entry.setdefault("increment", 5)
+            rest, error = _rest_seconds_or_error(entry.get("rest_seconds"))
+            if error:
+                return error
+            add_exercise(new_ex, entry)
+            inv[new_ex] = entry
         for block in matched:
             exos = block.get("exercises", {})
             exos.pop(old_ex, None)
             exos[new_ex] = scheme
         _db.save_full_program({jour: session_def}, program_id, allow_empty_blocks=True)
-        inv = load_inventory() or {}
-        if new_ex not in inv:
-            entry = {**inv.get(old_ex, {}), "default_scheme": scheme}
-            entry.setdefault("type", "machine")
-            entry.setdefault("increment", 5)
-            add_exercise(new_ex, entry)
-        else:
-            entry = dict(inv[new_ex])
-            entry["default_scheme"] = scheme
-            add_exercise(new_ex, entry)
+        meta = {"rest_seconds": inv[new_ex].get("rest_seconds"),
+                "is_optional": bool(old_meta.get("is_optional")),
+                "target_rir_min": old_meta.get("target_rir_min"),
+                "target_rir_max": old_meta.get("target_rir_max")}
+        if not _db.set_program_exercise_meta(program_id, jour, new_ex, meta):
+            return jsonify({"error": "valeurs du créneau non copiées (exercice introuvable)"}), 500
+        return jsonify({"success": True})
+
+    if action == "meta":
+        exercise = data.get("exercise")
+        if not find_blocks_containing(blks, exercise):
+            return jsonify({"error": "Exercice introuvable dans la séance"}), 404
+        fields, error = _meta_fields_or_error(data)
+        if error:
+            return error
+        if not _db.set_program_exercise_meta(program_id, jour, exercise, fields):
+            return jsonify({"error": "Exercice introuvable dans la séance"}), 404
         return jsonify({"success": True})
 
     if action == "reorder":

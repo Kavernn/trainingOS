@@ -6,7 +6,7 @@ from conftest import BaseRouteTest
 class TestLandmine(BaseRouteTest):
     def test_catalog_create_and_edit_preserve_load_configuration(self):
         for bar in (45, 35, 0):
-            r = self.post('/api/save_exercise', dict(name='Meadows Row', type='landmine',
+            r = self.post('/api/save_exercise', dict(rest_seconds=90, name='Meadows Row', type='landmine',
                 weight_type='landmine', bar_weight=bar, default_scheme='3x8', load_profile='compound_hypertrophy'))
             self.assertEqual(r.status_code, 200)
             entry = self.store['inventory']['Meadows Row']

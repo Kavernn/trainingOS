@@ -42,14 +42,24 @@ class TestProgrammeAdd(BaseRouteTest):
         """P4: adding an exercise not in inventory must create a minimal entry."""
         self.post("/api/programme", {
             "action": "add", "jour": "Upper A",
-            "exercise": "Z-New Move", "scheme": "3x10",
+            "exercise": "Z-New Move", "scheme": "3x10", "rest_seconds": 90,
         })
         self.assertIn("Z-New Move", self.store["inventory"])
+        self.assertEqual(90, self.store["inventory"]["Z-New Move"]["rest_seconds"])
+
+    def test_add_unknown_exercise_without_rest_is_refused(self):
+        """Build 3 : aucun exercice de bibliothèque sans repos — création à la volée comprise."""
+        r = self.post("/api/programme", {
+            "action": "add", "jour": "Upper A", "exercise": "Z-New Move", "scheme": "3x10",
+        })
+        self.assertEqual(400, r.status_code)
+        self.assertNotIn("Z-New Move", self.store["inventory"])
+        self.assertNotIn("Z-New Move", _strength_exos(self.store, "Upper A"))
 
     def test_add_inventory_entry_has_scheme(self):
         self.post("/api/programme", {
             "action": "add", "jour": "Upper A",
-            "exercise": "Z-New Move", "scheme": "3x10",
+            "exercise": "Z-New Move", "scheme": "3x10", "rest_seconds": 90,
         })
         self.assertEqual("3x10", self.store["inventory"]["Z-New Move"]["default_scheme"])
 
@@ -114,12 +124,13 @@ class TestProgrammeScheme(BaseRouteTest):
         })
         self.assertEqual("5x3", _strength_exos(self.store, "Upper A")["Bench Press"])
 
-    def test_scheme_updates_inventory(self):
+    def test_scheme_never_touches_library(self):
+        """Build 3 (décision A) : modifier le schéma dans un programme ne change pas le défaut."""
         self.post("/api/programme", {
             "action": "scheme", "jour": "Upper A",
             "exercise": "Bench Press", "scheme": "5x3",
         })
-        self.assertEqual("5x3", self.store["inventory"]["Bench Press"]["default_scheme"])
+        self.assertEqual("4x5-7", self.store["inventory"]["Bench Press"]["default_scheme"])
 
 
 # ── replace ───────────────────────────────────────────────────────────────────
@@ -298,7 +309,7 @@ class TestAddInheritInventoryScheme(BaseRouteTest):
     def test_add_no_scheme_unknown_exercise_defaults_to_3x8_12(self):
         self.post("/api/programme", {
             "action": "add", "jour": "Upper A",
-            "exercise": "Brand New Move",
+            "exercise": "Brand New Move", "rest_seconds": 90,
         })
         self.assertEqual("3x8-12", _strength_exos(self.store, "Upper A")["Brand New Move"])
 
@@ -314,12 +325,13 @@ class TestSchemeNoFuzzyMatch(BaseRouteTest):
         }
         self.store["program"]["Upper A"]["blocks"][0]["exercises"]["Incline Bench Press"] = "3x8-10"
 
-    def test_scheme_updates_exact_inventory_key(self):
+    def test_scheme_leaves_exact_inventory_key_untouched(self):
         self.post("/api/programme", {
             "action": "scheme", "jour": "Upper A",
             "exercise": "Bench Press", "scheme": "5x3",
         })
-        self.assertEqual("5x3", self.store["inventory"]["Bench Press"]["default_scheme"])
+        self.assertEqual("4x5-7", self.store["inventory"]["Bench Press"]["default_scheme"])
+        self.assertEqual("5x3", _strength_exos(self.store, "Upper A")["Bench Press"])
 
     def test_scheme_does_not_corrupt_similar_name(self):
         """Fuzzy match bug: updating 'Bench Press' must NOT touch 'Incline Bench Press'."""
@@ -333,15 +345,16 @@ class TestSchemeNoFuzzyMatch(BaseRouteTest):
 class TestReplaceUpdatesExistingInventoryScheme(BaseRouteTest):
     """Bug fix: replace must update default_scheme in inventory even when new_ex already exists."""
 
-    def test_replace_existing_inventory_scheme_updated(self):
-        # Cable Fly already in inventory as "3x12-15"
+    def test_replace_existing_inventory_scheme_untouched(self):
+        # Cable Fly already in inventory as "3x12-15" ; le programme reçoit 4x10, pas la bibliothèque.
         self.post("/api/programme", {
             "action": "replace", "jour": "Upper A",
             "old_exercise": "Bench Press",
             "new_exercise": "Cable Fly",
             "scheme": "4x10",
         })
-        self.assertEqual("4x10", self.store["inventory"]["Cable Fly"]["default_scheme"])
+        self.assertEqual("3x12-15", self.store["inventory"]["Cable Fly"]["default_scheme"])
+        self.assertEqual("4x10", _strength_exos(self.store, "Upper A")["Cable Fly"])
 
     def test_replace_existing_inventory_type_preserved(self):
         self.post("/api/programme", {
@@ -439,14 +452,15 @@ class TestProgrammeRenameWithScheme(BaseRouteTest):
         self.assertNotIn("Bench Press", exos)
         self.assertEqual("5x5", exos["BB Bench Press"])
 
-    def test_rename_with_new_scheme_syncs_inventory_default_scheme(self):
+    def test_rename_with_new_scheme_never_touches_library_default(self):
         self.post("/api/programme", {
             "action": "rename", "jour": "Upper A",
             "old_exercise": "Bench Press",
             "new_exercise": "BB Bench Press",
             "new_scheme": "5x5",
         })
-        self.assertEqual("5x5", self.store["inventory"]["BB Bench Press"]["default_scheme"])
+        self.assertEqual("4x5-7", self.store["inventory"]["BB Bench Press"]["default_scheme"])
+        self.assertEqual("5x5", _strength_exos(self.store, "Upper A")["BB Bench Press"])
 
     def test_rename_without_new_scheme_leaves_scheme_untouched(self):
         """Retrocompat : rename sans new_scheme ne touche pas le scheme."""

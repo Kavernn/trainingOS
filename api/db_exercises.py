@@ -86,32 +86,6 @@ def get_exercise_id(name: str) -> Optional[str]:
         return None  # fallback to KV during migration
 
 
-def update_program_scheme_for_exercise(exercise_id: str, new_scheme: str) -> bool:
-    """Update scheme in all program_block_exercises rows that reference this exercise.
-
-    Called after api_save_exercise() updates exercises.default_scheme so the
-    programme immediately reflects the new prescription on next session load.
-    """
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return False
-
-    def _do() -> bool:
-        resp = db_core._client.table("program_block_exercises").update({"scheme": new_scheme}).eq("exercise_id", exercise_id).execute()
-        return bool(resp.data)
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("update_program_scheme_for_exercise retry error: %s", e2)
-                return False
-        db_core.logger.error("update_program_scheme_for_exercise error: %s", e)
-        return False
-
-
 def get_exercise_id_include_deleted(name: str) -> Optional[str]:
     """Return the UUID of an exercise by name, including soft-deleted rows.
 
