@@ -78,17 +78,17 @@ struct DashboardDomainGrid: View {
         return "Cible non configurée"
     }
 
-    // Récupération — état vide honnête si HRV nil. Libellé dérivé UNIQUEMENT de hrvZone.
-    private var recoveryValue: String {
-        guard let ms = hrvAnalysis?.todayRmssd else { return "HRV — ms" }
-        return "HRV \(Int(ms)) ms"
+    // Récupération — TENDANCE 7 j (build 9) ; la valeur du jour vit dans le hero seulement.
+    static func recoveryValue(_ hrv: HRVAnalysis?) -> String {
+        guard let avg = hrv?.hrv7dAvg else { return "HRV 7 j : —" }
+        return "HRV 7 j : \(Int(avg.rounded())) ms"
     }
-    private var recoverySubtext: String {
-        switch hrvAnalysis?.hrvZone {
-        case "green":  return "Optimale"
-        case "orange": return "Modérée"
-        case "red":    return "Basse"
-        default:       return "Données insuffisantes"
+    static func recoverySubtext(_ hrv: HRVAnalysis?) -> String {
+        switch hrv?.hrvTrend {
+        case "up":     return "En hausse sur 7 j"
+        case "down":   return "En baisse sur 7 j"
+        case "stable": return "Stable sur 7 j"
+        default:       return "Tendance insuffisante"
         }
     }
 
@@ -132,8 +132,8 @@ struct DashboardDomainGrid: View {
                     DomainTile(
                         icon: "heart.text.square.fill",
                         title: "RÉCUPÉRATION",
-                        value: recoveryValue,
-                        subtext: recoverySubtext,
+                        value: Self.recoveryValue(hrvAnalysis),
+                        subtext: Self.recoverySubtext(hrvAnalysis),
                         tint: Color.domainAccent(.recovery)
                     )
                 }

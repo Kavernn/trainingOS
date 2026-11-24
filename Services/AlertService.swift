@@ -35,6 +35,20 @@ final class AlertService: ObservableObject {
         return alerts.first { !dismissed.contains("\($0.id)_\(today)") }
     }
 
+    /// Alertes que l'onglet Aujourd'hui montre déjà dans une tuile (« Aucun repas loggé »
+    /// de la tuile Nutrition) : masquées sur l'onglet, gardées pour la notification.
+    static let duplicatedByDashboardTiles: Set<String> = ["no_log_today"]
+
+    /// Alerte de l'onglet Aujourd'hui (build 9) : la plus prioritaire non masquée et non
+    /// doublonnée par une tuile.
+    var dashboardAlert: ProactiveAlert? {
+        Self.dashboardAlert(from: alerts, dismissed: dismissed, today: DateFormatter.isoDate.string(from: Date()))
+    }
+
+    static func dashboardAlert(from alerts: [ProactiveAlert], dismissed: Set<String>, today: String) -> ProactiveAlert? {
+        alerts.first { !dismissed.contains("\($0.id)_\(today)") && !duplicatedByDashboardTiles.contains($0.id) }
+    }
+
     // MARK: - Fetch
 
     func fetch() async {

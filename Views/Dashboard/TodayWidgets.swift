@@ -3,28 +3,16 @@ import SwiftUI
 // MARK: - Day Actions Row
 
 struct DayActionsRow: View {
-    let sessionLogged: Bool
+    // Build 9 : « Séance » doublait le bouton de la carte du jour, « Repas » la tuile
+    // Nutrition — retirées. « Humeur » seulement hors des heures de l'invite humeur.
     let moodDone: Bool
-    let nutritionLogged: Bool
     var hideMoodChip: Bool = false
-    var onSessionTap: () -> Void
     var onMoodTap: () -> Void
-    var onNutritionTap: () -> Void
-
-    private var allDone: Bool { sessionLogged && moodDone && nutritionLogged }
 
     var body: some View {
-        if !allDone {
+        if !moodDone && !hideMoodChip {
             HStack(spacing: 8) {
-                if !sessionLogged {
-                    ActionChip(icon: "dumbbell.fill", label: "Séance", color: Color.forge, action: onSessionTap)
-                }
-                if !moodDone && !hideMoodChip {
-                    ActionChip(icon: "brain.head.profile", label: "Humeur", color: Color.statusYellow, action: onMoodTap)
-                }
-                if !nutritionLogged {
-                    ActionChip(icon: "fork.knife", label: "Repas", color: Color.statusGreen, action: onNutritionTap)
-                }
+                ActionChip(icon: "brain.head.profile", label: "Humeur", color: Color.statusYellow, action: onMoodTap)
                 Spacer(minLength: 0)
             }
         }

@@ -439,6 +439,36 @@ final class APIModelsTests: XCTestCase {
         XCTAssertTrue(DashboardView.showsCardioColumn(hasCardio: false, hasError: true))
     }
 
+    // MARK: - Build 9 : chaque information une seule fois
+
+    private func hrvAnalysis(avg7: String, trend: String) throws -> HRVAnalysis {
+        let json = #"{"today_rmssd":25.7,"hrv_7d_avg":"# + avg7 + #","hrv_30d_avg":46,"hrv_cv":null,"hrv_score":62.5,"hrv_zone":"red","hrv_trend":"# + trend + #","consecutive_low_days":2,"streak_alert":false,"contextual_message":null,"history_7d":[],"baseline_available":true,"data_points_7d":7,"data_points_30d":30,"sd_30d":8}"#
+        return try JSONDecoder().decode(HRVAnalysis.self, from: Data(json.utf8))
+    }
+
+    @MainActor
+    func testRecoveryTileShowsSevenDayTrendNotTodayValue() throws {
+        let down = try hrvAnalysis(avg7: "41.4", trend: "\"down\"")
+        XCTAssertEqual(DashboardDomainGrid.recoveryValue(down), "HRV 7 j : 41 ms")
+        XCTAssertEqual(DashboardDomainGrid.recoverySubtext(down), "En baisse sur 7 j")
+        XCTAssertFalse(DashboardDomainGrid.recoveryValue(down).contains("26"))   // valeur du jour : hero seulement
+        let unknown = try hrvAnalysis(avg7: "null", trend: "null")
+        XCTAssertEqual(DashboardDomainGrid.recoveryValue(unknown), "HRV 7 j : —")
+        XCTAssertEqual(DashboardDomainGrid.recoverySubtext(unknown), "Tendance insuffisante")
+        XCTAssertEqual(DashboardDomainGrid.recoveryValue(nil), "HRV 7 j : —")
+    }
+
+    @MainActor
+    func testDashboardAlertSkipsAlertsAlreadyShownByATile() {
+        func alert(_ id: String) -> ProactiveAlert {
+            ProactiveAlert(id: id, type: "nutrition", severity: "info", title: id, message: "", action: "open_nutrition")
+        }
+        let alerts = [alert("no_log_today"), alert("low_protein")]
+        XCTAssertEqual(AlertService.dashboardAlert(from: alerts, dismissed: [], today: "2026-11-23")?.id, "low_protein")
+        XCTAssertNil(AlertService.dashboardAlert(from: [alert("no_log_today")], dismissed: [], today: "2026-11-23"))
+        XCTAssertNil(AlertService.dashboardAlert(from: alerts, dismissed: ["low_protein_2026-11-23"], today: "2026-11-23"))
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {

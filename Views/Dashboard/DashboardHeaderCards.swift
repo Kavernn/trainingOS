@@ -149,15 +149,12 @@ struct DashboardStatusBar: View {
             Spacer()
 
             HStack(spacing: 10) {
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(dotColor)
-                        .frame(width: 6, height: 6)
-                    Text(plannedSession)
-                        .font(.appCaption.weight(.medium))
-                        .foregroundColor(Color.appOnSurface.opacity(0.85))
-                        .lineLimit(1)
-                }
+                // Build 9 : le nom de séance vit dans le titre de la carte du jour ; le point
+                // garde la couleur du type de séance (et passe au vert une fois loggée).
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
 
             }
         }

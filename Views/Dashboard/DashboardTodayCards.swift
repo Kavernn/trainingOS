@@ -194,7 +194,6 @@ struct TodayCardView: View {
                 if let session = todaySession {
                     TodaySessionRecap(
                         session: session,
-                        sessionName: plannedMorning,
                         color: todayColor,
                         totalWorkoutMin: dash.totalWorkoutMinToday,
                         presentation: recapPresentation
@@ -407,7 +406,6 @@ struct TodaySessionRecap: View {
     }
 
     let session: SessionEntry
-    let sessionName: String
     let color: Color
     var totalWorkoutMin: Double? = nil
     let presentation: Presentation
@@ -441,10 +439,6 @@ struct TodaySessionRecap: View {
                         .font(.appMicro.weight(.black))
                         .tracking(1.6)
                         .foregroundColor(Color.appSuccess)
-                    Text(sessionName)
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(Color.appOnSurface)
-                        .lineLimit(1)
                 }
                 Spacer()
             }

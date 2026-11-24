@@ -107,13 +107,9 @@ struct DashboardView: View {
 
             // 10 — Actions du jour
             DayActionsRow(
-                sessionLogged: dash.alreadyLoggedToday,
                 moodDone: vm.moodDue?.isDue == false,
-                nutritionLogged: (dash.nutritionTotals.calories ?? 0) >= 1,
-                hideMoodChip: false,
-                onSessionTap: { onOpenSession?() },
-                onMoodTap: { showMoodSheet = true },
-                onNutritionTap: { showNutritionAddSheet = true }
+                hideMoodChip: isMorningMoodPrompt,
+                onMoodTap: { showMoodSheet = true }
             )
             .padding(.top, 14)
 
@@ -222,14 +218,14 @@ struct DashboardView: View {
             ErrorBannerView.fromAggregator(vm.topFailureAggregator)
 
             // 7 — Coach + alerte proactive (priorité : alerte > coach)
-            if vm.morningBrief != nil || alertService.visibleAlert != nil {
+            if vm.morningBrief != nil || alertService.dashboardAlert != nil {
                 CoachInsightCard(
                     brief: vm.morningBrief,
                     sessionCompletedToday: dash.alreadyLoggedToday,
-                    alert: alertService.visibleAlert,
+                    alert: alertService.dashboardAlert,
                     onDismissAlert: {
                         withAnimation(.easeOut(duration: 0.25)) {
-                            if let a = alertService.visibleAlert { alertService.dismiss(a) }
+                            if let a = alertService.dashboardAlert { alertService.dismiss(a) }
                         }
                     }
                 )
