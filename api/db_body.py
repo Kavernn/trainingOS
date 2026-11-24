@@ -331,7 +331,7 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
 def _invalidate_readiness_cache() -> None:
     """recovery_logs alimente la readiness : toute écriture réussie invalide son cache.
 
-    Point unique pour tous les écrivains (log_recovery, healthkit_sync, sleep/log,
+    Point unique pour tous les écrivains (log_recovery, sleep/log,
     sleep/delete, wearable sync, delete_recovery) — sinon un résultat calculé sans
     données reste servi jusqu'à 30 min après leur arrivée.
     """

@@ -59,7 +59,7 @@ def api_log_recovery():
     # Merge par présence : un champ ABSENT du POST préserve l'existant en DB.
     # Un champ PRÉSENT (même à None) écrit la nouvelle valeur.
     # Sans ce merge, `.upsert()` brut écrit NULL sur les colonnes absentes du payload —
-    # même piège que sets_json. Pattern inspiré d'api_healthkit_sync.
+    # même piège que sets_json.
     import db as _db
     data     = request.get_json(silent=True) or {}
     date     = data.get("date", _today_mtl())
@@ -117,68 +117,6 @@ def api_delete_recovery():
     from morning_brief import invalidate_cache as _mb_invalidate
     _mb_invalidate()
     return jsonify({"ok": True})
-
-
-@wellness_recovery_bp.route("/api/healthkit_sync", methods=["POST"])
-def api_healthkit_sync():
-    """
-    Importe les données HealthKit du jour.
-    Règle merge : manual > HK si les deux existent.
-    Retourne l'entrée finale après merge.
-
-    Champs HK acceptés :
-      sleep_hours, resting_hr, hrv, steps,
-      active_energy, hr_morning, hr_post_workout, hr_evening
-
-    Champs manuels préservés (jamais écrasés par HK) :
-      sleep_quality, soreness, fatigue_perceived, energy_pre, notes
-    """
-    import db as _db
-    data     = request.get_json() or {}
-    today    = _today_mtl()
-    logs     = _db.get_recovery_logs() or []
-    existing = next((e for e in logs if e.get("date") == today), {})
-    is_manual = existing.get("source") == "manual"
-
-    def _hk(field):
-        """Merge rule : valeur manuelle existante > nouvelle valeur HK."""
-        if is_manual and existing.get(field) is not None:
-            return existing.get(field)
-        incoming = data.get(field)
-        return incoming if incoming is not None else existing.get(field)
-
-    entry = {
-        "date":              today,
-        # Champs HK — règle manual > HK
-        "sleep_hours":       _hk("sleep_hours"),
-        "resting_hr":        _hk("resting_hr"),
-        "hrv":               _hk("hrv"),
-        "steps":             _hk("steps"),
-        "active_energy":     _hk("active_energy"),
-        "hr_morning":        _hk("hr_morning"),
-        "hr_post_workout":   _hk("hr_post_workout"),
-        "hr_evening":        _hk("hr_evening"),
-        # Champs manuels — toujours préservés
-        "sleep_quality":     existing.get("sleep_quality"),
-        "soreness":          existing.get("soreness"),
-        "fatigue_perceived": existing.get("fatigue_perceived"),
-        "energy_pre":        existing.get("energy_pre"),
-        "notes":             existing.get("notes", ""),
-        "bedtime":           existing.get("bedtime"),
-        "wake_time":         existing.get("wake_time"),
-        "source":            existing.get("source") or "healthkit",
-    }
-
-    hk_fields = ["sleep_hours", "resting_hr", "hrv", "steps",
-                 "active_energy", "hr_morning", "hr_post_workout", "hr_evening"]
-    if not any(entry.get(f) for f in hk_fields):
-        return jsonify({"ok": False, "msg": "no data"})
-
-    ok = _db.upsert_recovery_log(entry)
-    if not ok:
-        return jsonify({"error": "Erreur base de données"}), 500
-
-    return jsonify({"ok": True, "entry": entry})
 
 
 @wellness_recovery_bp.route("/api/health/daily_summary")
