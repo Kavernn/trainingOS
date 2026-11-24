@@ -616,6 +616,27 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNotNil(decoded.fullProgram["Push A"])
     }
 
+    /// L6 : la séance lit SES prescriptions (prescriptions_by_session[today]) ; l'ancienne
+    /// clé indexée par nom n'est jamais lue (un même exercice y prend la fourchette d'une autre séance).
+    func testPrescriptionsComeFromTodaySessionNeverLegacyKey() throws {
+        func payload(_ bySession: String) -> Data {
+            Data(#"""
+            {"today":"Lundi AM","today_date":"2026-11-24","already_logged":false,"schedule":{},
+             "full_program":{"Lundi AM":{"Dips":"3x6-10"},"Vendredi AM":{"Dips":"3x8-12"}},
+             "weights":{},"week":1,"inventory_types":{},"exercise_order":{},
+             "prescriptions":{"Dips":{"sets":3,"rep_min":8,"rep_max":12}}\#(bySession)}
+            """#.utf8)
+        }
+        let fresh = try JSONDecoder().decode(SeanceData.self, from: payload(#"""
+            ,"prescriptions_by_session":{"Lundi AM":{"Dips":{"sets":3,"rep_min":6,"rep_max":10}},
+             "Vendredi AM":{"Dips":{"sets":3,"rep_min":8,"rep_max":12}}}
+            """#))
+        XCTAssertEqual(fresh.prescriptions?["Dips"]?.repMin, 6)
+        XCTAssertEqual(fresh.prescriptions?["Dips"]?.repMax, 10)
+        let legacyOnly = try JSONDecoder().decode(SeanceData.self, from: payload(""))
+        XCTAssertNil(legacyOnly.prescriptions, "Sans la nouvelle clé : pas de prescription, la carte utilise le schéma")
+    }
+
     // MARK: - SafeString
 
     func testSafeStringFromString() throws {

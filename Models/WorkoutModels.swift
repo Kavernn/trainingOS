@@ -265,6 +265,9 @@ struct GoalProgress: Codable {
 }
 
 // MARK: - Exercise Prescription
+/// Clé `prescriptions_by_session` ({séance: {exercice: prescription}}), lue par SeanceData/SeanceSoirData.
+enum PrescriptionsBySessionKey: String, CodingKey { case value = "prescriptions_by_session" }
+
 struct ExercisePrescription: Codable {
     let sets: Int
     let repMin: Int
@@ -423,7 +426,11 @@ struct SeanceData: Codable {
         inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
         exerciseOrder      = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))   ?? [:]
         exerciseSupersets  = (try? c.decode([String: [String: SupersetEntry]].self, forKey: .exerciseSupersets)) ?? [:]
-        prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
+        // Prescriptions DE CETTE SÉANCE (prescriptions_by_session[today]). L'ancienne clé
+        // `prescriptions` (indexée par nom, toutes séances confondues) n'est jamais lue :
+        // un exercice présent dans deux séances y prenait la fourchette de l'autre.
+        prescriptions      = (try? decoder.container(keyedBy: PrescriptionsBySessionKey.self)
+            .decode([String: [String: ExercisePrescription]].self, forKey: .value))?[today]
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
         loggedTodayNames   = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
         pushedToEvening    = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
@@ -551,7 +558,11 @@ struct SeanceSoirData: Codable {
         inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
         exerciseOrder     = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))     ?? [:]
         exerciseSupersets = (try? c.decode([String: [String: SupersetEntry]].self, forKey: .exerciseSupersets)) ?? [:]
-        prescriptions     = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
+        // Prescriptions DE CETTE SÉANCE (prescriptions_by_session[today]). L'ancienne clé
+        // `prescriptions` (indexée par nom, toutes séances confondues) n'est jamais lue :
+        // un exercice présent dans deux séances y prenait la fourchette de l'autre.
+        prescriptions     = (try? decoder.container(keyedBy: PrescriptionsBySessionKey.self)
+            .decode([String: [String: ExercisePrescription]].self, forKey: .value))?[today]
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
         loggedTodayNames  = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
         pushedToEvening   = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
