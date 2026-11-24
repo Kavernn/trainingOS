@@ -870,7 +870,7 @@ struct InventoryFormSheet: View {
         guard !isEditing, !trimmedName.isEmpty else { return false }
         return existingNames.contains { $0.lowercased() == trimmedName.lowercased() }
     }
-    private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate && !muscleGroup.isEmpty && !weightType.isEmpty && !movementPattern.isEmpty }
+    private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate && !muscleGroup.isEmpty && !weightType.isEmpty && !movementPattern.isEmpty && restSecs != nil }
 
     private var availableSpecifics: [String] {
         let muscles = kMusclesByGroup.first(where: { $0.group == muscleGroup })?.specifics ?? []
@@ -1447,17 +1447,10 @@ struct InventoryFormSheet: View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    Button { restSecs = nil } label: {
-                        Text("—")
-                            .font(.appLabel.weight(.semibold))
-                            .foregroundColor(restSecs == nil ? .black : .gray)
-                            .padding(.horizontal, 14).padding(.vertical, 7)
-                            .background(restSecs == nil ? Color.forge : Color.appSurfaceInset)
-                            .clipShape(Capsule())
-                    }
-                    ForEach([30, 45, 60, 90, 120, 180], id: \.self) { s in
+                    // Repos obligatoire (serveur : 400 sans repos) ; 0 = « pas de repos » explicite.
+                    ForEach([0, 30, 45, 60, 90, 120, 180], id: \.self) { s in
                         Button { restSecs = s } label: {
-                            Text(formatDur(s))
+                            Text(s == 0 ? "Aucun" : formatDur(s))
                                 .font(.appLabel.weight(.semibold))
                                 .foregroundColor(restSecs == s ? .black : Color.appTextSecondary)
                                 .padding(.horizontal, 14).padding(.vertical, 7)
@@ -1471,8 +1464,10 @@ struct InventoryFormSheet: View {
                 HStack {
                     Text("Repos configuré").foregroundColor(.gray).font(.appLabel.weight(.regular))
                     Spacer()
-                    Text(formatDur(r)).font(.appLabel.weight(.semibold)).foregroundColor(Color.forge)
+                    Text(r == 0 ? "Aucun" : formatDur(r)).font(.appLabel.weight(.semibold)).foregroundColor(Color.forge)
                 }
+            } else {
+                Text("Repos obligatoire").font(.appCaption).foregroundColor(Color.appDanger)
             }
         } header: {
             sectionHeader("Temps de repos par défaut")
