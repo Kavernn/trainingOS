@@ -144,6 +144,9 @@ def api_seance_data():
                 fatigue_score=fatigue_score,
                 history=ex_history,
             )
+    # Clé historique `prescriptions` conservée telle quelle pour les apps installées.
+    from utils import prescriptions_by_session
+    by_session = prescriptions_by_session(flat_program, weights, fatigue_score)
 
     import smart_progression as _sp
     exercise_suggestions = {}
@@ -180,6 +183,7 @@ def api_seance_data():
         "exercise_order": exercise_order,
         "exercise_supersets": exercise_supersets,
         "prescriptions": prescriptions,
+        "prescriptions_by_session": by_session,
         "exercise_suggestions": exercise_suggestions,
         "logged_today_names": sorted(logged_today_names),
         # Étape 3b — liste des exos poussés matin→soir aujourd'hui (SOURCE UNIQUE
@@ -298,6 +302,8 @@ def api_seance_soir_data():
             exercise=ex_name, base_sets=base_sets, rep_min=rmin, rep_max=rmax,
             fatigue_score=fatigue_score, history=ex_history,
         )
+    from utils import prescriptions_by_session
+    by_session = prescriptions_by_session({today_soir: today_soir_plan} if today_soir else {}, weights, fatigue_score)
 
     # Exercise suggestions : sur les exos du SOIR (mêmes que prescriptions).
     today_soir_exercises = list(today_soir_plan.keys())
@@ -338,6 +344,7 @@ def api_seance_soir_data():
         "exercise_order": exercise_order,
         "exercise_supersets": exercise_supersets,
         "prescriptions": prescriptions,
+        "prescriptions_by_session": by_session,
         "exercise_suggestions": exercise_suggestions,
         "logged_today_names": sorted(logged_today_names),
         # Étape 3b — même que seance_data : liste exposée pour SeanceData.pushedToEvening.

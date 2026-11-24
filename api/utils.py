@@ -361,6 +361,35 @@ def _parse_scheme(scheme: str) -> tuple[int, int, int]:
     return 3, 8, 12
 
 
+def parse_scheme_strict(scheme: str) -> tuple[int, int, int] | None:
+    """Comme _parse_scheme, mais None si le schéma est illisible (« 1xmax ») :
+    jamais de 3×8-12 inventé."""
+    if not _re.match(r'\s*\d+\s*[xX×]\s*\d+', scheme or ""):
+        return None
+    return _parse_scheme(scheme)
+
+
+def prescriptions_by_session(flat_program: dict, weights: dict, fatigue_score) -> dict:
+    """{séance: {exercice: prescription}} — un même exercice peut avoir un schéma
+    différent selon la séance. Schéma illisible → pas de prescription (la carte
+    utilise le schéma)."""
+    from progression import prescribe_volume
+    out = {}
+    for session, exos in flat_program.items():
+        per = {}
+        for ex_name, scheme in exos.items():
+            parsed = parse_scheme_strict(str(scheme))
+            if parsed is None:
+                continue
+            base_sets, rmin, rmax = parsed
+            per[ex_name] = prescribe_volume(
+                exercise=ex_name, base_sets=base_sets, rep_min=rmin, rep_max=rmax,
+                fatigue_score=fatigue_score, history=weights.get(ex_name, {}).get("history", []),
+            )
+        out[session] = per
+    return out
+
+
 _MUSCLE_ALIASES: dict = {
     # Quads
     "quads":           "quadriceps",
