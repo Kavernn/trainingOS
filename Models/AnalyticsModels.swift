@@ -12,6 +12,8 @@ struct InsightEntry: Codable, Identifiable {
 }
 
 // MARK: - Deload
+enum DeloadPrescriptionKey: String, CodingKey { case value = "deload_prescription" }
+
 struct DeloadReport: Codable {
     let deloadActif: Bool
     let stagnants: [String]
@@ -21,6 +23,14 @@ struct DeloadReport: Codable {
     let fatigueScore: Int
     let streakDays: Int
     let rpeAvg7j: Double?
+    /// Séries de décharge {exercice: {séance: séries}} (deload_prescription[ex].sets_by_session).
+    let deloadSetsBySession: [String: [String: Int]]
+
+    /// Séries réduites de LA séance du jour, uniquement pendant une décharge ACTIVE.
+    func activeDeloadSets(session: String) -> [String: Int] {
+        guard deloadActif else { return [:] }
+        return deloadSetsBySession.compactMapValues { $0[session] }
+    }
 
     enum CodingKeys: String, CodingKey {
         case deloadActif  = "deload_actif"
@@ -46,6 +56,11 @@ struct DeloadReport: Codable {
         fatigueRpe   = try c.decodeIfPresent(Bool.self,           forKey: .fatigueRpe)   ?? false
         recommande   = try c.decodeIfPresent(Bool.self,           forKey: .recommande)   ?? false
         poidsDeload  = try c.decodeIfPresent([String: Double].self, forKey: .poidsDeload) ?? [:]
+        struct SessionSets: Decodable { let sets_deload: Int }
+        struct Prescription: Decodable { let sets_by_session: [String: SessionSets]? }
+        let prescriptions = (try? decoder.container(keyedBy: DeloadPrescriptionKey.self)
+            .decode([String: Prescription].self, forKey: .value)) ?? [:]
+        deloadSetsBySession = prescriptions.compactMapValues { $0.sets_by_session?.mapValues(\.sets_deload) }
         fatigueScore = try c.decodeIfPresent(Int.self,            forKey: .fatigueScore) ?? 0
         streakDays   = try c.decodeIfPresent(Int.self,            forKey: .streakDays)   ?? 0
         rpeAvg7j     = try c.decodeIfPresent(Double.self,         forKey: .rpeAvg7j)

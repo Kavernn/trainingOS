@@ -668,6 +668,23 @@ final class APIModelsTests: XCTestCase {
                        "/api/evening_schedule?program_id=a%20b")
     }
 
+    /// Décharge active : séries réduites de LA séance du jour ; inactive → rien.
+    func testDeloadSetsBySessionOnlyWhenActive() throws {
+        func report(active: Bool) throws -> DeloadReport {
+            try JSONDecoder().decode(DeloadReport.self, from: Data("""
+            {"deload_actif": \(active), "recommande": false, "poids_deload": {"Back Squat": 180},
+             "deload_prescription": {"Back Squat": {"poids_deload": 180,
+                "sets_by_session": {"Mercredi Legs A": {"sets_normaux": 3, "sets_deload": 2},
+                                    "Samedi Legs B": {"sets_normaux": 3, "sets_deload": 1}}}}}
+            """.utf8))
+        }
+        XCTAssertEqual(try report(active: true).activeDeloadSets(session: "Samedi Legs B"), ["Back Squat": 1])
+        XCTAssertEqual(try report(active: false).activeDeloadSets(session: "Samedi Legs B"), [:])
+        let p = ExercisePrescription.deload(sets: 1, base: nil, scheme: "3x6-8")
+        XCTAssertEqual(p?.label, "1×6–8")
+        XCTAssertNil(ExercisePrescription.deload(sets: 1, base: nil, scheme: "1xmax"), "fourchette inconnue → rien")
+    }
+
     // MARK: - SafeString
 
     func testSafeStringFromString() throws {

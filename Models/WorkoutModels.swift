@@ -321,6 +321,13 @@ struct ExercisePrescription: Codable {
     }
 
     var label: String { "\(sets)×\(repMin)–\(repMax)" }
+
+    /// Décharge active : séries réduites de la séance, même fourchette de reps (prescription,
+    /// sinon schéma). nil si la fourchette est inconnue (aucune valeur inventée).
+    static func deload(sets: Int, base: ExercisePrescription?, scheme: String) -> ExercisePrescription? {
+        guard let range = ExerciseCalculator.repRange(scheme: scheme, prescription: base) else { return nil }
+        return ExercisePrescription(sets: sets, repMin: range.lowerBound, repMax: range.upperBound, note: "Décharge")
+    }
 }
 
 // MARK: - Programs

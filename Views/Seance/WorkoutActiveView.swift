@@ -210,6 +210,15 @@ struct WorkoutSeanceView: View {
     /// jamais compté comme sauté (seul le geste « Sauter » marque sauté).
     private func isBonus(_ name: String) -> Bool { data.exerciseMeta[name]?.isOptional == true }
 
+    /// Séries réduites de la séance du jour pendant une décharge active (vide sinon).
+    @State private var deloadSets: [String: Int] = [:]
+
+    private func prescription(for name: String, scheme: String) -> ExercisePrescription? {
+        let base = data.prescriptions?[name]
+        guard let sets = deloadSets[name] else { return base }
+        return ExercisePrescription.deload(sets: sets, base: base, scheme: scheme) ?? base
+    }
+
     private var trackedExercises: [(String, String)] {
         exercises.filter { WorkoutCompletion.tracks(inventoryTracking[$0.0] ?? data.inventoryTracking[$0.0]) && !isBonus($0.0) }
     }
@@ -413,7 +422,7 @@ struct WorkoutSeanceView: View {
                         Text(name).font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
                             .foregroundColor(r != nil ? .white : .gray)
                         // Prescription du jour si présente (même source que le nombre de séries, E point 2).
-                        Text(data.prescriptions?[name]?.label ?? scheme).font(.appMicro).foregroundColor(.gray)
+                        Text(prescription(for: name, scheme: scheme)?.label ?? scheme).font(.appMicro).foregroundColor(.gray)
                     }
                     Spacer()
                     if let r = r {
@@ -1075,7 +1084,7 @@ struct WorkoutSeanceView: View {
             isBonusSession: isBonusSession, isBonus: isBonus(name),
             rirLabel: data.exerciseMeta[name]?.rirLabel,
             restSeconds: forceNoRest ? nil : (restOverride ?? restSeconds(for: name)),
-            prescription: data.prescriptions?[name],
+            prescription: prescription(for: name, scheme: scheme),
             suggestion: data.exerciseSuggestions?[name],
             hint: inventoryHints[name],
             logResult: $vm.logResults[name],
@@ -2657,6 +2666,10 @@ struct WorkoutSeanceView: View {
         }
         await loadInventory()
         await loadReadiness()
+        if let report = try? await APIService.shared.fetchDeloadData() {
+            let sets = report.activeDeloadSets(session: data.today)
+            await MainActor.run { deloadSets = sets }
+        }
 
         let weights = data.weights
         let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
