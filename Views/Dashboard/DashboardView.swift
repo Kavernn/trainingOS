@@ -98,6 +98,7 @@ struct DashboardView: View {
             DashboardDomainGrid(
                 dash: dash,
                 hrvAnalysis: vm.hasCurrentDayContext ? vm.hrvAnalysis : nil,
+                streak: vm.hasCurrentDayContext ? vm.streakData : nil,
                 budgetStatus: vm.budgetStatus,
                 onOpenSession: onOpenSession,
                 onOpenHealth:  onOpenHealth,

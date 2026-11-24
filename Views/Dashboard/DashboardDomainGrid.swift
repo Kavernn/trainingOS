@@ -49,10 +49,18 @@ private struct DomainTile: View {
 struct DashboardDomainGrid: View {
     let dash: DashboardData
     let hrvAnalysis: HRVAnalysis?
+    /// Même règle que la streak et l'alerte « semaine en jeu » (weekly_streaks.py, cible 5).
+    let streak: StreakResponse?
     let budgetStatus: BudgetStatus?
     var onOpenSession: (() -> Void)? = nil
     var onOpenHealth:  (() -> Void)? = nil
     var onOpenNutrition: () -> Void
+
+    /// « x / 5 jours actifs » ; « — » tant que la streak n'est pas chargée (build 8).
+    static func trainingValue(_ streak: StreakResponse?) -> String {
+        guard let s = streak else { return "—" }
+        return "\(s.currentWeek.daysActive) / \(s.weeklyTarget) jours actifs"
+    }
 
     // Nutrition — règle anti-fantôme : "0 / —" si cible nil, jamais un chiffre inventé.
     private var nutritionValue: String {
@@ -101,7 +109,7 @@ struct DashboardDomainGrid: View {
                     DomainTile(
                         icon: "dumbbell.fill",
                         title: "ENTRAÎNEMENT",
-                        value: "\(dash.weekSessions) / \(dash.weekTarget) séances",
+                        value: Self.trainingValue(streak),
                         subtext: "Cette semaine",
                         tint: Color.domainAccent(.training)
                     )

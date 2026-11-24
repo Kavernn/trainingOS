@@ -422,6 +422,16 @@ final class APIModelsTests: XCTestCase {
         XCTAssertFalse(DashboardHeroState.needsCheckIn(nil))   // chargement / erreur : pas d'invitation
     }
 
+    // MARK: - Build 8 : tuile Entraînement = règle de la streak
+
+    @MainActor
+    func testTrainingTileFollowsStreakRule() throws {
+        let json = #"{"weekly_target":5,"weekly_streak_current":3,"weekly_streak_best":13,"week_at_risk":false,"current_week":{"week_start":"2026-11-23","days_active":2,"success":null},"weeks":[]}"#
+        let streak = try JSONDecoder().decode(StreakResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(DashboardDomainGrid.trainingValue(streak), "2 / 5 jours actifs")
+        XCTAssertEqual(DashboardDomainGrid.trainingValue(nil), "—")
+    }
+
     // MARK: - Photo de profil (build 6c)
 
     func testUserProfileReadsPhotoURLAndIgnoresLegacyBase64() throws {
