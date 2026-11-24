@@ -212,6 +212,8 @@ struct WorkoutSeanceView: View {
 
     /// Séries réduites de la séance du jour pendant une décharge active (vide sinon).
     @State private var deloadSets: [String: Int] = [:]
+    /// Statut de décharge illisible : séries non réduites, signalé (jamais un repli silencieux).
+    @State private var deloadStatusUnavailable = false
 
     private func prescription(for name: String, scheme: String) -> ExercisePrescription? {
         let base = data.prescriptions?[name]
@@ -540,6 +542,12 @@ struct WorkoutSeanceView: View {
             inlineMutationError(label: "Changement de séance échoué", detail: msg) {
                 sessionOverrideError = nil
             }
+        }
+
+        if deloadStatusUnavailable {
+            Text("Statut de décharge indisponible — séries non réduites")
+                .font(.appCaption).foregroundColor(Color.appTextSecondary)
+                .padding(.horizontal, 16)
         }
 
         if inventoryLoadError != nil && inventory.isEmpty {
@@ -2666,9 +2674,12 @@ struct WorkoutSeanceView: View {
         }
         await loadInventory()
         await loadReadiness()
-        if let report = try? await APIService.shared.fetchDeloadData() {
-            let sets = report.activeDeloadSets(session: data.today)
-            await MainActor.run { deloadSets = sets }
+        do {
+            let sets = try await APIService.shared.fetchDeloadData().activeDeloadSets(session: data.today)
+            await MainActor.run { deloadSets = sets; deloadStatusUnavailable = false }
+        } catch {
+            logger.error("fetchDeloadData: \(error.localizedDescription)")
+            await MainActor.run { deloadStatusUnavailable = true }
         }
 
         let weights = data.weights
