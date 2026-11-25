@@ -113,8 +113,10 @@ def sessions_for_date(date: str, program: dict | None = None) -> tuple[str, str 
     evening = (_db.get_evening_week_schedule() or {}).get(day)
     if program is not None and evening not in program:
         evening = None
+    # Soir vide ou Repos = aucune séance du soir (None), sans exception : plus de
+    # recopie silencieuse du matin (séance 2 fantôme, 24 nov 2026).
     if not evening or evening == "Repos":
-        evening = morning if morning and morning != "Repos" else None
+        evening = None
     return morning or "Repos", evening
 
 
@@ -138,14 +140,8 @@ def get_evening_schedule() -> Dict[str, str]:
 
 
 def get_today_evening() -> str | None:
-    """Return the evening session name for today.
-
-    Fallback héritage : si le planning soir est vide/Repos ce jour, retombe sur
-    le nom de la séance matin ("Upper A" matin → "Upper A" hérité le soir,
-    affiché « (suite) » côté UI, non peuplé par défaut). Retourne None seulement
-    si matin ET soir sont Repos (vrai repos). Un override manuel du planning
-    soir gagne toujours sur l'héritage.
-    """
+    """Return the evening session name for today, or None when the evening
+    schedule is empty/Repos (never the morning name)."""
     return sessions_for_date(get_today_date())[1]
 
 

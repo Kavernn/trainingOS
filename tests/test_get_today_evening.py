@@ -1,8 +1,8 @@
-"""Tests fallback héritage get_today_evening (commit 1 séance soir héritée).
+"""Tests get_today_evening — soir vide = aucune séance du soir (24 nov 2026).
 
 4 cas :
- - evening vide + matin défini → renvoie le nom matin (héritage)
- - evening Repos + matin défini → renvoie le nom matin (héritage)
+ - evening vide + matin défini → None (plus d'héritage du matin)
+ - evening Repos + matin défini → None
  - evening override → renvoie l'override, matin ignoré
  - evening vide + matin Repos → renvoie None (vrai repos)
 
@@ -45,12 +45,12 @@ def _run(morning_schedule, evening_schedule):
         return planner.get_today_evening()
 
 
-def test_evening_vide_herite_du_matin():
-    assert _run({"Lun": "Upper A"}, {}) == "Upper A"
+def test_evening_vide_renvoie_none():
+    assert _run({"Lun": "Upper A"}, {}) is None
 
 
-def test_evening_repos_herite_du_matin():
-    assert _run({"Lun": "Upper A"}, {"Lun": "Repos"}) == "Upper A"
+def test_evening_repos_renvoie_none():
+    assert _run({"Lun": "Upper A"}, {"Lun": "Repos"}) is None
 
 
 def test_evening_override_gagne():
@@ -62,8 +62,8 @@ def test_les_deux_repos_renvoie_none():
 
 
 if __name__ == "__main__":
-    test_evening_vide_herite_du_matin()
-    test_evening_repos_herite_du_matin()
+    test_evening_vide_renvoie_none()
+    test_evening_repos_renvoie_none()
     test_evening_override_gagne()
     test_les_deux_repos_renvoie_none()
-    print("OK — 4 cas de fallback héritage soir validés")
+    print("OK — 4 cas soir validés")

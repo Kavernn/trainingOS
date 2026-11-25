@@ -201,9 +201,8 @@ def api_seance_data():
         # déplacés inter-sessions et le cas pseudo-séance soir orphelin.
         "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
         "exercise_meta": {sname: get_strength_exercise_meta(sdef) for sname, sdef in full_program.items()},
-        # Nom soir résolu (override manuel > héritage matin > None). Exposé pour
-        # que les call sites iOS de SeanceSoirView passent le vrai nom soir sans
-        # deviner ni faire un fetch séparé. Cf. commit héritage soir.
+        # Nom soir du planning soir, None si vide/Repos (aucun héritage du matin).
+        # Exposé pour que les call sites iOS de SeanceSoirView passent le vrai nom.
         "evening_session_name": sessions_for_date(today_date, full_program)[1],
     })
 
