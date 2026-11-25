@@ -631,13 +631,27 @@ def _verdict(
 
 # ── Messaging ─────────────────────────────────────────────────────────────────
 
+def _hrv_drop_pct(h_det: dict) -> int | None:
+    """Écart HRV du jour vs moyenne 7 j, en % (positif = sous la moyenne). Même calcul
+    que l'alerte iOS (DashboardSignalEngine) : une seule source, hrv_engine."""
+    today, base = h_det.get("today_hrv"), h_det.get("baseline")
+    if today is None or not base:
+        return None
+    return int((base - today) / base * 100)
+
+
 def _build_messaging(
     verdict: str,
     modules: dict,
     details: dict,
     breakdown: dict,
+    session_done: bool = False,
 ) -> tuple[str, str | None, float]:
-    """Returns (why, adjustment, progression_modifier)."""
+    """Returns (why, adjustment, progression_modifier).
+
+    Verdict go : « au vert » seulement si aucun module critique ET zone HRV verte
+    (ou absente) — même zone hrv_engine que l'alerte et le Coach. Séance du jour
+    faite : jamais d'incitation à « pousser »."""
 
     scored = {k: modules[k]["score"] for k in modules if modules[k].get("score") is not None}
     if not scored:
@@ -654,6 +668,19 @@ def _build_messaging(
                 None,
                 1.0,
             )
+        h_det = details.get("hrv", {})
+        zone  = h_det.get("zone")
+        drop  = _hrv_drop_pct(h_det)
+        if zone == "red":
+            pct = f" {drop} %" if drop and drop > 0 else ""
+            tail = "séance faite, priorise la récupération." if session_done else "priorise la récupération aujourd'hui."
+            return f"HRV{pct} sous ta moyenne 7 j — {tail}", None, 1.0
+        if zone == "orange":
+            if session_done:
+                return "Séance faite — HRV dans ta moyenne 7 j, sans marge : place à la récupération.", None, 1.0
+            return "HRV dans ta moyenne 7 j, sans marge — séance normale, sans chercher le max.", None, 1.0
+        if session_done:
+            return "Séance faite et métriques au vert — place à la récupération.", None, 1.0
         return "Toutes tes métriques sont au vert — c'est le bon moment pour pousser.", None, 1.0
 
     prog_mod = 0.65 if verdict == "rest" else 0.90
@@ -687,7 +714,7 @@ def _build_messaging(
     if worst_k == "hrv":
         h_det = details.get("hrv", {})
         zone  = h_det.get("zone", "")
-        why   = f"Ta HRV est en dessous de ta baseline personnelle ({zone}) — ton système nerveux récupère encore."
+        why   = f"Ta HRV est sous ta moyenne 7 j ({zone}) — ton système nerveux récupère encore."
         if verdict == "rest":
             adj = "Système nerveux sous pression — pas d'effort intense. Marche, yoga, ou repos complet."
         else:
@@ -700,9 +727,9 @@ def _build_messaging(
         base     = r_det.get("baseline_7d")
         today_rh = r_det.get("today_rhr")
         if delta is not None and delta > 0:
-            why = f"FC repos élevée ({today_rh} bpm, +{delta:.0f} vs ta baseline {base:.0f}) — récupération cardiovasculaire incomplète."
+            why = f"FC repos élevée ({today_rh} bpm, +{delta:.0f} vs ta moyenne 7 j {base:.0f}) — récupération cardiovasculaire incomplète."
         else:
-            why = "FC repos au-dessus de ta baseline — le système cardiovasculaire récupère encore."
+            why = "FC repos au-dessus de ta moyenne 7 j — le système cardiovasculaire récupère encore."
         if verdict == "rest":
             adj = "Repos ou effort très léger uniquement — ton cœur signale une fatigue systémique."
         else:
@@ -758,6 +785,18 @@ def _build_messaging(
     why = "Tes métriques de récupération sont limitantes aujourd'hui — écoute ton corps."
     adj = "Drop tes working sets de 10% et priorise la technique sur l'intensité."
     return why, adj, prog_mod
+
+
+def _session_done_today() -> bool:
+    """Une séance complétée aujourd'hui (MTL). Erreur → False : le message reste
+    celui d'avant séance, jamais une valeur inventée."""
+    try:
+        today_s = _today_mtl()
+        return any(str(s.get("date", ""))[:10] == today_s and s.get("completed")
+                   for s in (db.get_workout_sessions(limit=5) or []))
+    except Exception as e:
+        logger.warning("readiness: session du jour illisible: %s", e)
+        return False
 
 
 # ── Active energy modifier (repos uniquement) ─────────────────────────────────
@@ -886,7 +925,8 @@ def compute() -> dict:
         if insufficient:
             why, adjustment, prog_mod = _INSUFFICIENT_WHY, None, None
         else:
-            why, adjustment, prog_mod = _build_messaging(verdict, modules, all_details, breakdown)
+            why, adjustment, prog_mod = _build_messaging(verdict, modules, all_details, breakdown,
+                                                         session_done=_session_done_today())
 
         today_session = None
         try:

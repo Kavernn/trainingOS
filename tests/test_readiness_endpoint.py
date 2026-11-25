@@ -167,6 +167,30 @@ class TestMessagingHonest(_ReadinessBaseTest):
         why, adj, prog = _r._build_messaging("go", modules, {}, {})
         self.assertIn("au vert", why)
 
+    _HEALTHY = {"hrv": {"score": 84, "label": "HRV", "detail": ""},
+                "rhr": {"score": 85, "label": "FC repos", "detail": ""}}
+
+    def test_go_with_red_hrv_zone_never_says_au_vert(self):
+        # Capture 24 nov : HRV −16 % (zone rouge) mais module 84 → verdict go.
+        import readiness as _r
+        det = {"hrv": {"zone": "red", "today_hrv": 42.0, "baseline": 50.0}}
+        why, _, _ = _r._build_messaging("go", self._HEALTHY, det, {})
+        self.assertNotIn("au vert", why)
+        self.assertNotIn("pousser", why)
+        self.assertIn("16 % sous ta moyenne 7 j", why)
+
+    def test_go_with_orange_hrv_zone_never_says_au_vert(self):
+        import readiness as _r
+        why, _, _ = _r._build_messaging("go", self._HEALTHY, {"hrv": {"zone": "orange"}}, {})
+        self.assertNotIn("au vert", why)
+
+    def test_session_done_never_pushes(self):
+        import readiness as _r
+        for zone in ("green", "orange", "red", None):
+            why, _, _ = _r._build_messaging("go", self._HEALTHY, {"hrv": {"zone": zone}}, {},
+                                            session_done=True)
+            self.assertNotIn("pousser", why, zone)
+
 
 if __name__ == "__main__":
     import unittest
