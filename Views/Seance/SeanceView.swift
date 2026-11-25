@@ -153,10 +153,9 @@ struct AlreadyLoggedSeanceView: View {
 
     var showEveningBlock: Bool {
         let dash = APIService.shared.dashboard
-        let backendPlanned = dash?.hasEveningSession ?? false
-        let pushed = !data.pushedToEvening.isEmpty
-        let done = dash?.secondSessionCompleted ?? false
-        return (backendPlanned || pushed) && !done
+        return DashboardData.isSecondSessionPending(hasEveningSession: dash?.hasEveningSession ?? false,
+                                                    pushedCount: data.pushedToEvening.count,
+                                                    completed: dash?.secondSessionCompleted ?? false)
     }
 
     private var isMultiSlot: Bool {

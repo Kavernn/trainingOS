@@ -94,7 +94,7 @@ struct TodayCardView: View {
 
     /// Projection visuelle de la branche existante — ne pilote aucun CTA ni navigation.
     private var recapPresentation: TodaySessionRecap.Presentation {
-        if (plannedEvening != nil || hasLocalPushedExercises) && !dash.secondSessionCompleted {
+        if dash.secondSessionPending {
             return .morningCompleted
         }
         return .dayCompleted
@@ -206,11 +206,9 @@ struct TodayCardView: View {
                             .padding(.bottom, 12)
                     }
                 }
-                // Séance 2 non complétée ET (PM dans la structure du jour OU exos poussés).
-                // Pas dash.hasEveningSession : le serveur hérite le nom du matin quand le
-                // soir est vide (planner.sessions_for_date) → séance 2 fantôme (24 nov).
+                // Séance 2 : règle serveur unique (soir vide = aucune séance du soir) + exos poussés.
                 // → CTA vers SeanceSoirView (flow evening, is_second=true).
-                if (plannedEvening != nil || hasLocalPushedExercises) && !dash.secondSessionCompleted {
+                if dash.secondSessionPending {
                     VStack(alignment: .leading, spacing: 10) {
                         TodayPriorityHeader(
                             title: "À FAIRE MAINTENANT",

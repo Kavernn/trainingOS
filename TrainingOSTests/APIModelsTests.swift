@@ -714,6 +714,21 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(order(21, amDone: true).filter { $0 == .tomorrow }.count, 1)
     }
 
+    /// Soir vide = aucune séance du soir (24 nov 2026) : ni séance 2 (Dashboard, Séance),
+    /// ni hero « (suite) » (Programme). Seuls une PM planifiée ou des exos poussés en créent une.
+    func testNoEveningSessionWhenEveningScheduleEmpty() {
+        XCTAssertFalse(DashboardData.isSecondSessionPending(hasEveningSession: false, pushedCount: 0, completed: false))
+        XCTAssertTrue(DashboardData.isSecondSessionPending(hasEveningSession: true, pushedCount: 0, completed: false))
+        XCTAssertTrue(DashboardData.isSecondSessionPending(hasEveningSession: false, pushedCount: 2, completed: false))
+        XCTAssertFalse(DashboardData.isSecondSessionPending(hasEveningSession: true, pushedCount: 2, completed: true))
+
+        XCTAssertEqual(EveningHero.resolve(eveningSchedule: nil, pushedCount: 0), .none)
+        XCTAssertEqual(EveningHero.resolve(eveningSchedule: "", pushedCount: 0), .none)
+        XCTAssertEqual(EveningHero.resolve(eveningSchedule: "Repos", pushedCount: 0), .none)
+        XCTAssertEqual(EveningHero.resolve(eveningSchedule: nil, pushedCount: 3), .pushedOnly(3))
+        XCTAssertEqual(EveningHero.resolve(eveningSchedule: "Yoga", pushedCount: 3), .planned("Yoga"))
+    }
+
     // MARK: - SafeString
 
     func testSafeStringFromString() throws {

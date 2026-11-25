@@ -127,6 +127,15 @@ fileprivate enum Phase: String, CaseIterable {
     }
 }
 
+/// Hero du soir (onglet Programme) : PM planifiée, exos poussés seuls, ou rien.
+enum EveningHero: Equatable {
+    case planned(String), pushedOnly(Int), none
+    static func resolve(eveningSchedule: String?, pushedCount: Int) -> EveningHero {
+        if let name = eveningSchedule, !name.isEmpty, name != "Repos" { return .planned(name) }
+        return pushedCount > 0 ? .pushedOnly(pushedCount) : .none
+    }
+}
+
 struct ProgrammeView: View {
     // Toute donnée serveur + runtime mutation vit dans le VM (@Published). La vue
     // lit vm.xxx et écrit via bindings/setters directs. Seuls les états UI-LOCAL
@@ -718,31 +727,19 @@ struct ProgrammeView: View {
     }
     // MARK: - Direction B — tab helpers
 
-    // Résolution du soir : override manuel > héritage du matin > rien.
-    // isInherited=true si le nom vient du planning matin (soir non peuplé sauf via
-    // SeanceSplitStore). Miroir iOS du fallback backend get_today_evening().
-    private var todayEveningResolved: (name: String, isInherited: Bool)? {
+    // Soir = planning soir uniquement (miroir de planner.sessions_for_date) : vide ou
+    // Repos = aucune séance du soir, jamais le nom du matin.
+    private var manualEveningSessionName: String? {
         let weekday = Calendar.mtl.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7
         guard idx < TrainingDoctrine.dayNames.count else { return nil }
-        let day = TrainingDoctrine.dayNames[idx]
-        if let manual = vm.eveningSchedule[day], !manual.isEmpty, manual != "Repos" {
-            return (manual, false)
-        }
-        if let morning = todaySessionName {
-            return (morning, true)
-        }
-        return nil
+        guard let name = vm.eveningSchedule[TrainingDoctrine.dayNames[idx]],
+              !name.isEmpty, name != "Repos" else { return nil }
+        return name
     }
 
-    private var todayEveningSessionName: String? { todayEveningResolved?.name }
-
-    // Nom soir à passer au sheet SeanceSoirView : uniquement si override manuel
-    // (evening_schedule set explicitement). Héritage matin = nil → SeanceSoirView
-    // charge le matin et affiche « — suite ». Cf. fix override.
-    private var manualEveningSessionName: String? {
-        guard let r = todayEveningResolved, !r.isInherited else { return nil }
-        return r.name
+    private var eveningHero: EveningHero {
+        EveningHero.resolve(eveningSchedule: manualEveningSessionName, pushedCount: seance2ExosToday.count)
     }
 
     @ViewBuilder
@@ -835,55 +832,47 @@ struct ProgrammeView: View {
 
     @ViewBuilder
     private var heroSoir: some View {
-        if let resolved = todayEveningResolved {
-            if resolved.isInherited {
-                inheritedHeroSoir(morningName: resolved.name)
-            } else {
-                let displayedName = displaySessionName(resolved.name)
-                heroCard(sessionName: resolved.name, source: .evening, badge: "SOIR", role: .evening) {
-                    Button {
-                        showSeanceSoirSheet = true
-                    } label: {
-                        heroCTA
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Commencer la séance du soir, \(displayedName).")
+        switch eveningHero {
+        case .planned(let name):
+            let displayedName = displaySessionName(name)
+            heroCard(sessionName: name, source: .evening, badge: "SOIR", role: .evening) {
+                Button {
+                    showSeanceSoirSheet = true
+                } label: {
+                    heroCTA
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Commencer la séance du soir, \(displayedName).")
             }
-        } else {
+        case .pushedOnly(let n):
+            pushedHeroSoir(count: n)
+        case .none:
             restCard(text: "Repos ce soir")
         }
     }
 
-    // Hero SOIR hérité — non peuplé par défaut. Le sous-titre reflète les exos
-    // que Vince a envoyés depuis la séance matin via SeanceSplitStore (flèche →
-    // dans WorkoutActiveView). "Rien d'envoyé pour l'instant" = état vide sobre.
-    // On n'affiche pas la liste des exos matin ici : l'invariant est "un exo
-    // matin OU soir, jamais les deux" — le soir hérite du NOM, pas du CONTENU.
+    // Hero SOIR sans PM planifiée : seulement si des exos ont été envoyés vers le soir
+    // (pseudo-séance « Séance soir » côté serveur, seance_soir_data).
     @ViewBuilder
-    private func inheritedHeroSoir(morningName: String) -> some View {
-        let displayedName = displaySessionName(morningName)
-        let n = seance2ExosToday.count
-        let subtitle = n > 0
-            ? "\(n) exercice\(n > 1 ? "s" : "") envoyé\(n > 1 ? "s" : "") ce matin"
-            : "Rien d'envoyé pour l'instant"
+    private func pushedHeroSoir(count n: Int) -> some View {
+        let subtitle = "\(n) exercice\(n > 1 ? "s" : "") envoyé\(n > 1 ? "s" : "") ce matin"
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 16) {
                 AppBadge("SOIR", role: .evening)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(displayedName) (suite)").font(.appHero).foregroundColor(.appTextPrimary)
+                    Text("Séance soir").font(.appHero).foregroundColor(.appTextPrimary)
                     Text(subtitle).font(.appLabel).foregroundColor(.appTextSecondary)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Soir. \(displayedName) suite. \(subtitle).")
+            .accessibilityLabel("Soir. Séance soir. \(subtitle).")
             Button {
                 showSeanceSoirSheet = true
             } label: {
                 heroCTA
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Commencer la séance du soir, \(displayedName) suite.")
+            .accessibilityLabel("Commencer la séance du soir, \(subtitle).")
         }
         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
         .glassCard()

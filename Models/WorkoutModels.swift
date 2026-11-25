@@ -92,6 +92,15 @@ struct DashboardData: Codable {
     let hasEveningSession: Bool
     let eveningSessionName: String?
     let secondSessionCompleted: Bool
+    /// Séance 2 à faire : PM au planning soir (serveur, jamais héritée du matin) ou exos
+    /// poussés vers le soir, et pas encore faite. Règle unique Dashboard + onglet Séance.
+    static func isSecondSessionPending(hasEveningSession: Bool, pushedCount: Int, completed: Bool) -> Bool {
+        (hasEveningSession || pushedCount > 0) && !completed
+    }
+    var secondSessionPending: Bool {
+        Self.isSecondSessionPending(hasEveningSession: hasEveningSession, pushedCount: pushedToEvening.count,
+                                    completed: secondSessionCompleted)
+    }
     let hasBonusSession: Bool
     let bonusSessionName: String?
     let bonusSessionCompleted: Bool

@@ -173,13 +173,13 @@ struct SeanceSoirView: View {
         _vm = StateObject(wrappedValue: SeanceSoirViewModel(sessionName: sessionName))
     }
 
-    // Titre dynamique : override → nom seul ("Yoga") ; héritage matin →
-    // "{nom} — suite" pour signaler la continuation.
+    // Titre : nom du soir planifié, ou « Séance soir » (exos poussés). Plus de « — suite » :
+    // le soir n'hérite plus jamais du matin.
     private var seanceTitle: String {
         guard let name = vm.seanceData?.today, !name.isEmpty, name != "Repos" else {
             return "Séance du Soir"
         }
-        return hasOverride ? name : "\(name) — suite"
+        return name
     }
 
     var body: some View {
