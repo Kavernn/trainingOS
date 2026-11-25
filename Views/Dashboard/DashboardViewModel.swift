@@ -5,6 +5,7 @@ import OSLog
 // MARK: - Build 13 : ordre de la page selon le moment (l'état prime sur l'heure)
 
 enum DashboardSection: Equatable {
+    case alert        // alerte critique (deload, readiness < 40, HRV rouge, semaine en jeu)
     case today        // séance du jour (CTA / récap, séance PM) + Ma journée
     case coach        // « À SURVEILLER » : bannière réseau + coach / alerte proactive
     case moodPrompt   // invite humeur du matin
@@ -27,21 +28,25 @@ enum DashboardLayout {
         return hour >= 18 ? .evening : .afterSession
     }
 
-    /// Liste ordonnée des sections (le hero et l'alerte critique restent en tête, hors liste).
-    /// Une séance PM n'existe que si elle est planifiée ; planifiée et non faite → 2e position.
+    /// Liste ordonnée des sections sous le hero. Une séance PM n'existe que si elle est
+    /// planifiée ; planifiée et non faite → en tête. Séance du jour faite sans PM à venir
+    /// → récap juste sous le hero, avant l'alerte critique (après séance comme le soir).
     static func sections(hour: Int, amPlanned: Bool, amDone: Bool,
                          pmPlanned: Bool, pmDone: Bool) -> [DashboardSection] {
         let pmPending = pmPlanned && !pmDone
+        let recapFirst = amDone && !pmPending
         switch moment(hour: hour, amPlanned: amPlanned, amDone: amDone) {
         case .beforeSession:
-            return [.today, .coach, .moodPrompt, .grid, .actions, .extras, .budget]
+            return [.alert, .today, .coach, .moodPrompt, .grid, .actions, .extras, .budget]
         case .afterSession:
-            return [.today, .grid, .coach, .moodPrompt, .actions, .extras, .budget]
+            return (recapFirst ? [.today, .alert] : [.alert, .today])
+                + [.grid, .coach, .moodPrompt, .actions, .extras, .budget]
         case .evening:
-            return pmPending ? [.today, .grid, .actions, .coach, .extras, .budget]
-                             : [.grid, .actions, .coach, .today, .extras, .budget]
+            if recapFirst { return [.today, .alert, .grid, .actions, .coach, .extras, .budget] }
+            return pmPending ? [.alert, .today, .grid, .actions, .coach, .extras, .budget]
+                             : [.alert, .grid, .actions, .coach, .today, .extras, .budget]
         case .eve:
-            return (pmPending ? [.today] : []) + [.sleep, .tomorrow, .grid, .actions, .coach, .extras, .budget]
+            return [.alert] + (pmPending ? [.today] : []) + [.sleep, .tomorrow, .grid, .actions, .coach, .extras, .budget]
         }
     }
 }
@@ -118,7 +123,7 @@ struct DashboardSignalEngine {
            let today = hrv.todayRmssd, let baseline = hrv.baseline7d, baseline > 0 {
             let pct = Int(((baseline - today) / baseline) * 100)
             return CriticalSignal(
-                message: "HRV \(pct)% sous ta baseline — priorise la récupération aujourd'hui.",
+                message: "HRV \(pct) % sous ta moyenne 7 j — priorise la récupération aujourd'hui.",
                 actionLabel: "Voir HRV",
                 destination: .hrv,
                 icon: "heart.fill"

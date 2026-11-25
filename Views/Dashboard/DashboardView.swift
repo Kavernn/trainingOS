@@ -74,14 +74,6 @@ struct DashboardView: View {
     func dashboardContent(_ dash: DashboardData) -> some View {
         let layout = dashboardSections(dash)
         return VStack(alignment: .leading, spacing: 14) {
-            // 3 — Alerte critique (deload, readiness < 40, HRV rouge, semaine en jeu) : juste
-            // sous le hero, avant tout le reste (build 7 ; avant : sous « Mes tendances »).
-            if let signal = vm.criticalSignal(dash: dash) {
-                CriticalAlertCard(signal: signal) {
-                    handleAlertAction(signal: signal, dash: dash)
-                }
-            }
-
             ForEach(Array(layout.sections.enumerated()), id: \.offset) { _, section in
                 dashboardSection(section, dash: dash, isEve: layout.isEve)
             }
@@ -96,6 +88,11 @@ struct DashboardView: View {
     @ViewBuilder
     private func dashboardSection(_ section: DashboardSection, dash: DashboardData, isEve: Bool) -> some View {
         switch section {
+        case .alert:
+            // Alerte critique (build 7) : sous le hero, sauf après la séance du jour (récap d'abord).
+            if let signal = vm.criticalSignal(dash: dash) {
+                CriticalAlertCard(signal: signal) { handleAlertAction(signal: signal, dash: dash) }
+            }
         case .today:      todaySection(dash, isEve: isEve)
         case .coach:      coachSection(dash)
         case .moodPrompt: moodPromptSection

@@ -691,22 +691,25 @@ final class APIModelsTests: XCTestCase {
             DashboardLayout.sections(hour: h, amPlanned: am, amDone: amDone, pmPlanned: pm, pmDone: pmDone)
         }
         // Matin avant séance : action avant commentaire.
-        XCTAssertEqual(order(9), [.today, .coach, .moodPrompt, .grid, .actions, .extras, .budget])
+        XCTAssertEqual(order(9), [.alert, .today, .coach, .moodPrompt, .grid, .actions, .extras, .budget])
         // 19 h, séance pas faite : reste « avant séance » jusqu'à 20 h.
         XCTAssertEqual(DashboardLayout.moment(hour: 19, amPlanned: true, amDone: false), .beforeSession)
-        XCTAssertEqual(order(19).first, .today)
+        XCTAssertEqual(order(19).prefix(2), [.alert, .today])
         // Jour de repos : jamais « avant séance » ; le soir commence à 18 h.
         XCTAssertEqual(DashboardLayout.moment(hour: 10, amPlanned: false, amDone: false), .afterSession)
         XCTAssertEqual(DashboardLayout.moment(hour: 18, amPlanned: false, amDone: false), .evening)
-        // Aucune PM planifiée, séance faite, 18 h 30 : pas de séance supposée en tête.
-        XCTAssertEqual(order(18, amDone: true), [.grid, .actions, .coach, .today, .extras, .budget])
+        // Aucune PM planifiée, séance faite : récap juste sous le hero, avant l'alerte (après séance et soir).
+        XCTAssertEqual(order(18, amDone: true), [.today, .alert, .grid, .actions, .coach, .extras, .budget])
+        XCTAssertEqual(order(14, amDone: true).prefix(2), [.today, .alert])
+        // Repos le soir : séance non supposée en tête.
+        XCTAssertEqual(order(18, am: false), [.alert, .grid, .actions, .coach, .today, .extras, .budget])
         // PM planifiée (ou ajoutée en cours de journée) et non faite à 18 h 30 → 2e (juste sous le hero).
-        XCTAssertEqual(order(18, amDone: true, pm: true).first, .today)
-        // PM faite → retour à l'ordre du soir.
-        XCTAssertEqual(order(18, amDone: true, pm: true, pmDone: true).first, .grid)
+        XCTAssertEqual(order(18, amDone: true, pm: true).prefix(2), [.alert, .today])
+        // PM faite → récap de la journée en tête.
+        XCTAssertEqual(order(18, amDone: true, pm: true, pmDone: true).first, .today)
         // Veille : routine sommeil puis séance de demain ; PM non faite → en tête.
-        XCTAssertEqual(Array(order(21, amDone: true).prefix(2)), [.sleep, .tomorrow])
-        XCTAssertEqual(order(21, amDone: true, pm: true).first, .today)
+        XCTAssertEqual(Array(order(21, amDone: true).prefix(3)), [.alert, .sleep, .tomorrow])
+        XCTAssertEqual(order(21, amDone: true, pm: true).prefix(2), [.alert, .today])
         XCTAssertFalse(order(21, amDone: true).contains(.today), "veille sans PM : la séance de demain seule")
         XCTAssertEqual(order(21, amDone: true).filter { $0 == .tomorrow }.count, 1)
     }
